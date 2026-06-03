@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import http from 'http'
+import { serve } from '@hono/node-server'
 
 import insumosRoutes from './routes/insumos.js'
 import productosRoutes from './routes/productos.js'
@@ -39,13 +39,15 @@ app.onError((err, c) => {
   return c.json({ error: err.message ?? 'Error interno del servidor' }, status)
 })
 
-// Start server usando http nativo de Node
+// Start server
 const port = parseInt(process.env.PORT || '3000', 10)
 
-const server = http.createServer(app.fetch)
-
-server.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Servidor corriendo en http://0.0.0.0:${port}`)
+serve({
+  fetch: app.fetch,
+  port,
+  hostname: '0.0.0.0',
+}, (info) => {
+  console.log(`🚀 Servidor corriendo en http://0.0.0.0:${info.port}`)
 })
 
 export default app
