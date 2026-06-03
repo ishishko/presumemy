@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { get } from '@/services/api'
+import { ref, computed, onMounted, watch } from 'vue'
+import { Plus, Pencil, Trash2 } from '@lucide/vue'
+import { get, del } from '@/services/api'
+import { createTrigger } from '@/composables/useCreateTrigger'
+import MovimientoDrawer from '@/components/drawers/MovimientoDrawer.vue'
+import ImprentaDrawer from '@/components/drawers/ImprentaDrawer.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { useToast } from '@/composables/useToast'
 import type { Transaccion, OrdenImprenta, PaginationResult, FinanzasKPIs } from '@/types'
 
 const tab = ref('movimientos')
@@ -13,6 +19,15 @@ const ordenes = ref<OrdenImprenta[]>([])
 const kpis = ref<FinanzasKPIs>({ ingresos: 0, egresos: 0, utilidad: 0 })
 const loading = ref(true)
 const error = ref('')
+
+const showMovDrawer = ref(false)
+const showImprentaDrawer = ref(false)
+const editingTransaccion = ref<Transaccion | null>(null)
+const editingOrden = ref<OrdenImprenta | null>(null)
+const showConfirmDelete = ref(false)
+const deleteTarget = ref<{ type: 'mov' | 'imprenta'; item: Transaccion | OrdenImprenta } | null>(null)
+
+const { toast } = useToast()
 
 const tipoMovs = [
   { id: 'venta_producto', label: 'Venta producto', color: '#2E6F70' },
@@ -88,7 +103,59 @@ async function loadData() {
   }
 }
 
+function handleCreateMov() {
+  editingTransaccion.value = null
+  showMovDrawer.value = true
+}
+
+function handleCreateImprenta() {
+  editingOrden.value = null
+  showImprentaDrawer.value = true
+}
+
+function handleEditMov(t: Transaccion) {
+  editingTransaccion.value = t
+  showMovDrawer.value = true
+}
+
+function handleEditOrden(o: OrdenImprenta) {
+  editingOrden.value = o
+  showImprentaDrawer.value = true
+}
+
+function handleSavedMov() { loadData() }
+function handleSavedOrden() { loadData() }
+
+function handleDeleteClick(type: 'mov' | 'imprenta', item: Transaccion | OrdenImprenta) {
+  deleteTarget.value = { type, item }
+  showConfirmDelete.value = true
+}
+
+async function handleDeleteConfirm() {
+  if (!deleteTarget.value) return
+  const { type, item } = deleteTarget.value
+  const endpoint = type === 'mov' ? '/finanzas' : '/finanzas/ordenes-imprenta'
+  const label = type === 'mov' ? 'Movimiento' : 'Orden'
+  try {
+    await del(endpoint, item.id)
+    toast(`${label} eliminado`, 'info')
+    loadData()
+  } catch (e: any) {
+    toast(e.message || 'Error al eliminar', 'error')
+  }
+  showConfirmDelete.value = false
+  deleteTarget.value = null
+}
+
 onMounted(loadData)
+
+watch(createTrigger, (val) => {
+  if (val === 'finanzas') {
+    if (tab.value === 'movimientos') handleCreateMov()
+    else handleCreateImprenta()
+    createTrigger.value = null
+  }
+})
 </script>
 
 <template>
@@ -127,6 +194,13 @@ onMounted(loadData)
           :class="['fin-tab', tab === 'imprenta' && 'active']"
           @click="tab = 'imprenta'"
         >Imprenta <span class="count">{{ ordenes.length }}</span></button>
+        <div class="spacer" />
+        <button
+          class="btn btn-ghost btn-sm"
+          @click="tab === 'movimientos' ? handleCreateMov() : handleCreateImprenta()"
+        >
+          <Plus :size="14" /> {{ tab === 'movimientos' ? 'Movimiento' : 'Orden' }}
+        </button>
       </div>
 
       <template v-if="tab === 'movimientos'">
@@ -172,6 +246,7 @@ onMounted(loadData)
                 <th>Detalle</th>
                 <th style="width: 140px">Nro. factura</th>
                 <th class="num" style="width: 130px">Monto</th>
+                <th style="width: 80px"></th>
               </tr>
             </thead>
             <tbody>
@@ -197,9 +272,19 @@ onMounted(loadData)
                 <td :class="['num', Number(m.monto) >= 0 ? 'fin-monto-pos' : 'fin-monto-neg']">
                   {{ signedMoney(Number(m.monto)) }}
                 </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="row-action-btn" @click="handleEditMov(m)" title="Editar">
+                      <Pencil :size="14" />
+                    </button>
+                    <button class="row-action-btn row-action-danger" @click="handleDeleteClick('mov', m)" title="Eliminar">
+                      <Trash2 :size="14" />
+                    </button>
+                  </div>
+                </td>
               </tr>
               <tr v-if="filteredMovs.length === 0">
-                <td colspan="7" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
+                <td colspan="8" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
                   Sin movimientos con los filtros actuales.
                 </td>
               </tr>
@@ -227,6 +312,7 @@ onMounted(loadData)
                 <th class="num" style="width: 110px">Valor total</th>
                 <th style="width: 130px">Método pago</th>
                 <th style="width: 110px">Pagado</th>
+                <th style="width: 80px"></th>
               </tr>
             </thead>
             <tbody>
@@ -243,9 +329,19 @@ onMounted(loadData)
                     <span class="dot" /> {{ o.pagado ? 'Pagado' : 'Pendiente' }}
                   </span>
                 </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="row-action-btn" @click="handleEditOrden(o)" title="Editar">
+                      <Pencil :size="14" />
+                    </button>
+                    <button class="row-action-btn row-action-danger" @click="handleDeleteClick('imprenta', o)" title="Eliminar">
+                      <Trash2 :size="14" />
+                    </button>
+                  </div>
+                </td>
               </tr>
               <tr v-if="ordenes.length === 0">
-                <td colspan="8" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
+                <td colspan="9" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
                   Sin órdenes de imprenta en este período.
                 </td>
               </tr>
@@ -255,4 +351,51 @@ onMounted(loadData)
       </template>
     </template>
   </div>
+
+  <MovimientoDrawer
+    :open="showMovDrawer"
+    :transaccion="editingTransaccion"
+    @close="showMovDrawer = false"
+    @saved="handleSavedMov"
+  />
+
+  <ImprentaDrawer
+    :open="showImprentaDrawer"
+    :orden="editingOrden"
+    @close="showImprentaDrawer = false"
+    @saved="handleSavedOrden"
+  />
+
+  <ConfirmDialog
+    :open="showConfirmDelete"
+    :title="deleteTarget?.type === 'mov' ? 'Eliminar movimiento' : 'Eliminar orden'"
+    :message="`Vas a eliminar este registro. Esta acción no se puede deshacer.`"
+    confirm-label="Eliminar"
+    variant="danger"
+    @confirm="handleDeleteConfirm"
+    @cancel="showConfirmDelete = false; deleteTarget = null"
+  />
 </template>
+
+<style scoped>
+.row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.row-action-btn {
+  background: transparent;
+  border: 0;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.row-action-btn:hover { background: var(--page-bg); color: var(--ink); }
+.row-action-danger:hover { background: var(--coral-50); color: var(--coral-500); }
+</style>

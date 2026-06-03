@@ -279,6 +279,56 @@ Para cada pantalla: trasladar JSX → Vue SFC, conectar a `/api/*`, manejar load
 
 ---
 
+## FASE 3 — Create/Edit Flows: Drawers, Formularios, Validación, Undo
+
+### Arquitectura de componentes
+
+**Patrón dual según complejidad:**
+
+| Módulo | Patrón | Referencia prototipo |
+|---|---|---|
+| Presupuestos | Drawer lateral (520px) | `drawer.jsx` |
+| Finanzas → Movimientos | Drawer lateral (520px) | `finanzas_drawer.jsx` |
+| Finanzas → Órdenes imprenta | Drawer lateral (520px) | `finanzas_drawer.jsx` |
+| Insumos | Overlay fullscreen | `insumo_detalle.jsx` |
+| Productos | Overlay fullscreen | `producto_detalle.jsx` |
+| Clientes | Drawer lateral (520px) | *(diseño simple)* |
+
+### Componentes a crear
+
+**Infraestructura (Fase 3.1):**
+- `web/src/components/ui/DrawerShell.vue` — Shell reutilizable (scrim, slide-in, Escape, slots)
+- `web/src/components/ui/ConfirmDialog.vue` — Diálogo confirmación (title, message, variant danger/default)
+- `web/src/composables/useDirty.ts` — Estado "sucio" con snapshot inicial
+- `web/src/composables/useToast.ts` — Toast notifications + undo para deletes
+- `web/src/schemas/` — Zod schemas frontend (adaptados de `api/src/types/`)
+
+**Drawers (Fase 3.2-3.5):**
+- `web/src/components/drawers/ClienteDrawer.vue` — nombre, domicilio, contactos dinámicos, notas
+- `web/src/components/drawers/PresupuestoDrawer.vue` — cliente, líneas, subtotal/IVA/total, notas, enviar
+- `web/src/components/drawers/MovimientoDrawer.vue` — fecha, tipo, cuenta, signo toggle, valor, detalle
+- `web/src/components/drawers/ImprentaDrawer.vue` — fecha, presupuesto, temática, hojas, valores, pago
+
+**Overlays fullscreen (Fase 3.6-3.7):**
+- `web/src/components/overlays/InsumoDetalle.vue` — 2 columnas, stock, costos, proveedores spreadsheet
+- `web/src/components/overlays/ProductoDetalle.vue` — 3 columnas, fotos, identidad, precios, BOM
+
+**Wiring (Fase 3.8):**
+- `web/src/App.vue` — `handleCreate()` abre drawer/overlay según ruta
+- Cada `*View.vue` — click en fila → edición, botón eliminar → ConfirmDialog → soft delete
+
+**CSS adicional (Fase 3.9):**
+- Estilos `.id-overlay`, `.pd-overlay` y derivados en `components.css`
+- Estilos toast notifications
+
+### Reglas
+- Zod schemas: copiar de `api/src/types/` y adaptar si necesario
+- Fotos de productos: placeholder por ahora (sin upload real), campo `imagenUrl` como string
+- Undo: toast con "Deshacer" que reactiva `activo = true` (5s ventana)
+- Confirmación al salir con cambios pendientes
+
+---
+
 ## Reglas de implementación
 
 1. **Backend primero** — no tocar `web/` hasta que `api/` tenga DB + seed + rutas funcionando

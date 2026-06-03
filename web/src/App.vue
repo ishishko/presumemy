@@ -2,8 +2,10 @@
 import { computed, onMounted } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { createTrigger } from '@/composables/useCreateTrigger'
 import TheSidebar from '@/components/layout/TheSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -48,7 +50,7 @@ async function handleLogout() {
 }
 
 function handleCreate() {
-  // TODO: implement per-section create logic
+  createTrigger.value = currentRoute.value
 }
 </script>
 
@@ -72,4 +74,6 @@ function handleCreate() {
       <RouterView />
     </div>
   </div>
+
+  <ToastContainer />
 </template>

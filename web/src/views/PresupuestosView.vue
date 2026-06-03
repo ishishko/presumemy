@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { get } from '@/services/api'
+import { ref, computed, onMounted, watch } from 'vue'
+import { Pencil, Trash2 } from '@lucide/vue'
+import { get, del } from '@/services/api'
+import { createTrigger } from '@/composables/useCreateTrigger'
+import PresupuestoDrawer from '@/components/drawers/PresupuestoDrawer.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { useToast } from '@/composables/useToast'
 import type { Presupuesto, PaginationResult } from '@/types'
 
 const presupuestos = ref<Presupuesto[]>([])
@@ -8,6 +13,12 @@ const loading = ref(true)
 const error = ref('')
 
 const filter = ref('todos')
+const showDrawer = ref(false)
+const editingPresupuesto = ref<Presupuesto | null>(null)
+const showConfirmDelete = ref(false)
+const deletingPresupuesto = ref<Presupuesto | null>(null)
+
+const { toast } = useToast()
 
 const filtered = computed(() => {
   if (filter.value === 'todos') return presupuestos.value
@@ -37,7 +48,7 @@ const filters = [
   { id: 'cancelado', label: 'Cancelado' },
 ]
 
-onMounted(async () => {
+async function loadPresupuestos() {
   try {
     const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 100 })
     presupuestos.value = res.data
@@ -46,12 +57,54 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+function handleCreate() {
+  editingPresupuesto.value = null
+  showDrawer.value = true
+}
+
+function handleEdit(p: Presupuesto) {
+  editingPresupuesto.value = p
+  showDrawer.value = true
+}
+
+function handleSaved() {
+  loadPresupuestos()
+}
+
+function handleDeleteClick(p: Presupuesto) {
+  deletingPresupuesto.value = p
+  showConfirmDelete.value = true
+}
+
+async function handleDeleteConfirm() {
+  if (!deletingPresupuesto.value) return
+  const p = deletingPresupuesto.value
+  try {
+    await del('/presupuestos', p.id)
+    toast('Presupuesto eliminado', 'info')
+    presupuestos.value = presupuestos.value.filter(x => x.id !== p.id)
+  } catch (e: any) {
+    toast(e.message || 'Error al eliminar', 'error')
+  }
+  showConfirmDelete.value = false
+  deletingPresupuesto.value = null
+}
 
 function formatDate(d?: string): string {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }
+
+onMounted(loadPresupuestos)
+
+watch(createTrigger, (val) => {
+  if (val === 'presupuestos') {
+    handleCreate()
+    createTrigger.value = null
+  }
+})
 </script>
 
 <template>
@@ -80,7 +133,7 @@ function formatDate(d?: string): string {
               <th>Fecha</th>
               <th>Estado</th>
               <th class="num">Total</th>
-              <th style="width: 40px"></th>
+              <th style="width: 80px"></th>
             </tr>
           </thead>
           <tbody>
@@ -99,13 +152,14 @@ function formatDate(d?: string): string {
               </td>
               <td class="num" style="font-weight: 500">{{ money(p.total) }}</td>
               <td>
-                <button class="icon-btn" style="width: 28px; height: 28px; border: 0; background: transparent">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; color: var(--ink-muted)">
-                    <circle cx="12" cy="12" r="1" />
-                    <circle cx="12" cy="5" r="1" />
-                    <circle cx="12" cy="19" r="1" />
-                  </svg>
-                </button>
+                <div class="row-actions">
+                  <button class="row-action-btn" @click="handleEdit(p)" title="Editar">
+                    <Pencil :size="14" />
+                  </button>
+                  <button class="row-action-btn row-action-danger" @click="handleDeleteClick(p)" title="Eliminar">
+                    <Trash2 :size="14" />
+                  </button>
+                </div>
               </td>
             </tr>
             <tr v-if="filtered.length === 0">
@@ -118,4 +172,44 @@ function formatDate(d?: string): string {
       </div>
     </template>
   </div>
+
+  <PresupuestoDrawer
+    :open="showDrawer"
+    :presupuesto="editingPresupuesto"
+    @close="showDrawer = false"
+    @saved="handleSaved"
+  />
+
+  <ConfirmDialog
+    :open="showConfirmDelete"
+    title="Eliminar presupuesto"
+    :message="`Vas a eliminar ${deletingPresupuesto?.folio}. Esta acción no se puede deshacer.`"
+    confirm-label="Eliminar"
+    variant="danger"
+    @confirm="handleDeleteConfirm"
+    @cancel="showConfirmDelete = false; deletingPresupuesto = null"
+  />
 </template>
+
+<style scoped>
+.row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.row-action-btn {
+  background: transparent;
+  border: 0;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.row-action-btn:hover { background: var(--page-bg); color: var(--ink); }
+.row-action-danger:hover { background: var(--coral-50); color: var(--coral-500); }
+</style>
