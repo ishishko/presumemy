@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1280" />
+  <title>Detalle de producto · Presumemi</title>
+
+  <link rel="stylesheet" href="../../colors_and_type.css" />
+  <link rel="stylesheet" href="./styles.css" />
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="./icons.jsx"></script>
+  <script type="text/babel" src="./data.jsx"></script>
+  <script type="text/babel" src="../../productos/productos.jsx"></script>
+  <script type="text/babel" src="./producto_detalle.jsx"></script>
+
+  <script type="text/babel">
+    /* Preview shell standalone: monta ProductoDetalleScreen con un sidebar/topbar
+       locales para mantener el contexto de navegación de la app. */
+    const { useState: useDetState } = React;
+
+    const DETAIL_NAV = [
+      { id: "dashboard",    label: "Inicio",       icon: "dashboard" },
+      { id: "presupuestos", label: "Presupuestos", icon: "doc" },
+      { id: "productos",    label: "Productos",    icon: "box" },
+      { id: "insumos",      label: "Insumos",      icon: "stack" },
+      { id: "finanzas",     label: "Finanzas",     icon: "coin" },
+      { id: "clientes",     label: "Clientes",     icon: "users" },
+    ];
+
+    function DetailSidebar() {
+      return (
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <img src="../../assets/memydeni-logo.png" alt="MemyDeni" />
+          </div>
+          <div className="sidebar-section">
+            <div className="sidebar-section-label">Operación</div>
+            {DETAIL_NAV.slice(0, 5).map((n) => {
+              const Icon = I[n.icon];
+              const active = n.id === "productos";
+              return (
+                <button key={n.id} className={"nav-item" + (active ? " active" : "")}>
+                  <Icon /> {n.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="sidebar-section">
+            <div className="sidebar-section-label">Datos</div>
+            {DETAIL_NAV.slice(5).map((n) => {
+              const Icon = I[n.icon];
+              return (
+                <button key={n.id} className="nav-item">
+                  <Icon /> {n.label}
+                </button>
+              );
+            })}
+            <button className="nav-item"><I.cog /> Ajustes</button>
+          </div>
+          <div className="sidebar-foot">
+            <div className="avatar">DM</div>
+            <div className="who">
+              <div className="name">Deni M.</div>
+              <div className="role">Propietaria</div>
+            </div>
+            <div className="spacer" />
+            <button
+              className="nav-item"
+              style={{ padding: 6, width: 28, height: 28, justifyContent: "center" }}
+              title="Cerrar sesión"
+            ><I.logout /></button>
+          </div>
+        </aside>
+      );
+    }
+
+    function DetailTopbar({ productCode, productName }) {
+      return (
+        <div className="topbar">
+          <div className="crumbs">
+            <span>Presumemi</span>
+            <span style={{ opacity: 0.5 }}>/</span>
+            <span>Productos</span>
+            <span style={{ opacity: 0.5 }}>/</span>
+            <strong>{productCode} · {productName}</strong>
+          </div>
+          <div className="search">
+            <I.search />
+            <input placeholder="Buscar productos, código, categoría…" />
+          </div>
+          <button className="icon-btn" title="Notificaciones"><I.bell /></button>
+        </div>
+      );
+    }
+
+    function DetailApp() {
+      // Producto demo — segundo de la lista (Box temática unicornio, código 1003)
+      const demoProduct = PRODUCTOS_LIST[2];
+      const [toast, setToast] = useDetState("");
+      const showToast = (msg) => {
+        setToast(msg);
+        setTimeout(() => setToast(""), 2400);
+      };
+
+      return (
+        <div className="app">
+          <DetailSidebar />
+          <div className="main">
+            <DetailTopbar productCode={demoProduct.code} productName={demoProduct.name} />
+            <div className="content" data-screen-label="producto-detalle" />
+            <ProductoDetalleScreen
+              product={demoProduct}
+              onBack={() => showToast("Volviendo al catálogo…")}
+              onSaved={(p) => showToast(`Guardado · ${p.code} · ${p.nombre}`)}
+              onDeleted={(p) => showToast(`Producto ${p.code} eliminado.`)}
+            />
+          </div>
+          {toast && (
+            <div className="toast">
+              <span style={{
+                width: 16, height: 16, borderRadius: "50%",
+                display: "grid", placeItems: "center",
+                background: "var(--teal-500)", color: "#fff",
+                fontSize: 10, fontWeight: 700,
+              }}>✓</span>
+              {toast}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<DetailApp />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Spacing</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); }
+  .row { display: flex; align-items: center; gap: 16px; padding: 6px 0; }
+  .name { width: 56px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
+  .px { width: 48px; font-family: var(--font-mono); font-size: 11px; color: var(--ink); }
+  .bar { background: var(--violet-100); border-radius: 2px; height: 16px; }
+  .role { margin-left: auto; font-size: 12px; color: var(--ink-muted); }
+</style></head>
+<body>
+  <div class="row"><span class="name">--s-1</span><span class="px">4 px</span><div class="bar" style="width:4px"></div><span class="role">icon ↔ label</span></div>
+  <div class="row"><span class="name">--s-2</span><span class="px">8 px</span><div class="bar" style="width:8px"></div><span class="role">chip padding-x</span></div>
+  <div class="row"><span class="name">--s-3</span><span class="px">12 px</span><div class="bar" style="width:12px"></div><span class="role">row gap</span></div>
+  <div class="row"><span class="name">--s-4</span><span class="px">16 px</span><div class="bar" style="width:16px"></div><span class="role">field padding · table cell</span></div>
+  <div class="row"><span class="name">--s-6</span><span class="px">24 px</span><div class="bar" style="width:24px"></div><span class="role">card padding</span></div>
+  <div class="row"><span class="name">--s-8</span><span class="px">32 px</span><div class="bar" style="width:32px"></div><span class="role">page gutter · section gap</span></div>
+  <div class="row"><span class="name">--s-12</span><span class="px">48 px</span><div class="bar" style="width:48px"></div><span class="role">major section break</span></div>
+</body></html>

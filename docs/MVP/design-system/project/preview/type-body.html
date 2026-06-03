@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Body type</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .label { font-size: 11px; font-weight: 500; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { font-weight: 500; color: var(--ink-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+</style></head>
+<body>
+  <div class="grid">
+    <div>
+      <div class="label">Body</div>
+      <p style="font-size:14px;line-height:1.5">Onest 400 · 14px · <code>#1C1A1E</code> sobre fondo blanco. Interlineado 1.5. Texto base para descripciones, párrafos y celdas de tabla.</p>
+      <p style="font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:8px">Onest 400 · 12px · <code>#6B6270</code>. Texto secundario y notas al pie. Tamaño mínimo permitido en todo el sistema.</p>
+    </div>
+    <div>
+      <div class="label">Tabular numerals</div>
+      <table>
+        <thead><tr><th>Concepto</th><th class="num">Cant.</th><th class="num">Precio</th></tr></thead>
+        <tbody>
+          <tr><td>Servilletas papel</td><td class="num">120</td><td class="num">$ 480.00</td></tr>
+          <tr><td>Vasos pastel</td><td class="num">  60</td><td class="num">$ 720.00</td></tr>
+          <tr><td>Banderines</td><td class="num">   8</td><td class="num">$ 1,240.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body></html>

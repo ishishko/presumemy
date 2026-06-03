@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Pastels</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface); }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .swatch { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+  .chip { height: 70px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--ink); }
+  .chip.warn { color: #7A5D00; }
+  .meta { padding: 8px 10px; }
+  .name { font-size: 12px; font-weight: 500; color: var(--ink); display: block; }
+  .hex  { font-size: 11px; font-family: var(--font-mono); color: var(--ink-muted); }
+  .role { padding: 0 10px 8px; font-size: 11px; color: var(--ink-muted); }
+</style></head>
+<body>
+  <div class="row">
+    <div class="swatch">
+      <div class="chip" style="background:#DBA8CD">Highlight</div>
+      <div class="meta"><span class="name">Lavender</span><span class="hex">#DBA8CD</span></div>
+      <div class="role">Highlight cards · tags</div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#D0EADD">Success</div>
+      <div class="meta"><span class="name">Mint</span><span class="hex">#D0EADD</span></div>
+      <div class="role">Success backgrounds</div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#F9C2D2">Info</div>
+      <div class="meta"><span class="name">Soft pink</span><span class="hex">#F9C2D2</span></div>
+      <div class="role">Info · neutral state</div>
+    </div>
+    <div class="swatch">
+      <div class="chip warn" style="background:#F8D132">Warning</div>
+      <div class="meta"><span class="name">Yellow</span><span class="hex">#F8D132</span></div>
+      <div class="role">Warning + #7A5D00 text</div>
+    </div>
+  </div>
+</body></html>

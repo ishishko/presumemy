@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Inputs</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+  .hint { font-size: 12px; color: var(--ink-muted); margin-top: 4px; }
+  .err  { font-size: 12px; color: var(--coral-500); margin-top: 4px; }
+  .input, .select {
+    width: 100%; box-sizing: border-box;
+    font-family: var(--font-sans); font-size: 14px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: 8px; padding: 9px 12px;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .input::placeholder { color: var(--ink-muted); }
+  .input:focus, .select:focus { outline: none; border-color: var(--teal-500); box-shadow: var(--focus-ring); }
+  .input.error { border-color: var(--coral-500); }
+  .input.error:focus { box-shadow: var(--danger-ring); }
+</style></head>
+<body>
+<div class="grid">
+  <div>
+    <label>Nombre del cliente</label>
+    <input class="input" placeholder="Marisol Aguirre" value="Marisol Aguirre" />
+    <div class="hint">Aparecerá en el presupuesto.</div>
+  </div>
+  <div>
+    <label>Email</label>
+    <input class="input" placeholder="cliente@correo.com" />
+  </div>
+  <div>
+    <label>Categoría</label>
+    <select class="select"><option>Banderines</option><option>Vasos</option><option>Servilletas</option></select>
+  </div>
+  <div>
+    <label>Precio</label>
+    <input class="input error" value="-12" />
+    <div class="err">El precio debe ser mayor a cero.</div>
+  </div>
+</div>
+</body></html>

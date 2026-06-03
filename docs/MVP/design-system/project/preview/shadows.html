@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Elevation</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 32px; background: var(--page-bg); }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card { background: var(--surface); border-radius: 12px; padding: 18px; min-height: 72px; }
+  .name { font-size: 12px; font-weight: 500; color: var(--ink); font-family: var(--font-mono); }
+  .role { font-size: 11px; color: var(--ink-muted); margin-top: 4px; }
+</style></head>
+<body>
+  <div class="row">
+    <div class="card" style="box-shadow: 0 1px 0 rgba(28,26,30,0.04), 0 1px 2px rgba(28,26,30,0.04); border: 1px solid var(--border);">
+      <div class="name">--shadow-1</div><div class="role">resting cards (hairline + whisper)</div>
+    </div>
+    <div class="card" style="box-shadow: 0 2px 6px rgba(28,26,30,0.06), 0 1px 2px rgba(28,26,30,0.04);">
+      <div class="name">--shadow-2</div><div class="role">raised cards · key metrics</div>
+    </div>
+    <div class="card" style="box-shadow: 0 8px 24px rgba(28,26,30,0.10), 0 2px 6px rgba(28,26,30,0.06);">
+      <div class="name">--shadow-pop</div><div class="role">menus · popovers · modals</div>
+    </div>
+  </div>
+</body></html>

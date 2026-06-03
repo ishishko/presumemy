@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(tar -xzf \"C:\\\\Users\\\\Shimbo\\\\.claude\\\\projects\\\\D--Desarrollando-presumemy\\\\e14ab61c-5b36-494b-8912-a04f06983d5b\\\\tool-results\\\\design-system.tar.gz\")",
+      "Bash(tar -xzf \"C:/Users/Shimbo/.claude/projects/D--Desarrollando-presumemy/e14ab61c-5b36-494b-8912-a04f06983d5b/tool-results/design-system.tar.gz\" -C \"D:/Desarrollando/presumemy\")",
+      "Bash(mkdir -p /d/Desarrollando/presumemy/docs)",
+      "Bash(mv /d/Desarrollando/presumemy/presumemi-design-system /d/Desarrollando/presumemy/docs/design-system)",
+      "Bash(mkdir -p /mnt/d/Desarrollando/presumemy-open/.claude/skills)",
+      "Bash(cp -r /mnt/d/Desarrollando/presumemy-open/.agents/skills/* /mnt/d/Desarrollando/presumemy-open/.claude/skills/)"
+    ]
+  }
+}

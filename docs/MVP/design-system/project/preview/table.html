@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Table</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 10px 12px;
+    font-size: 11px; font-weight: 500; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  tbody td {
+    padding: 12px; font-size: 13px; color: var(--ink);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:hover td { background: var(--page-bg); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; line-height: 1.4; }
+  .badge.mint { background: var(--mint); }
+  .badge.yellow { background: var(--yellow); color: #7A5D00; }
+  .badge.coral { background: var(--coral-50); color: var(--coral-500); }
+  .badge.lavender { background: var(--lavender); }
+</style></head>
+<body>
+<table>
+  <thead><tr><th>Folio</th><th>Cliente</th><th>Evento</th><th>Estado</th><th class="num">Total</th></tr></thead>
+  <tbody>
+    <tr><td>P-1024</td><td>Marisol Aguirre</td><td><span class="badge lavender">Cumpleaños</span></td><td><span class="badge mint">Pagado</span></td><td class="num">$ 4,820.00</td></tr>
+    <tr><td>P-1023</td><td>Laura Domínguez</td><td><span class="badge lavender">Baby shower</span></td><td><span class="badge yellow">Pendiente</span></td><td class="num">$ 2,340.00</td></tr>
+    <tr><td>P-1022</td><td>Café del Centro</td><td><span class="badge lavender">Corporativo</span></td><td><span class="badge coral">Vencido</span></td><td class="num">$ 7,160.00</td></tr>
+  </tbody>
+</table>
+</body></html>

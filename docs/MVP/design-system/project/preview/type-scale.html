@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Type scale</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); }
+  .row { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: 0; }
+  .size { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
+  .sample { color: var(--ink); }
+</style></head>
+<body>
+  <div class="row"><span class="size">48 / 500</span><span class="sample" style="font-size:48px;font-weight:500;color:var(--violet-700);letter-spacing:-0.02em;line-height:1.1">Display</span></div>
+  <div class="row"><span class="size">36 / 500</span><span class="sample" style="font-size:36px;font-weight:500;color:var(--violet-700);letter-spacing:-0.02em">Heading 1</span></div>
+  <div class="row"><span class="size">28 / 500</span><span class="sample" style="font-size:28px;font-weight:500;color:var(--violet-700);letter-spacing:-0.015em">Heading 2</span></div>
+  <div class="row"><span class="size">22 / 500</span><span class="sample" style="font-size:22px;font-weight:500;color:var(--violet-700)">Heading 3</span></div>
+  <div class="row"><span class="size">16 / 400</span><span class="sample" style="font-size:16px">Body large — el texto que lee tu cliente.</span></div>
+  <div class="row"><span class="size">14 / 400</span><span class="sample" style="font-size:14px">Body — tamaño por defecto. 14px en Onest.</span></div>
+  <div class="row"><span class="size">12 / 400</span><span class="sample" style="font-size:12px;color:var(--ink-muted)">Hint — texto secundario, mínimo permitido.</span></div>
+</body></html>

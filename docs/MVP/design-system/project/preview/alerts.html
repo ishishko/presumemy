@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Alerts</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+  .alert {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 14px; border-radius: 8px;
+    font-size: 13px; line-height: 1.4;
+  }
+  .alert .icon { width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+  .alert strong { font-weight: 500; }
+  .alert p { font-size: 13px; margin: 0; }
+
+  .a-success { background: var(--mint); color: var(--ink); }
+  .a-success .icon { background: #1F8A5B; color: #fff; }
+
+  .a-warning { background: var(--yellow); color: #7A5D00; }
+  .a-warning .icon { background: #7A5D00; color: var(--yellow); }
+
+  .a-error { background: var(--coral-50); color: var(--ink); border: 1px solid var(--coral-500); }
+  .a-error .icon { background: var(--coral-500); color: #fff; }
+
+  .a-info { background: var(--pink-soft); color: var(--ink); }
+  .a-info .icon { background: var(--violet-700); color: #fff; }
+</style></head>
+<body>
+  <div class="alert a-success"><span class="icon">✓</span><div><strong>Presupuesto enviado.</strong><p>Marisol recibirá un email en los próximos minutos.</p></div></div>
+  <div class="alert a-warning"><span class="icon">!</span><div><strong>Insumos bajos.</strong><p>Quedan menos de 5 unidades de cinta dorada.</p></div></div>
+  <div class="alert a-error"><span class="icon">!</span><div><strong>No pudimos guardar.</strong><p>Revisa tu conexión e intenta de nuevo.</p></div></div>
+  <div class="alert a-info"><span class="icon">i</span><div><strong>Recordatorio.</strong><p>Tienes 3 presupuestos por revisar antes del viernes.</p></div></div>
+</body></html>

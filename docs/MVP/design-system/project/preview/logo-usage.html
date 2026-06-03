@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Logo usage</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 0; background: var(--surface); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .panel { padding: 22px; display: flex; flex-direction: column; gap: 8px; min-height: 110px; }
+  .panel.light { background: var(--surface); }
+  .panel.cream { background: var(--page-bg); border-left: 1px solid var(--border); }
+  .panel img { display: block; }
+  .ok { font-size: 11px; color: #1F8A5B; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+  .no { font-size: 11px; color: var(--coral-500); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+  .note { font-size: 11px; color: var(--ink-muted); }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; }
+  .swatch { padding: 22px; min-height: 110px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .v { background: var(--violet-700); }
+  .t { background: var(--teal-500); }
+</style></head>
+<body>
+  <div class="grid">
+    <div class="panel light">
+      <img src="../assets/memydeni-logo.png" alt="MemyDeni" width="180" />
+      <div class="ok">✓ sobre blanco</div>
+    </div>
+    <div class="panel cream">
+      <img src="../assets/memydeni-logo.png" alt="MemyDeni" width="180" />
+      <div class="ok">✓ sobre crema #F7F5F3</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="swatch v">
+      <img src="../assets/memydeni-logo.png" alt="MemyDeni" width="140" style="opacity:0.95" />
+      <div class="no" style="color:#FCEBE6">✗ nunca sobre violeta</div>
+    </div>
+    <div class="swatch t">
+      <img src="../assets/memydeni-logo.png" alt="MemyDeni" width="140" style="opacity:0.95" />
+      <div class="no" style="color:#FCEBE6">✗ nunca sobre teal</div>
+    </div>
+    <div class="swatch" style="background: var(--surface); justify-content: center; align-items: stretch;">
+      <div class="note"><strong style="color:var(--ink); font-weight:500;">Reglas</strong></div>
+      <div class="note">• Min 96 px ancho</div>
+      <div class="note">• No alterar colores</div>
+      <div class="note">• Margen ≥ 25% altura</div>
+    </div>
+  </div>
+</body></html>

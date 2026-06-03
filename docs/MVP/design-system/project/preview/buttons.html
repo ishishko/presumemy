@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Buttons</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); }
+  .group { display: flex; flex-direction: column; gap: 14px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .label { width: 84px; font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .btn {
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+    padding: 8px 14px; border-radius: 8px; border: 1px solid transparent;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    transition: filter 120ms ease, background 120ms ease, border-color 120ms ease;
+    line-height: 1;
+  }
+  .btn-primary { background: var(--teal-500); color: #fff; }
+  .btn-primary:hover { filter: brightness(0.94); }
+  .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--border-strong); }
+  .btn-secondary:hover { background: var(--page-bg); }
+  .btn-ghost { background: transparent; color: var(--violet-700); }
+  .btn-ghost:hover { background: var(--violet-50); }
+  .btn-danger { background: var(--coral-500); color: #fff; }
+  .btn-danger:hover { filter: brightness(0.94); }
+  .btn-sm { padding: 6px 10px; font-size: 13px; border-radius: 6px; }
+  .btn-lg { padding: 11px 18px; font-size: 15px; border-radius: 10px; }
+  .btn[disabled] { opacity: 0.5; pointer-events: none; }
+</style></head>
+<body>
+<div class="group">
+  <div class="row">
+    <span class="label">Default</span>
+    <button class="btn btn-primary">Guardar presupuesto</button>
+    <button class="btn btn-secondary">Cancelar</button>
+    <button class="btn btn-ghost">Ver detalle</button>
+    <button class="btn btn-danger">Eliminar</button>
+  </div>
+  <div class="row">
+    <span class="label">Sizes</span>
+    <button class="btn btn-primary btn-sm">Pequeño</button>
+    <button class="btn btn-primary">Mediano</button>
+    <button class="btn btn-primary btn-lg">Grande</button>
+  </div>
+  <div class="row">
+    <span class="label">Disabled</span>
+    <button class="btn btn-primary" disabled>Guardar</button>
+    <button class="btn btn-secondary" disabled>Cancelar</button>
+  </div>
+</div>
+</body></html>

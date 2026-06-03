@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Radii</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .shape { width: 72px; height: 56px; background: var(--violet-100); border: 1px solid var(--violet-700); }
+  .name { font-size: 12px; font-weight: 500; color: var(--ink); font-family: var(--font-mono); }
+  .role { font-size: 11px; color: var(--ink-muted); text-align: center; }
+</style></head>
+<body>
+  <div class="row">
+    <div class="cell"><div class="shape" style="border-radius:6px"></div><span class="name">6 px</span><span class="role">sm · chips</span></div>
+    <div class="cell"><div class="shape" style="border-radius:8px"></div><span class="name">8 px</span><span class="role">md · buttons · inputs</span></div>
+    <div class="cell"><div class="shape" style="border-radius:12px"></div><span class="name">12 px</span><span class="role">lg · cards</span></div>
+    <div class="cell"><div class="shape" style="border-radius:16px"></div><span class="name">16 px</span><span class="role">xl · modals</span></div>
+    <div class="cell"><div class="shape" style="border-radius:999px"></div><span class="name">pill</span><span class="role">tags · avatars</span></div>
+  </div>
+</body></html>

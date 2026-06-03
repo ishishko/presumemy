@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Badges</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--surface); }
+  .group { display: flex; flex-direction: column; gap: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .label { width: 96px; font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+    padding: 3px 10px; border-radius: 999px;
+    line-height: 1.4;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .b-default { background: var(--page-bg); color: var(--ink); border: 1px solid var(--border); }
+  .b-lavender { background: #DBA8CD; color: var(--ink); }
+  .b-mint     { background: #D0EADD; color: var(--ink); }
+  .b-pink     { background: #F9C2D2; color: var(--ink); }
+  .b-yellow   { background: #F8D132; color: #7A5D00; }
+  .b-coral    { background: #FCEBE6; color: var(--coral-500); }
+  .b-violet   { background: #ECD8E6; color: var(--violet-700); }
+  .b-teal     { background: #D6F0F1; color: #2E6F70; }
+</style></head>
+<body>
+<div class="group">
+  <div class="row">
+    <span class="label">Status</span>
+    <span class="badge b-mint"><span class="dot"></span>Pagado</span>
+    <span class="badge b-yellow"><span class="dot"></span>Pendiente</span>
+    <span class="badge b-pink"><span class="dot"></span>En revisión</span>
+    <span class="badge b-coral"><span class="dot"></span>Vencido</span>
+    <span class="badge b-default"><span class="dot"></span>Borrador</span>
+  </div>
+  <div class="row">
+    <span class="label">Tags</span>
+    <span class="badge b-lavender">Cumpleaños</span>
+    <span class="badge b-violet">Premium</span>
+    <span class="badge b-teal">Recurrente</span>
+    <span class="badge b-default">Nuevo cliente</span>
+  </div>
+</div>
+</body></html>

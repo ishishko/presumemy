@@ -1,0 +1,144 @@
+/* =========================================================
+   Presumemi — Colors & Type tokens
+   ERP UI for MemyDeni (paper goods for parties & events)
+   ========================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap");
+
+:root {
+  /* -------- Brand / semantic colors -------- */
+  --violet-700:   #8B2570;   /* headings, sidebar bg, active borders   (text: #fff) */
+  --teal-500:     #75CCCE;   /* primary CTAs, links, interactive       (text: #fff) */
+  --coral-500:    #EA5F3C;   /* error / danger only                     (text: #fff) */
+
+  /* -------- Neutrals (text + surfaces) -------- */
+  --ink:          #1C1A1E;   /* body text, table content, labels */
+  --ink-muted:    #6B6270;   /* secondary / muted */
+  --page-bg:      #F7F5F3;   /* page background */
+  --surface:      #FFFFFF;   /* cards, panels */
+  --border:       rgba(28, 26, 30, 0.10);  /* hairline 0.5px feel */
+  --border-strong:rgba(28, 26, 30, 0.18);
+
+  /* -------- Pastels (backgrounds only, never text color) -------- */
+  --lavender:     #DBA8CD;   /* highlighted card bg, tags */
+  --mint:         #D0EADD;   /* success bg */
+  --pink-soft:    #F9C2D2;   /* info / neutral bg */
+  --yellow:       #F8D132;   /* warning bg — pair w/ --yellow-ink */
+  --yellow-ink:   #7A5D00;   /* required dark text on yellow */
+
+  /* -------- Soft tints derived from brand (for hovers, fills) -------- */
+  --violet-50:    #F6ECF2;
+  --violet-100:   #ECD8E6;
+  --teal-50:      #ECF8F8;
+  --teal-100:     #D6F0F1;
+  --coral-50:     #FCEBE6;
+
+  /* -------- State helpers -------- */
+  --focus-ring:   0 0 0 3px rgba(117, 204, 206, 0.45);  /* teal */
+  --danger-ring:  0 0 0 3px rgba(234, 95, 60, 0.35);
+
+  /* -------- Type stack -------- */
+  --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* -------- Type scale -------- */
+  --fs-12:  12px;   /* hint / footnote — minimum */
+  --fs-13:  13px;   /* table cell secondary */
+  --fs-14:  14px;   /* body default */
+  --fs-15:  15px;
+  --fs-16:  16px;   /* body large */
+  --fs-18:  18px;   /* h4 / large label */
+  --fs-22:  22px;   /* h3 */
+  --fs-28:  28px;   /* h2 */
+  --fs-36:  36px;   /* h1 */
+  --fs-48:  48px;   /* display */
+
+  --lh-tight:  1.15;
+  --lh-snug:   1.30;
+  --lh-normal: 1.50;
+
+  /* -------- Spacing (4pt grid) -------- */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* -------- Radii -------- */
+  --r-sm: 6px;
+  --r-md: 8px;    /* default */
+  --r-lg: 12px;   /* cards */
+  --r-xl: 16px;
+  --r-pill: 999px;
+
+  /* -------- Elevation (kept very light — no heavy shadows) -------- */
+  --shadow-1: 0 1px 0 rgba(28,26,30,0.04), 0 1px 2px rgba(28,26,30,0.04);
+  --shadow-2: 0 2px 6px rgba(28,26,30,0.06), 0 1px 2px rgba(28,26,30,0.04);
+  --shadow-pop: 0 8px 24px rgba(28,26,30,0.10), 0 2px 6px rgba(28,26,30,0.06);
+}
+
+/* =========================================================
+   Base resets + semantic element styles
+   ========================================================= */
+
+html, body {
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--fs-14);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* All headings: weight 500, violet, tight leading */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  color: var(--violet-700);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+h1 { font-size: var(--fs-36); letter-spacing: -0.02em; }
+h2 { font-size: var(--fs-28); letter-spacing: -0.015em; }
+h3 { font-size: var(--fs-22); }
+h4 { font-size: var(--fs-18); }
+h5 { font-size: var(--fs-16); }
+h6 { font-size: var(--fs-14); text-transform: uppercase; letter-spacing: 0.06em; }
+
+p { margin: 0; font-size: var(--fs-14); color: var(--ink); }
+small, .text-hint { font-size: var(--fs-12); color: var(--ink-muted); }
+.text-muted { color: var(--ink-muted); }
+.text-mono  { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.num        { font-variant-numeric: tabular-nums; }
+
+a {
+  color: var(--teal-500);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+a:hover { border-bottom-color: currentColor; }
+a:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 3px; }
+
+label, .label {
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.005em;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: var(--s-6) 0;
+}
+
+::selection { background: var(--teal-100); color: var(--ink); }
