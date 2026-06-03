@@ -33,7 +33,7 @@ async function handleLogin() {
         <img src="/memydeni-logo.png" alt="MemyDeni" />
       </div>
 
-      <form class="stack" @submit.prevent="handleLogin">
+      <form class="login-form" @submit.prevent="handleLogin">
         <div class="field">
           <label for="email">Email</label>
           <input
