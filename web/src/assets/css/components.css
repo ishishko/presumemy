@@ -101,7 +101,7 @@
 /* --- Main area --- */
 .main { display: flex; flex-direction: column; min-width: 0; }
 
-.topbar {
+.app-header {
   height: 56px;
   background: rgba(255,255,255,0.85);
   backdrop-filter: blur(8px);
@@ -111,8 +111,16 @@
   padding: 0 32px;
   gap: 16px;
 }
-.crumbs { font-size: 13px; color: var(--ink-muted); display: flex; gap: 6px; align-items: center; }
-.crumbs strong { color: var(--ink); font-weight: 500; }
+.header-left {
+  display: flex; align-items: center; gap: 12px;
+}
+.header-left h1 {
+  font-size: 16px; font-weight: 500;
+  color: var(--violet-700);
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1;
+}
 .search {
   margin-left: auto;
   position: relative;

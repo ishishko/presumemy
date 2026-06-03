@@ -3,20 +3,24 @@ import { computed, onMounted } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import TheSidebar from '@/components/layout/TheSidebar.vue'
-import TheTopbar from '@/components/layout/TheTopbar.vue'
+import AppHeader from '@/components/layout/AppHeader.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
 const currentRoute = computed(() => {
-  const name = route.name as string
-  return name || 'dashboard'
+  const name = (route.name as string) || ''
+  return name.charAt(0).toLowerCase() + name.slice(1)
 })
 
-const crumbs = computed(() => {
+const pageTitle = computed(() => {
+  if (currentRoute.value === 'dashboard') {
+    const email = authStore.user?.email || ''
+    const name = email.split('@')[0] || 'Usuario'
+    return `Hola, ${name}`
+  }
   const labels: Record<string, string> = {
-    dashboard: 'Inicio',
     presupuestos: 'Presupuestos',
     catalogo: 'Productos',
     insumos: 'Insumos',
@@ -24,7 +28,11 @@ const crumbs = computed(() => {
     clientes: 'Clientes',
     ajustes: 'Ajustes',
   }
-  return [labels[currentRoute.value] || '']
+  return labels[currentRoute.value] || ''
+})
+
+const showCreate = computed(() => {
+  return ['presupuestos', 'catalogo', 'insumos', 'finanzas', 'clientes'].includes(currentRoute.value)
 })
 
 const isAuthRoute = computed(() => route.name === 'Login')
@@ -41,6 +49,10 @@ async function handleLogout() {
   await authStore.logout()
   router.push('/login')
 }
+
+function handleCreate() {
+  // TODO: implement per-section create logic
+}
 </script>
 
 <template>
@@ -48,14 +60,18 @@ async function handleLogout() {
     <RouterView />
   </div>
 
-  <div v-else class="app-shell">
+  <div v-else class="app">
     <TheSidebar
       :current-route="currentRoute"
       @navigate="handleNavigate"
       @logout="handleLogout"
     />
-    <div class="shell-right">
-      <TheTopbar :crumbs="crumbs" />
+    <div class="main">
+      <AppHeader
+        :title="pageTitle"
+        :show-create="showCreate"
+        @create="handleCreate"
+      />
       <RouterView />
     </div>
   </div>

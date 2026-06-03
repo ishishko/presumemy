@@ -97,7 +97,8 @@ const navDatos = [
         </div>
         <div class="spacer" />
         <button
-          class="nav-item logout-btn"
+          class="nav-item"
+          style="padding: 6px; width: 28px; height: 28px; justify-content: center"
           title="Cerrar sesión"
           @click="emit('logout')"
         >
