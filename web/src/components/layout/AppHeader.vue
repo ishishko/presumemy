@@ -17,19 +17,23 @@ defineEmits<{
       <h1>{{ title }}</h1>
       <button
         v-if="showCreate"
-        class="btn btn-primary btn-sm"
+        class="btn btn-primary btn-icon"
+        :title="`Crear nuevo`"
         @click="$emit('create')"
       >
-        <Plus :size="14" :stroke-width="2" />
-        Nuevo
+        <Plus :size="16" :stroke-width="2" />
       </button>
     </div>
-    <div class="search">
-      <Search :size="16" :stroke-width="1.5" />
-      <input placeholder="Buscar presupuestos, clientes, productos…" />
+    <div class="search-wrap">
+      <div class="search">
+        <Search :size="16" :stroke-width="1.5" />
+        <input placeholder="Buscar presupuestos, clientes, productos…" />
+      </div>
     </div>
-    <button class="icon-btn" title="Notificaciones">
-      <Bell :size="20" :stroke-width="1.5" />
-    </button>
+    <div class="header-right">
+      <button class="icon-btn" title="Notificaciones">
+        <Bell :size="20" :stroke-width="1.5" />
+      </button>
+    </div>
   </div>
 </template>

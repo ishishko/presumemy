@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 const routes = [
   {
     path: '/login',
-    name: 'Login',
+    name: 'login',
     component: () => import('@/features/auth/LoginView.vue'),
     meta: { requiresAuth: false },
   },
@@ -14,43 +14,43 @@ const routes = [
   },
   {
     path: '/dashboard',
-    name: 'Dashboard',
+    name: 'dashboard',
     component: () => import('@/views/DashboardView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/insumos',
-    name: 'Insumos',
+    name: 'insumos',
     component: () => import('@/views/InsumosView.vue'),
     meta: { requiresAuth: true },
   },
   {
-    path: '/catalogo',
-    name: 'Catalogo',
+    path: '/productos',
+    name: 'productos',
     component: () => import('@/views/CatalogoView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/clientes',
-    name: 'Clientes',
+    name: 'clientes',
     component: () => import('@/views/ClientesView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/presupuestos',
-    name: 'Presupuestos',
+    name: 'presupuestos',
     component: () => import('@/views/PresupuestosView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/finanzas',
-    name: 'Finanzas',
+    name: 'finanzas',
     component: () => import('@/views/FinanzasView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/ajustes',
-    name: 'Ajustes',
+    name: 'ajustes',
     component: () => import('@/views/AjustesView.vue'),
     meta: { requiresAuth: true },
   },
@@ -69,10 +69,10 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
-    return { name: 'Login' }
+    return { name: 'login' }
   }
 
-  if (to.name === 'Login' && authStore.isAuthenticated) {
+  if (to.name === 'login' && authStore.isAuthenticated) {
     return { path: '/dashboard' }
   }
 })

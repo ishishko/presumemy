@@ -29,7 +29,6 @@ route.get('/', zValidator('query', paginationSchema), async (c) => {
         categoria: true,
         bomLineas: {
           include: { insumo: true },
-          orderBy: { orden: 'asc' },
         },
       },
       orderBy: { nombre: 'asc' },

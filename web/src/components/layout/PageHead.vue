@@ -8,7 +8,7 @@ defineProps<{
 <template>
   <div class="page-head">
     <div class="title">
-      <h1>{{ title }}</h1>
+      <h1 class="text-2xl">{{ title }}</h1>
       <div v-if="sub" class="sub">{{ sub }}</div>
     </div>
     <div class="actions">

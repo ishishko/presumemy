@@ -9,10 +9,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const currentRoute = computed(() => {
-  const name = (route.name as string) || ''
-  return name.charAt(0).toLowerCase() + name.slice(1)
-})
+const currentRoute = computed(() => (route.name as string) || '')
 
 const pageTitle = computed(() => {
   if (currentRoute.value === 'dashboard') {
@@ -22,7 +19,7 @@ const pageTitle = computed(() => {
   }
   const labels: Record<string, string> = {
     presupuestos: 'Presupuestos',
-    catalogo: 'Productos',
+    productos: 'Productos',
     insumos: 'Insumos',
     finanzas: 'Finanzas',
     clientes: 'Clientes',
@@ -32,10 +29,10 @@ const pageTitle = computed(() => {
 })
 
 const showCreate = computed(() => {
-  return ['presupuestos', 'catalogo', 'insumos', 'finanzas', 'clientes'].includes(currentRoute.value)
+  return ['presupuestos', 'productos', 'insumos', 'finanzas', 'clientes'].includes(currentRoute.value)
 })
 
-const isAuthRoute = computed(() => route.name === 'Login')
+const isAuthRoute = computed(() => route.name === 'login')
 
 onMounted(async () => {
   await authStore.init()

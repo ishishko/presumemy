@@ -39,7 +39,7 @@ const userInitials = computed(() => {
 const navOperacion = [
   { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
   { id: 'presupuestos', label: 'Presupuestos', icon: FileText },
-  { id: 'catalogo', label: 'Productos', icon: Package },
+  { id: 'productos', label: 'Productos', icon: Package },
   { id: 'insumos', label: 'Insumos', icon: Layers },
   { id: 'finanzas', label: 'Finanzas', icon: Coins },
 ]
