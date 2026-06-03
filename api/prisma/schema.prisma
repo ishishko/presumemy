@@ -1,0 +1,305 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// =========================================================
+// CONFIG (1)
+// =========================================================
+model ConfiguracionNegocio {
+  id                Int     @id @default(1)
+  nombre            String  @default("MemyDeni")
+  logoUrl           String? @map("logo_url")
+  domicilio         Json?
+  contactoCanal     String? @map("contacto_canal")
+  contactoValor     String? @map("contacto_valor")
+  moneda            String  @default("ARS")
+  cancelacionAuto   Boolean @default(false) @map("cancelacion_auto")
+  diasEspera        Int     @default(0) @map("dias_espera")
+
+  @@map("configuracion_negocio")
+}
+
+// =========================================================
+// PRODUCTOS (7)
+// =========================================================
+model CategoriaProducto {
+  id       Int       @id @default(autoincrement())
+  nombre   String
+  activo   Boolean   @default(true)
+  productos Producto[]
+
+  @@map("categorias_producto")
+}
+
+model CategoriaInsumo {
+  id      Int     @id @default(autoincrement())
+  nombre  String
+  activo  Boolean @default(true)
+  insumos Insumo[]
+
+  @@map("categorias_insumo")
+}
+
+model Proveedor {
+  id        Int              @id @default(autoincrement())
+  nombre    String
+  contacto  String?
+  activo    Boolean          @default(true)
+  insumos   InsumoProveedor[]
+
+  @@map("proveedores")
+}
+
+model Insumo {
+  id            Int               @id @default(autoincrement())
+  nombre        String
+  codigo        String            @unique
+  categoriaId   Int               @map("categoria_id")
+  categoria     CategoriaInsumo   @relation(fields: [categoriaId], references: [id])
+  unidad        String
+  stock         Decimal           @db.Decimal(10, 2)
+  stockMinimo   Decimal           @db.Decimal(10, 2) @map("stock_minimo")
+  costoPaquete  Decimal           @db.Decimal(10, 2) @map("costo_paquete")
+  cantidadPack  Decimal           @db.Decimal(10, 2) @map("cantidad_pack")
+  costoUnitario Decimal           @db.Decimal(10, 2) @map("costo_unitario")
+  activo        Boolean           @default(true)
+  notas         String?
+  fechaActualizacion DateTime?    @map("fecha_actualizacion")
+
+  proveedores   InsumoProveedor[]
+  bomLineas     CostoProductoInsumo[]
+
+  @@map("insumos")
+}
+
+model InsumoProveedor {
+  id          Int      @id @default(autoincrement())
+  insumoId    Int      @map("insumo_id")
+  proveedorId Int      @map("proveedor_id")
+  esPrincipal Boolean  @default(false) @map("es_principal")
+  precio      Decimal? @db.Decimal(10, 2)
+
+  insumo      Insumo   @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  proveedor   Proveedor @relation(fields: [proveedorId], references: [id])
+
+  @@unique([insumoId, proveedorId])
+  @@map("insumo_proveedor")
+}
+
+model Producto {
+  id            Int                 @id @default(autoincrement())
+  nombre        String
+  codigo        String              @unique
+  categoriaId   Int                 @map("categoria_id")
+  categoria     CategoriaProducto   @relation(fields: [categoriaId], references: [id])
+  descripcion   String?
+  imagenUrl     String?             @map("imagen_url")
+  tieneBom      Boolean             @default(false) @map("tiene_bom")
+  tipoGanancia  TipoGanancia        @default(porcentaje) @map("tipo_ganancia")
+  ganancia      Decimal             @db.Decimal(10, 2) @default(0)
+  precio        Decimal             @db.Decimal(10, 2) @default(0)
+  activo        Boolean             @default(true)
+
+  bomLineas     CostoProductoInsumo[]
+  detalles      DetallePresupuesto[]
+  ordenesImprenta OrdenImprenta[]
+
+  @@map("productos")
+}
+
+model CostoProductoInsumo {
+  id            Int            @id @default(autoincrement())
+  productoId    Int            @map("producto_id")
+  tipoLinea     TipoLineaBOM   @map("tipo_linea")
+  insumoId      Int?           @map("insumo_id")
+  insumo        Insumo?        @relation(fields: [insumoId], references: [id])
+  descripcion   String?
+  cantidad      Decimal        @db.Decimal(10, 2)
+  costoUnitario Decimal        @db.Decimal(10, 2) @map("costo_unitario")
+  subtotal      Decimal        @db.Decimal(10, 2)
+
+  producto      Producto       @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@map("costo_producto_insumo")
+}
+
+// =========================================================
+// COMERCIAL (4)
+// =========================================================
+model Cliente {
+  id        Int               @id @default(autoincrement())
+  nombre    String
+  codigo    String            @unique
+  domicilio Json?
+  notas     String?
+  activo    Boolean           @default(true)
+
+  contactos ClienteContacto[]
+  presupuestos Presupuesto[]
+
+  @@map("clientes")
+}
+
+model ClienteContacto {
+  id          Int        @id @default(autoincrement())
+  clienteId   Int        @map("cliente_id")
+  canal       CanalType
+  valor       String
+  esPrincipal Boolean    @default(false) @map("es_principal")
+
+  cliente     Cliente    @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@map("cliente_contactos")
+}
+
+model Presupuesto {
+  id               Int                @id @default(autoincrement())
+  folio            String             @unique
+  clienteId        Int                @map("cliente_id")
+  cliente          Cliente            @relation(fields: [clienteId], references: [id])
+  tematica         String?
+  estado           EstadoPresupuesto  @default(borrador)
+  tipoEntrega      TipoEntrega        @default(retira) @map("tipo_entrega")
+  direccionEntrega String?            @map("direccion_entrega")
+  fechaEntrega     DateTime?          @map("fecha_entrega")
+  sena             Decimal            @db.Decimal(10, 2) @default(0)
+  total            Decimal            @db.Decimal(10, 2) @default(0)
+  notas            String?
+  activo           Boolean            @default(true)
+  createdAt        DateTime           @default(now()) @map("created_at")
+
+  detalles         DetallePresupuesto[]
+  transacciones    Transaccion[]
+  ordenesImprenta  OrdenImprenta[]
+
+  @@map("presupuestos")
+}
+
+model DetallePresupuesto {
+  id             Int         @id @default(autoincrement())
+  presupuestoId  Int         @map("presupuesto_id")
+  productoId     Int         @map("producto_id")
+  producto       Producto    @relation(fields: [productoId], references: [id])
+  descripcion    String
+  cantidad       Decimal     @db.Decimal(10, 2)
+  precioUnitario Decimal     @db.Decimal(10, 2) @map("precio_unitario")
+  subtotal       Decimal     @db.Decimal(10, 2)
+  orden          Int         @default(0)
+
+  presupuesto    Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+
+  @@map("detalle_presupuesto")
+}
+
+// =========================================================
+// FINANZAS (3)
+// =========================================================
+model DistribucionGanancia {
+  id         Int     @id @default(autoincrement())
+  nombre     String
+  porcentaje Decimal @db.Decimal(5, 2)
+  activo     Boolean @default(true)
+
+  @@map("distribucion_ganancias")
+}
+
+model Transaccion {
+  id            Int            @id @default(autoincrement())
+  tipo          TipoMovimiento
+  cuenta        CuentaType
+  monto         Decimal        @db.Decimal(10, 2)
+  fecha         DateTime
+  referencia    String?
+  detalle       String?
+  nroFactura    String?        @map("nro_factura")
+  presupuestoId Int?           @map("presupuesto_id")
+  presupuesto   Presupuesto?   @relation(fields: [presupuestoId], references: [id])
+  activo        Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@map("transacciones")
+}
+
+model OrdenImprenta {
+  id            Int       @id @default(autoincrement())
+  fecha         DateTime
+  presupuestoId Int?      @map("presupuesto_id")
+  presupuesto   Presupuesto? @relation(fields: [presupuestoId], references: [id])
+  productoId    Int?      @map("producto_id")
+  producto      Producto? @relation(fields: [productoId], references: [id])
+  tematica      String?
+  hojas         Int
+  tipoHoja      String    @map("tipo_hoja")
+  valorUnitario Decimal   @db.Decimal(10, 2) @map("valor_unitario")
+  valorTotal    Decimal   @db.Decimal(10, 2) @map("valor_total")
+  metodoPago    String    @map("metodo_pago")
+  pagado        Boolean   @default(false)
+  diferencia    Decimal   @db.Decimal(10, 2) @default(0)
+  activo        Boolean   @default(true)
+
+  @@map("ordenes_imprenta")
+}
+
+// =========================================================
+// ENUMS
+// =========================================================
+enum TipoGanancia {
+  porcentaje
+  fijo
+}
+
+enum TipoLineaBOM {
+  insumo
+  cameo
+  embalaje
+  extra
+}
+
+enum CanalType {
+  instagram
+  whatsapp
+  mail
+  otros
+}
+
+enum EstadoPresupuesto {
+  borrador
+  enviado
+  en_curso
+  cerrado
+  facturado
+  cancelado
+}
+
+enum TipoEntrega {
+  retira
+  envio
+}
+
+enum TipoMovimiento {
+  venta_producto
+  venta_presupuesto
+  cobro_cliente
+  compra_insumo
+  pago_servicio
+  pago_imprenta
+  pago_alquiler
+  pago_sueldo
+  retiro_socio
+  deposito
+  ajuste_positivo
+  ajuste_negativo
+}
+
+enum CuentaType {
+  efectivo
+  banco
+  tarjeta
+  billetera
+}
