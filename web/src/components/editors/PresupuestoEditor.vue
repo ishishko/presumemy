@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { ArrowLeft, ArrowRight, GripVertical, Plus, Trash2, FileText, Calendar } from '@lucide/vue'
+import { ArrowRight, GripVertical, Plus, Trash2, FileText, Calendar } from '@lucide/vue'
 import { get, post, put } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import type { Presupuesto, Cliente, Producto, PaginationResult } from '@/types'
@@ -326,8 +326,8 @@ function closeEditor() {
 onMounted(async () => {
   try {
     const [clientesRes, productosRes] = await Promise.all([
-      get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 200 }),
-      get<PaginationResult<Producto>>('/productos', { page: 1, limit: 200 }),
+      get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 100 }),
+      get<PaginationResult<Producto>>('/productos', { page: 1, limit: 100 }),
     ])
     clientes.value = clientesRes.data
     productos.value = productosRes.data
@@ -362,20 +362,6 @@ defineExpose({ loadPresupuesto })
             stroke-linejoin="round"
           />
         </svg>
-      </div>
-
-      <div class="editor-head">
-        <button class="icon-btn" @click="closeEditor" title="Volver">
-          <ArrowLeft :size="18" />
-        </button>
-        <div class="editor-title">
-          <span class="eyebrow">Presupuesto · <span class="folio">{{ docFolio }}</span></span>
-          <h2>{{ isNew ? 'Nuevo presupuesto' : 'Editar presupuesto' }}</h2>
-        </div>
-        <div class="spacer"></div>
-        <span v-if="savedAt" class="save-chip">
-          <span class="dot"></span> Guardado · {{ savedAt }}
-        </span>
       </div>
 
       <div class="editor-split">
@@ -778,7 +764,7 @@ defineExpose({ loadPresupuesto })
 .editor-overlay {
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 1;
   background: var(--page-bg);
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -811,17 +797,6 @@ defineExpose({ loadPresupuesto })
   12% { opacity: 0.55; }
   82% { opacity: 0.55; }
   100% { right: 120%; opacity: 0; }
-}
-
-.editor-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 28px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  z-index: 5;
 }
 
 .editor-title {

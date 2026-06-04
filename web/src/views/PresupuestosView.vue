@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { Pencil, Trash2 } from '@lucide/vue'
-import { get, del } from '@/services/api'
+import { del } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
+import { usePresupuestosStore } from '@/stores/presupuestos'
 import PresupuestoEditor from '@/components/editors/PresupuestoEditor.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
-import type { Presupuesto, PaginationResult } from '@/types'
+import type { Presupuesto } from '@/types'
 
 const emit = defineEmits<{
   'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
 }>()
 
-const presupuestos = ref<Presupuesto[]>([])
-const loading = ref(true)
-const error = ref('')
+const store = usePresupuestosStore()
+const { toast } = useToast()
 
 const filter = ref('todos')
 const showEditor = ref(false)
@@ -22,11 +22,11 @@ const editingPresupuesto = ref<Presupuesto | null>(null)
 const showConfirmDelete = ref(false)
 const deletingPresupuesto = ref<Presupuesto | null>(null)
 
-const { toast } = useToast()
+const showLoading = computed(() => store.loading && !store.hasFetched)
 
 const filtered = computed(() => {
-  if (filter.value === 'todos') return presupuestos.value
-  return presupuestos.value.filter((p) => p.estado === filter.value)
+  if (filter.value === 'todos') return store.data
+  return store.data.filter((p) => p.estado === filter.value)
 })
 
 function money(v: number): string {
@@ -54,12 +54,11 @@ const filters = [
 
 async function loadPresupuestos() {
   try {
-    const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 100 })
-    presupuestos.value = res.data
+    await store.fetch()
   } catch (e: any) {
-    error.value = e.message || 'Error al cargar presupuestos'
-  } finally {
-    loading.value = false
+    if (store.data.length === 0) {
+      toast(e.message || 'Error al cargar presupuestos', 'error')
+    }
   }
 }
 
@@ -73,8 +72,8 @@ function handleEdit(p: Presupuesto) {
   showEditor.value = true
 }
 
-function handleSaved() {
-  loadPresupuestos()
+function handleSaved(presupuesto: Presupuesto) {
+  store.upsert(presupuesto)
 }
 
 function handleHeaderUpdate(payload: { mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }) {
@@ -100,8 +99,8 @@ async function handleDeleteConfirm() {
   const p = deletingPresupuesto.value
   try {
     await del('/presupuestos', p.id)
+    store.remove(p.id)
     toast('Presupuesto eliminado', 'info')
-    presupuestos.value = presupuestos.value.filter(x => x.id !== p.id)
   } catch (e: any) {
     toast(e.message || 'Error al eliminar', 'error')
   }
@@ -126,68 +125,65 @@ watch(createTrigger, (val) => {
 
 <template>
   <div class="content" style="position: relative">
-    <div v-if="loading" class="card"><p>Cargando presupuestos...</p></div>
-    <div v-else-if="error" class="card"><p class="err">{{ error }}</p></div>
-
+    <div v-if="showLoading" class="card"><p>Cargando presupuestos...</p></div>
     <template v-else>
-      <div class="table-wrap">
-        <div class="table-toolbar">
-          <button
-            v-for="f in filters"
-            :key="f.id"
-            :class="['filter-chip', filter === f.id && 'active']"
-            @click="filter = f.id"
-          >{{ f.label }}</button>
-          <div class="spacer" />
-          <button class="btn btn-secondary btn-sm">Filtros</button>
-        </div>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Folio</th>
-              <th>Cliente</th>
-              <th>Temática</th>
-              <th>Fecha</th>
-              <th>Estado</th>
-              <th class="num">Total</th>
-              <th style="width: 80px"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in filtered" :key="p.id">
-              <td style="color: var(--ink-muted); font-family: var(--font-mono)">{{ p.folio }}</td>
-              <td style="font-weight: 500">{{ p.cliente?.nombre || 'Sin cliente' }}</td>
-              <td>
-                <span class="badge lavender">{{ p.tematica || '—' }}</span>
-              </td>
-              <td style="color: var(--ink-muted)">{{ formatDate(p.fechaEntrega || p.createdAt) }}</td>
-              <td>
-                <span :class="['badge', statusTones[p.estado]?.tone || 'default']">
-                  <span class="dot" />
-                  {{ statusTones[p.estado]?.label || p.estado }}
-                </span>
-              </td>
-              <td class="num" style="font-weight: 500">{{ money(p.total) }}</td>
-              <td>
-                <div class="row-actions">
-                  <button class="row-action-btn" @click="handleEdit(p)" title="Editar">
-                    <Pencil :size="14" />
-                  </button>
-                  <button class="row-action-btn row-action-danger" @click="handleDeleteClick(p)" title="Eliminar">
-                    <Trash2 :size="14" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="filtered.length === 0">
-              <td colspan="7" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
-                Sin presupuestos con este filtro.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <button
+          v-for="f in filters"
+          :key="f.id"
+          :class="['filter-chip', filter === f.id && 'active']"
+          @click="filter = f.id"
+        >{{ f.label }}</button>
+        <div class="spacer" />
+        <button class="btn btn-secondary btn-sm">Filtros</button>
       </div>
-    </template>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Folio</th>
+            <th>Cliente</th>
+            <th>Temática</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th class="num">Total</th>
+            <th style="width: 80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in filtered" :key="p.id">
+            <td style="color: var(--ink-muted); font-family: var(--font-mono)">{{ p.folio }}</td>
+            <td style="font-weight: 500">{{ p.cliente?.nombre || 'Sin cliente' }}</td>
+            <td>
+              <span class="badge lavender">{{ p.tematica || '—' }}</span>
+            </td>
+            <td style="color: var(--ink-muted)">{{ formatDate(p.fechaEntrega || p.createdAt) }}</td>
+            <td>
+              <span :class="['badge', statusTones[p.estado]?.tone || 'default']">
+                <span class="dot" />
+                {{ statusTones[p.estado]?.label || p.estado }}
+              </span>
+            </td>
+            <td class="num" style="font-weight: 500">{{ money(p.total) }}</td>
+            <td>
+              <div class="row-actions">
+                <button class="row-action-btn" @click="handleEdit(p)" title="Editar">
+                  <Pencil :size="14" />
+                </button>
+                <button class="row-action-btn row-action-danger" @click="handleDeleteClick(p)" title="Eliminar">
+                  <Trash2 :size="14" />
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="filtered.length === 0">
+            <td colspan="7" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
+              Sin presupuestos con este filtro.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <PresupuestoEditor
       :open="showEditor"
@@ -196,6 +192,7 @@ watch(createTrigger, (val) => {
       @saved="handleSaved"
       @update:header="handleHeaderUpdate"
     />
+    </template>
   </div>
 
   <ConfirmDialog

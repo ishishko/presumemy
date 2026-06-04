@@ -15,6 +15,7 @@ const emit = defineEmits<{
   close: []
   saved: [producto: Producto]
   deleted: []
+  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
 }>()
 
 const { toast } = useToast()
@@ -200,12 +201,35 @@ function handleBack() {
   if (dirty.value) {
     showConfirmExit.value = true
   } else {
-    emit('close')
+    handleClose()
   }
 }
 
+function openOverlay() {
+  emit('update:header', {
+    mode: 'editor',
+    title: isEdit.value ? (props.producto?.codigo || '') : 'Nuevo',
+    onSave: handleSave,
+    onClose: handleClose,
+  })
+}
+
+function closeOverlay() {
+  emit('update:header', { mode: 'normal' })
+  emit('close')
+}
+
+function handleClose() {
+  closeOverlay()
+}
+
 watch(() => props.open, (open) => {
-  if (open) loadProducto()
+  if (open) {
+    loadProducto()
+    openOverlay()
+  } else {
+    closeOverlay()
+  }
 })
 
 watch(() => props.open, async (open) => {
@@ -213,7 +237,7 @@ watch(() => props.open, async (open) => {
     try {
       const [catsRes, insumosRes] = await Promise.all([
         get<{ data: CategoriaProducto[] }>('/productos/categorias'),
-        get<PaginationResult<Insumo>>('/insumos', { page: 1, limit: 200 }),
+        get<PaginationResult<Insumo>>('/insumos', { page: 1, limit: 100 }),
       ])
       categorias.value = catsRes.data
       insumosList.value = insumosRes.data
@@ -227,26 +251,8 @@ defineExpose({ loadProducto })
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="overlay">
-      <div v-if="open" class="pd-overlay">
-        <div class="pd-head">
-          <button class="icon-btn" @click="handleBack" title="Volver al catálogo">
-            <ArrowLeft :size="18" />
-          </button>
-          <div class="pd-title">
-            <span class="eyebrow">
-              Producto
-              <span v-if="isEdit" class="code">· {{ producto!.codigo }}</span>
-            </span>
-            <h2>{{ nombre || 'Sin nombre' }}</h2>
-          </div>
-          <div class="spacer" />
-          <span v-if="dirty" class="dirty-chip">
-            <span class="dot" /> Cambios sin guardar
-          </span>
-        </div>
-
+  <Transition name="overlay">
+    <div v-if="open" class="pd-overlay">
         <div class="pd-body">
           <div class="pd-top">
             <section class="pd-card">
@@ -486,7 +492,7 @@ defineExpose({ loadProducto })
 
         <div class="pd-foot">
           <button class="pd-back-btn" @click="handleBack">
-            <ArrowLeft :size="16" /> Volver al catálogo
+            <ArrowLeft :size="16" /> Volver a productos
           </button>
           <div class="spacer" />
           <button
@@ -513,7 +519,7 @@ defineExpose({ loadProducto })
           confirm-label="Salir sin guardar"
           cancel-label="Seguir editando"
           variant="danger"
-          @confirm="emit('close'); showConfirmExit = false"
+          @confirm="handleClose(); showConfirmExit = false"
           @cancel="showConfirmExit = false"
         />
 
@@ -527,79 +533,18 @@ defineExpose({ loadProducto })
           @cancel="showConfirmDelete = false"
         />
       </div>
-    </Transition>
-  </Teleport>
+  </Transition>
 </template>
 
 <style scoped>
 .pd-overlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 240px;
-  z-index: 30;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   background: var(--page-bg);
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr auto;
   overflow: hidden;
-}
-
-.pd-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 28px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-
-.pd-title {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pd-title .eyebrow {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-muted);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pd-title .eyebrow .code {
-  color: var(--violet-700);
-  font-variant-numeric: tabular-nums;
-  font-family: var(--font-mono);
-}
-
-.pd-title h2 {
-  font-size: 22px;
-  line-height: 1.1;
-  margin: 0;
-}
-
-.dirty-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  padding: 6px 12px;
-  background: var(--yellow);
-  color: var(--yellow-ink);
-  border-radius: 999px;
-}
-
-.dirty-chip .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--yellow-ink);
 }
 
 .pd-body {
@@ -608,6 +553,27 @@ defineExpose({ loadProducto })
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.pd-top {
+  display: grid;
+  grid-template-columns: 320px 1fr 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+.pd-top {
+  display: grid;
+  grid-template-columns: 320px 1fr 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+.pd-top {
+  display: grid;
+  grid-template-columns: 320px 1fr 360px;
+  gap: 20px;
+  align-items: start;
 }
 
 .pd-top {

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { ArrowDown, ArrowRight } from '@lucide/vue'
-import { getDashboardStats } from '@/services/dashboard'
-import type { DashboardStats } from '@/types'
+import { useDashboardStore } from '@/stores/dashboard'
+import { useToast } from '@/composables/useToast'
 
-const loading = ref(true)
-const stats = ref<DashboardStats | null>(null)
-const error = ref('')
+const store = useDashboardStore()
+const { toast } = useToast()
+
+const showLoading = computed(() => store.loading && !store.hasFetched)
 
 function money(v: number): string {
   return `$ ${v.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
@@ -31,49 +32,46 @@ const statusTones: Record<string, { tone: string; label: string }> = {
 const chartData = [3200, 4100, 2900, 5400, 4800, 6200, 5800, 7100]
 const chartMax = Math.max(...chartData)
 
-onMounted(async () => {
+async function loadDashboard() {
   try {
-    const res = await getDashboardStats()
-    stats.value = res.data
+    await store.fetch()
   } catch (e: any) {
-    error.value = e.message || 'Error al cargar datos'
-  } finally {
-    loading.value = false
+    if (!store.stats) {
+      toast(e.message || 'Error al cargar datos', 'error')
+    }
   }
-})
+}
+
+onMounted(loadDashboard)
 </script>
 
 <template>
   <div class="content">
-    <div v-if="loading" class="card">
+    <div v-if="showLoading" class="card">
       <p>Cargando dashboard...</p>
     </div>
 
-    <div v-else-if="error" class="card">
-      <p class="field err">{{ error }}</p>
-    </div>
-
-    <template v-else-if="stats">
+    <template v-else>
       <div class="grid-3" style="margin-bottom: 16px">
         <div class="card">
           <div class="eyebrow">Ingresos · este mes</div>
           <div class="kpi" style="margin-top: 6px">
-            <div class="value">{{ money(stats.kpis.ingresosMes) }}</div>
+            <div class="value">{{ money(store.stats!.kpis.ingresosMes) }}</div>
           </div>
         </div>
         <div class="card highlight">
           <div class="eyebrow">Por cobrar</div>
           <div class="kpi" style="margin-top: 6px">
-            <div class="value" style="color: var(--violet-700)">{{ money(stats.kpis.porCobrar) }}</div>
+            <div class="value" style="color: var(--violet-700)">{{ money(store.stats!.kpis.porCobrar) }}</div>
             <div class="delta" style="color: var(--violet-700); opacity: 0.85">
-              {{ stats.statsPorEstado.filter(s => ['enviado', 'en_curso'].includes(s.estado)).length }} presupuestos pendientes
+              {{ store.stats!.statsPorEstado.filter(s => ['enviado', 'en_curso'].includes(s.estado)).length }} presupuestos pendientes
             </div>
           </div>
         </div>
         <div class="card">
           <div class="eyebrow">Insumos bajos</div>
           <div class="kpi" style="margin-top: 6px">
-            <div class="value">{{ stats.kpis.insumosBajosCount }}</div>
+            <div class="value">{{ store.stats!.kpis.insumosBajosCount }}</div>
             <div class="delta down">
               <ArrowDown :size="12" :stroke-width="2" />
               Revisar inventario
@@ -90,12 +88,12 @@ onMounted(async () => {
               Ver todos <ArrowRight :size="14" :stroke-width="2" />
             </button>
           </div>
-          <div v-if="stats.presupuestosRecientes.length === 0" style="padding: 20px; color: var(--ink-muted); font-size: 13px; text-align: center">
+          <div v-if="store.stats!.presupuestosRecientes.length === 0" style="padding: 20px; color: var(--ink-muted); font-size: 13px; text-align: center">
             Sin presupuestos aun
           </div>
           <table v-else class="data-table">
             <tbody>
-              <tr v-for="p in stats.presupuestosRecientes" :key="p.folio">
+              <tr v-for="p in store.stats!.presupuestosRecientes" :key="p.folio">
                 <td style="width: 80; color: var(--ink-muted)">{{ p.folio }}</td>
                 <td>
                   <div style="font-weight: 500">{{ p.cliente?.nombre || 'Sin cliente' }}</div>
@@ -122,12 +120,12 @@ onMounted(async () => {
               Ver inventario <ArrowRight :size="14" :stroke-width="2" />
             </button>
           </div>
-          <div v-if="stats.insumosBajos.length === 0" style="padding: 20px; color: var(--ink-muted); font-size: 13px; text-align: center">
+          <div v-if="store.stats!.insumosBajos.length === 0" style="padding: 20px; color: var(--ink-muted); font-size: 13px; text-align: center">
             Todos los insumos estan bien
           </div>
           <div v-else style="padding: 0 20px 20px">
             <div
-              v-for="i in stats.insumosBajos"
+              v-for="i in store.stats!.insumosBajos"
               :key="i.id"
               style="padding: 12px 0; border-bottom: 1px solid var(--border)"
             >

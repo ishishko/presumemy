@@ -1,0 +1,44 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { get } from '@/services/api'
+import type { Insumo, CategoriaInsumo, PaginationResult } from '@/types'
+
+export const useInsumosStore = defineStore('insumos', () => {
+  const data = ref<Insumo[]>([])
+  const categorias = ref<CategoriaInsumo[]>([])
+  const loading = ref(false)
+  const hasFetched = ref(false)
+  const lastFetched = ref<number>(0)
+
+  async function fetch() {
+    loading.value = !hasFetched.value
+    try {
+      const [insumosRes, catsRes] = await Promise.all([
+        get<PaginationResult<Insumo>>('/insumos', { page: 1, limit: 100 }),
+        get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
+      ])
+      data.value = insumosRes.data
+      categorias.value = catsRes.data
+      hasFetched.value = true
+      lastFetched.value = Date.now()
+      return { insumos: insumosRes.data, categorias: catsRes.data }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function remove(id: number) {
+    data.value = data.value.filter(i => i.id !== id)
+  }
+
+  function upsert(insumo: Insumo) {
+    const idx = data.value.findIndex(i => i.id === insumo.id)
+    if (idx >= 0) {
+      data.value[idx] = insumo
+    } else {
+      data.value.unshift(insumo)
+    }
+  }
+
+  return { data, categorias, loading, hasFetched, lastFetched, fetch, remove, upsert }
+})

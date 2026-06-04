@@ -124,7 +124,7 @@ watch(() => props.open, (open) => {
 watch(() => props.open, async (open) => {
   if (open && presupuestos.value.length === 0) {
     try {
-      const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 200 })
+      const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 100 })
       presupuestos.value = res.data
     } catch (e: any) {
       toast('Error al cargar presupuestos', 'error')

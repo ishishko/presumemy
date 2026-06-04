@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Pencil, Trash2 } from '@lucide/vue'
-import { get, del } from '@/services/api'
+import { del } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
+import { useClientesStore } from '@/stores/clientes'
 import ClienteDrawer from '@/components/drawers/ClienteDrawer.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
-import type { Cliente, ClienteContacto, PaginationResult } from '@/types'
+import type { Cliente, ClienteContacto } from '@/types'
 
-const clientes = ref<Cliente[]>([])
-const loading = ref(true)
-const error = ref('')
+const store = useClientesStore()
+const { toast } = useToast()
 
 const showDrawer = ref(false)
 const editingCliente = ref<Cliente | null>(null)
 const showConfirmDelete = ref(false)
 const deletingCliente = ref<Cliente | null>(null)
 
-const { toast } = useToast()
+const showLoading = computed(() => store.loading && !store.hasFetched)
 
 const canalColors: Record<string, string> = {
   instagram: '#D7548C',
@@ -60,12 +60,11 @@ const principalContact = (cliente: Cliente): ClienteContacto | undefined => {
 
 async function loadClientes() {
   try {
-    const res = await get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 100 })
-    clientes.value = res.data
+    await store.fetch()
   } catch (e: any) {
-    error.value = e.message || 'Error al cargar clientes'
-  } finally {
-    loading.value = false
+    if (store.data.length === 0) {
+      toast(e.message || 'Error al cargar clientes', 'error')
+    }
   }
 }
 
@@ -79,8 +78,8 @@ function handleEdit(cliente: Cliente) {
   showDrawer.value = true
 }
 
-function handleSaved() {
-  loadClientes()
+function handleSaved(cliente: Cliente) {
+  store.upsert(cliente)
 }
 
 function handleDeleteClick(cliente: Cliente) {
@@ -93,15 +92,8 @@ async function handleDeleteConfirm() {
   const c = deletingCliente.value
   try {
     await del('/clientes', c.id)
-    toast('Cliente eliminado', 'info', async () => {
-      await fetch('/api/clientes', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activo: true }),
-      })
-      loadClientes()
-    })
-    clientes.value = clientes.value.filter(x => x.id !== c.id)
+    store.remove(c.id)
+    toast('Cliente eliminado', 'info')
   } catch (e: any) {
     toast(e.message || 'Error al eliminar', 'error')
   }
@@ -121,75 +113,73 @@ watch(createTrigger, (val) => {
 
 <template>
   <div class="content">
-    <div v-if="loading" class="card"><p>Cargando clientes...</p></div>
-    <div v-else-if="error" class="card"><p class="err">{{ error }}</p></div>
-
+    <div v-if="showLoading" class="card"><p>Cargando clientes...</p></div>
     <template v-else>
-      <div class="table-wrap">
-        <table class="data-table clientes-table">
-          <thead>
-            <tr>
-              <th>Cliente</th>
-              <th style="width: 100px">Código</th>
-              <th style="width: 140px">Último pedido</th>
-              <th class="num" style="width: 100px">Pedidos</th>
-              <th class="num" style="width: 160px">Total facturado</th>
-              <th style="width: 80px"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="c in clientes" :key="c.id">
-              <td>
-                <div class="clientes-name-cell">
-                  <div
-                    class="clientes-avatar"
-                    :style="{ background: getAvatarPalette(c.nombre).bg, color: getAvatarPalette(c.nombre).ink }"
-                  >{{ getInitials(c.nombre) }}</div>
-                  <div class="clientes-name-block">
-                    <span class="name">{{ c.nombre }}</span>
-                    <span v-if="principalContact(c)" class="contact">
-                      <span
-                        class="canal-dot"
-                        :style="{ background: canalColors[principalContact(c)!.canal] || '#6B6270' }"
-                      />
-                      <span class="canal-lbl">{{ canalLabels[principalContact(c)!.canal] || principalContact(c)!.canal }}</span>
-                      <span class="canal-val">{{ principalContact(c)!.valor }}</span>
-                    </span>
-                  </div>
+    <div class="table-wrap">
+      <table class="data-table clientes-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th style="width: 100px">Código</th>
+            <th style="width: 140px">Último pedido</th>
+            <th class="num" style="width: 100px">Pedidos</th>
+            <th class="num" style="width: 160px">Total facturado</th>
+            <th style="width: 80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="c in store.data" :key="c.id">
+            <td>
+              <div class="clientes-name-cell">
+                <div
+                  class="clientes-avatar"
+                  :style="{ background: getAvatarPalette(c.nombre).bg, color: getAvatarPalette(c.nombre).ink }"
+                >{{ getInitials(c.nombre) }}</div>
+                <div class="clientes-name-block">
+                  <span class="name">{{ c.nombre }}</span>
+                  <span v-if="principalContact(c)" class="contact">
+                    <span
+                      class="canal-dot"
+                      :style="{ background: canalColors[principalContact(c)!.canal] || '#6B6270' }"
+                    />
+                    <span class="canal-lbl">{{ canalLabels[principalContact(c)!.canal] || principalContact(c)!.canal }}</span>
+                    <span class="canal-val">{{ principalContact(c)!.valor }}</span>
+                  </span>
                 </div>
-              </td>
-              <td><span class="clientes-code">{{ c.codigo }}</span></td>
-              <td style="color: var(--ink-muted)">—</td>
-              <td class="num" style="font-variant-numeric: tabular-nums">{{ c.totalPedidos || 0 }}</td>
-              <td class="num" style="font-weight: 500; font-variant-numeric: tabular-nums">{{ money(c.totalGastado || 0) }}</td>
-              <td>
-                <div class="row-actions">
-                  <button class="row-action-btn" @click="handleEdit(c)" title="Editar">
-                    <Pencil :size="14" />
-                  </button>
-                  <button class="row-action-btn row-action-danger" @click="handleDeleteClick(c)" title="Eliminar">
-                    <Trash2 :size="14" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="clientes.length === 0">
-              <td colspan="6" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
-                Sin clientes registrados.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </div>
+            </td>
+            <td><span class="clientes-code">{{ c.codigo }}</span></td>
+            <td style="color: var(--ink-muted)">—</td>
+            <td class="num" style="font-variant-numeric: tabular-nums">{{ c.totalPedidos || 0 }}</td>
+            <td class="num" style="font-weight: 500; font-variant-numeric: tabular-nums">{{ money(c.totalGastado || 0) }}</td>
+            <td>
+              <div class="row-actions">
+                <button class="row-action-btn" @click="handleEdit(c)" title="Editar">
+                  <Pencil :size="14" />
+                </button>
+                <button class="row-action-btn row-action-danger" @click="handleDeleteClick(c)" title="Eliminar">
+                  <Trash2 :size="14" />
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="store.data.length === 0">
+            <td colspan="6" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
+              Sin clientes registrados.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ClienteDrawer
+      :open="showDrawer"
+      :cliente="editingCliente"
+      @close="showDrawer = false"
+      @saved="handleSaved"
+    />
     </template>
   </div>
-
-  <ClienteDrawer
-    :open="showDrawer"
-    :cliente="editingCliente"
-    @close="showDrawer = false"
-    @saved="handleSaved"
-  />
 
   <ConfirmDialog
     :open="showConfirmDelete"
