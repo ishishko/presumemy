@@ -66,23 +66,23 @@ async function loadPresupuestos() {
 function handleCreate() {
   editingPresupuesto.value = null
   showEditor.value = true
-  emit('set-editor-mode', true, 'Nuevo', () => {}, () => {
-    showEditor.value = false
-    emit('set-editor-mode', false, '', () => {}, () => {})
-  })
 }
 
 function handleEdit(p: Presupuesto) {
   editingPresupuesto.value = p
   showEditor.value = true
-  emit('set-editor-mode', true, p.folio, () => {}, () => {
-    showEditor.value = false
-    emit('set-editor-mode', false, '', () => {}, () => {})
-  })
 }
 
 function handleSaved() {
   loadPresupuestos()
+}
+
+function handleHeaderUpdate(payload: { mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }) {
+  if (payload.mode === 'editor') {
+    emit('set-editor-mode', true, payload.title, payload.onSave, payload.onClose)
+  } else {
+    emit('set-editor-mode', false, '', () => {}, () => {})
+  }
 }
 
 function handleClose() {
@@ -125,7 +125,7 @@ watch(createTrigger, (val) => {
 </script>
 
 <template>
-  <div class="content">
+  <div class="content" style="position: relative">
     <div v-if="loading" class="card"><p>Cargando presupuestos...</p></div>
     <div v-else-if="error" class="card"><p class="err">{{ error }}</p></div>
 
@@ -188,14 +188,15 @@ watch(createTrigger, (val) => {
         </table>
       </div>
     </template>
-  </div>
 
-  <PresupuestoEditor
-    :open="showEditor"
-    :presupuesto="editingPresupuesto"
-    @close="handleClose"
-    @saved="handleSaved"
-  />
+    <PresupuestoEditor
+      :open="showEditor"
+      :presupuesto="editingPresupuesto"
+      @close="handleClose"
+      @saved="handleSaved"
+      @update:header="handleHeaderUpdate"
+    />
+  </div>
 
   <ConfirmDialog
     :open="showConfirmDelete"

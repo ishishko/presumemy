@@ -58,11 +58,11 @@ function handleCreate() {
   createTrigger.value = currentRoute.value
 }
 
-function setEditorMode(active: boolean, title: string, onSave: () => void, onClose: () => void) {
+function handleSetEditorMode(active: boolean, title: string, onSave: () => void, onClose: () => void) {
   editorMode.value = active
   editorTitle.value = title
-  editorSaveHandler.value = onSave
-  editorCloseHandler.value = onClose
+  editorSaveHandler.value = active ? onSave : null
+  editorCloseHandler.value = active ? onClose : null
 }
 
 function handleEditorSave() {
@@ -95,7 +95,7 @@ function handleEditorClose() {
         @editor-save="handleEditorSave"
         @editor-close="handleEditorClose"
       />
-      <RouterView @set-editor-mode="setEditorMode" />
+      <RouterView @set-editor-mode="handleSetEditorMode" />
     </div>
   </div>
 

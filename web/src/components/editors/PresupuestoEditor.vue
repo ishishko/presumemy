@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   saved: [presupuesto: Presupuesto]
+  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
 }>()
 
 const { toast } = useToast()
@@ -33,7 +34,6 @@ const tipoEntrega = ref<'retira' | 'envio'>('retira')
 const direccionEntrega = ref('')
 const metodoPago = ref('')
 const sena = ref('')
-const resto = ref('')
 const notas = ref('')
 const includeNotes = ref(true)
 
@@ -82,7 +82,6 @@ function reset() {
   direccionEntrega.value = ''
   metodoPago.value = ''
   sena.value = ''
-  resto.value = ''
   notas.value = ''
   includeNotes.value = true
   lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
@@ -108,7 +107,6 @@ function loadPresupuesto() {
     direccionEntrega.value = p.direccionEntrega || ''
     metodoPago.value = p.metodoPago || ''
     sena.value = p.sena ? p.sena.toString() : '0'
-    resto.value = restoCalc.value.toString()
     notas.value = p.notas || ''
     lineas.value = (p.detalles || []).map((d) => ({
       id: mkId(),
@@ -164,16 +162,6 @@ function handleTableFocus() {
   }
 }
 
-function handleAddLine() {
-  lineas.value.push({ id: mkId(), producto: '', productoId: 0, qty: '', price: '' })
-  editing.value = true
-  nextTick(() => {
-    const table = window.document.querySelector('.lines-spreadsheet') as HTMLElement | null
-    const inputs = table?.querySelectorAll('tbody tr:last-child .cell-input') as NodeListOf<HTMLInputElement> | undefined
-    inputs?.[0]?.focus()
-  })
-}
-
 function handleTableBlur(e: FocusEvent) {
   const target = e.relatedTarget as HTMLElement | null
   const table = document.querySelector('.lines-spreadsheet')
@@ -204,6 +192,16 @@ function onDrop(id: number) {
   lineas.value = next
   dragId.value = null
   dragOverId.value = null
+}
+
+function handleAddLine() {
+  lineas.value.push({ id: mkId(), producto: '', productoId: 0, qty: '', price: '' })
+  editing.value = true
+  nextTick(() => {
+    const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
+    const inputs = table?.querySelectorAll('tbody tr:last-child .cell-input') as NodeListOf<HTMLInputElement> | undefined
+    inputs?.[0]?.focus()
+  })
 }
 
 function validate(): boolean {
@@ -311,6 +309,20 @@ async function handleSave(action: 'borrador' | 'enviado') {
   }
 }
 
+function openEditor() {
+  emit('update:header', {
+    mode: 'editor',
+    title: isNew.value ? 'Nuevo' : (props.presupuesto?.folio || ''),
+    onSave: () => handleSave('borrador'),
+    onClose: () => emit('close'),
+  })
+}
+
+function closeEditor() {
+  emit('update:header', { mode: 'normal' })
+  emit('close')
+}
+
 onMounted(async () => {
   try {
     const [clientesRes, productosRes] = await Promise.all([
@@ -325,470 +337,451 @@ onMounted(async () => {
 })
 
 watch(() => props.open, (open) => {
-  if (open) loadPresupuesto()
+  if (open) {
+    loadPresupuesto()
+    openEditor()
+  } else {
+    closeEditor()
+  }
 })
 
 defineExpose({ loadPresupuesto })
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="editor-slide">
-      <div v-if="open" class="editor-overlay">
-        <div class="editor-scrim" @click="emit('close')"></div>
-        <div class="editor-panel">
-          <div class="heartbeat-overlay" aria-hidden>
-            <svg viewBox="0 0 1000 80" preserveAspectRatio="none">
-              <path
-                d="M0 40 L 460 40 L 480 40 L 498 18 L 514 64 L 532 16 L 548 50 L 568 40 L 1000 40"
-                fill="none"
-                stroke="var(--violet-700)"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </div>
+  <Transition name="editor-slide">
+    <div v-if="open" class="editor-overlay">
+      <div class="heartbeat-overlay" aria-hidden>
+        <svg viewBox="0 0 1000 80" preserveAspectRatio="none">
+          <path
+            d="M0 40 L 460 40 L 480 40 L 498 18 L 514 64 L 532 16 L 548 50 L 568 40 L 1000 40"
+            fill="none"
+            stroke="var(--violet-700)"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
 
-          <div class="editor-head">
-            <button class="icon-btn" @click="emit('close')" title="Volver">
-              <ArrowLeft :size="18" />
-            </button>
-            <div class="editor-title">
-              <span class="eyebrow">Presupuesto · <span class="folio">{{ docFolio }}</span></span>
-              <h2>{{ isNew ? 'Nuevo presupuesto' : 'Editar presupuesto' }}</h2>
+      <div class="editor-head">
+        <button class="icon-btn" @click="closeEditor" title="Volver">
+          <ArrowLeft :size="18" />
+        </button>
+        <div class="editor-title">
+          <span class="eyebrow">Presupuesto · <span class="folio">{{ docFolio }}</span></span>
+          <h2>{{ isNew ? 'Nuevo presupuesto' : 'Editar presupuesto' }}</h2>
+        </div>
+        <div class="spacer"></div>
+        <span v-if="savedAt" class="save-chip">
+          <span class="dot"></span> Guardado · {{ savedAt }}
+        </span>
+      </div>
+
+      <div class="editor-split">
+        <div class="editor-form">
+          <section class="form-section">
+            <header class="form-section-head">
+              <span class="step-pill">1</span>
+              <h4>Cliente y evento</h4>
+            </header>
+            <div class="form-section-body">
+              <div class="form-row">
+                <div class="field">
+                  <label>Cliente</label>
+                  <input
+                    class="input"
+                    :value="cliente"
+                    @input="cliente = ($event.target as HTMLInputElement).value"
+                    placeholder="Buscar o agregar cliente..."
+                    list="ed-clients"
+                  />
+                  <datalist id="ed-clients">
+                    <option v-for="c in clientes" :key="c.id" :value="c.nombre" />
+                  </datalist>
+                </div>
+                <div class="field">
+                  <label>Temática</label>
+                  <input
+                    class="input"
+                    v-model="tematica"
+                    placeholder="Ej. Jardín pastel, dinosaurios, neón..."
+                  />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label>Fecha de fiesta</label>
+                  <div class="date-wrap">
+                    <Calendar :size="16" />
+                    <input type="date" class="input date-input" v-model="fechaFiesta" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Fecha de entrega</label>
+                  <div class="date-wrap">
+                    <Calendar :size="16" />
+                    <input type="date" class="input date-input" v-model="fechaEntrega" />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="spacer"></div>
-            <span v-if="savedAt" class="save-chip">
-              <span class="dot"></span> Guardado · {{ savedAt }}
-            </span>
-          </div>
+          </section>
 
-          <div class="editor-split">
-            <div class="editor-form">
-              <section class="form-section">
-                <header class="form-section-head">
-                  <span class="step-pill">1</span>
-                  <h4>Cliente y evento</h4>
-                </header>
-                <div class="form-section-body">
-                  <div class="form-row">
-                    <div class="field">
-                      <label>Cliente</label>
-                      <input
-                        class="input"
-                        :value="cliente"
-                        @input="cliente = ($event.target as HTMLInputElement).value"
-                        placeholder="Buscar o agregar cliente..."
-                        list="ed-clients"
-                      />
-                      <datalist id="ed-clients">
-                        <option v-for="c in clientes" :key="c.id" :value="c.nombre" />
-                      </datalist>
-                    </div>
-                    <div class="field">
-                      <label>Temática</label>
-                      <input
-                        class="input"
-                        v-model="tematica"
-                        placeholder="Ej. Jardín pastel, dinosaurios, neón..."
-                      />
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="field">
-                      <label>Fecha de fiesta</label>
-                      <div class="date-wrap">
-                        <Calendar :size="16" />
-                        <input type="date" class="input date-input" v-model="fechaFiesta" />
-                      </div>
-                    </div>
-                    <div class="field">
-                      <label>Fecha de entrega</label>
-                      <div class="date-wrap">
-                        <Calendar :size="16" />
-                        <input type="date" class="input date-input" v-model="fechaEntrega" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section class="form-section">
-                <header class="form-section-head">
-                  <span class="step-pill">2</span>
-                  <h4>Entrega</h4>
-                </header>
-                <div class="form-section-body">
-                  <div class="form-row form-row-envio">
-                    <div class="field">
-                      <label>Método de envío</label>
-                      <div class="segmented" role="tablist">
-                        <button
-                          type="button"
-                          role="tab"
-                          :aria-selected="tipoEntrega === 'retira'"
-                          :class="['seg-btn', tipoEntrega === 'retira' && 'active']"
-                          @click="tipoEntrega = 'retira'"
-                        >Retira</button>
-                        <button
-                          type="button"
-                          role="tab"
-                          :aria-selected="tipoEntrega === 'envio'"
-                          :class="['seg-btn', tipoEntrega === 'envio' && 'active']"
-                          @click="tipoEntrega = 'envio'"
-                        >Envío</button>
-                      </div>
-                    </div>
-                    <div v-if="tipoEntrega === 'envio'" class="field">
-                      <label>Lugar de envío</label>
-                      <input
-                        class="input"
-                        v-model="direccionEntrega"
-                        placeholder="Calle, número, colonia, CP"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section class="form-section">
-                <header class="form-section-head">
-                  <span class="step-pill">3</span>
-                  <h4>Pago</h4>
-                </header>
-                <div class="form-section-body">
-                  <div class="form-row form-row-3">
-                    <div class="field">
-                      <label>Método de pago</label>
-                      <input
-                        class="input"
-                        v-model="metodoPago"
-                        placeholder="Transferencia, MP, efectivo..."
-                      />
-                    </div>
-                    <div class="field">
-                      <label>Seña</label>
-                      <div class="money-wrap">
-                        <span class="money-prefix">$</span>
-                        <input
-                          class="input money-input"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          v-model="sena"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                    <div class="field">
-                      <label>Resto</label>
-                      <div class="money-wrap">
-                        <span class="money-prefix">$</span>
-                        <input
-                          class="input money-input"
-                          type="text"
-                          readonly
-                          :value="money(restoCalc)"
-                          placeholder="0.00"
-                          style="background: var(--page-bg)"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section class="form-section">
-                <header class="form-section-head">
-                  <span class="step-pill">4</span>
-                  <h4>Productos</h4>
-                </header>
-                <div class="form-section-body">
-                  <div
-                    class="lines-spreadsheet"
-                    tabindex="-1"
-                    @focus="handleTableFocus"
-                    @blur="handleTableBlur"
-                  >
-                    <table>
-                      <colgroup>
-                        <col style="width: 22px" />
-                        <col />
-                        <col style="width: 58px" />
-                        <col style="width: 86px" />
-                        <col style="width: 92px" />
-                        <col style="width: 30px" />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th></th>
-                          <th>Producto / descripción</th>
-                          <th class="num">Cant.</th>
-                          <th class="num">Precio</th>
-                          <th class="num">Subtotal</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr
-                          v-for="l in lineas"
-                          :key="l.id"
-                          :class="[
-                            'ln-row',
-                            activeRow === l.id && 'active',
-                            (l.producto && (!parseFloat(l.qty) || parseFloat(l.qty) <= 0)) && 'error',
-                            dragId === l.id && 'dragging',
-                            dragOverId === l.id && dragId !== l.id && 'drag-over',
-                          ].filter(Boolean).join(' ')"
-                          draggable
-                          @dragstart="dragId = l.id"
-                          @dragover.prevent="dragOverId = l.id"
-                          @drop="onDrop(l.id)"
-                          @dragend="dragId = null; dragOverId = null"
-                          @mousedown="activeRow = l.id"
-                        >
-                          <td class="grip" title="Arrastrar para reordenar">
-                            <GripVertical :size="14" />
-                          </td>
-                          <td>
-                            <input
-                              class="cell-input"
-                              :value="l.producto"
-                              @input="handleProductChange(l.id, ($event.target as HTMLInputElement).value)"
-                              @focus="activeRow = l.id"
-                              :placeholder="l.id === lineas[0]?.id ? 'Producto, descripción o catálogo...' : ''"
-                              list="ed-products"
-                            />
-                          </td>
-                          <td>
-                            <input
-                              class="cell-input num-input"
-                              type="number"
-                              min="0"
-                              step="1"
-                              :value="l.qty"
-                              @input="updateLine(l.id, { qty: ($event.target as HTMLInputElement).value })"
-                              @focus="activeRow = l.id"
-                            />
-                          </td>
-                          <td>
-                            <input
-                              class="cell-input num-input"
-                              type="number"
-                              min="0"
-                              step="0.5"
-                              :value="l.price"
-                              @input="updateLine(l.id, { price: ($event.target as HTMLInputElement).value })"
-                              @focus="activeRow = l.id"
-                            />
-                          </td>
-                          <td class="num cell-subtotal">
-                            {{ money((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}
-                          </td>
-                          <td>
-                            <button
-                              class="del-btn"
-                              @click="removeLine(l.id)"
-                              title="Eliminar línea"
-                            >
-                              <Trash2 :size="14" />
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <datalist id="ed-products">
-                      <option v-for="p in productos" :key="p.id" :value="p.nombre" />
-                    </datalist>
-
+          <section class="form-section">
+            <header class="form-section-head">
+              <span class="step-pill">2</span>
+              <h4>Entrega</h4>
+            </header>
+            <div class="form-section-body">
+              <div class="form-row form-row-envio">
+                <div class="field">
+                  <label>Método de envío</label>
+                  <div class="segmented" role="tablist">
                     <button
-                      v-if="!editing"
                       type="button"
-                      class="add-line-btn"
-                      @mousedown.prevent
-                      @click="handleAddLine"
-                    >
-                      <Plus :size="14" /> Agregar línea
-                    </button>
-                    <div v-else class="lines-hint text-hint">
-                      <GripVertical :size="12" /> arrastrá para reordenar &nbsp;·&nbsp; Tab para avanzar &nbsp;·&nbsp; click fuera para cerrar
-                    </div>
-                  </div>
-
-                  <div class="ed-totals">
-                    <div class="r"><span>Subtotal</span><span class="num">{{ money(subtotal) }}</span></div>
-                    <div class="r grand">
-                      <span>Total</span><span class="num v">{{ money(total) }}</span>
-                    </div>
+                      role="tab"
+                      :aria-selected="tipoEntrega === 'retira'"
+                      :class="['seg-btn', tipoEntrega === 'retira' && 'active']"
+                      @click="tipoEntrega = 'retira'"
+                    >Retira</button>
+                    <button
+                      type="button"
+                      role="tab"
+                      :aria-selected="tipoEntrega === 'envio'"
+                      :class="['seg-btn', tipoEntrega === 'envio' && 'active']"
+                      @click="tipoEntrega = 'envio'"
+                    >Envío</button>
                   </div>
                 </div>
-              </section>
+                <div v-if="tipoEntrega === 'envio'" class="field">
+                  <label>Lugar de envío</label>
+                  <input
+                    class="input"
+                    v-model="direccionEntrega"
+                    placeholder="Calle, número, colonia, CP"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
 
-              <section class="form-section">
-                <header class="form-section-head">
-                  <span class="step-pill">5</span>
-                  <h4>Notas</h4>
-                </header>
-                <div class="form-section-body">
-                  <div class="field">
-                    <textarea
-                      class="textarea"
-                      v-model="notas"
-                      placeholder="Detalles para el cliente: incluye montaje, instrucciones de retiro, alergenos, etc."
+          <section class="form-section">
+            <header class="form-section-head">
+              <span class="step-pill">3</span>
+              <h4>Pago</h4>
+            </header>
+            <div class="form-section-body">
+              <div class="form-row form-row-3">
+                <div class="field">
+                  <label>Método de pago</label>
+                  <input
+                    class="input"
+                    v-model="metodoPago"
+                    placeholder="Transferencia, MP, efectivo..."
+                  />
+                </div>
+                <div class="field">
+                  <label>Seña</label>
+                  <div class="money-wrap">
+                    <span class="money-prefix">$</span>
+                    <input
+                      class="input money-input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      v-model="sena"
+                      placeholder="0.00"
                     />
                   </div>
-                  <label class="check-row">
-                    <input type="checkbox" v-model="includeNotes" />
-                    <span>Incluir en impresión / vista web</span>
-                  </label>
                 </div>
-              </section>
-
-              <div class="form-tailspace"></div>
-            </div>
-
-            <div class="editor-preview">
-              <div v-if="!snapshot" class="preview-empty">
-                <FileText :size="44" />
-                <p>El presupuesto aparecerá aquí al guardar.</p>
-                <small>Vista del documento como lo recibe el cliente.</small>
+                <div class="field">
+                  <label>Resto</label>
+                  <div class="money-wrap">
+                    <span class="money-prefix">$</span>
+                    <input
+                      class="input money-input"
+                      type="text"
+                      readonly
+                      :value="money(restoCalc)"
+                      placeholder="0.00"
+                      style="background: var(--page-bg)"
+                    />
+                  </div>
+                </div>
               </div>
-              <div v-else class="preview-doc">
-                <header class="doc-head">
-                  <img src="/memydeni-logo.png" alt="MemyDeni" />
-                  <div class="doc-meta">
-                    <div class="folio">{{ snapshot.folio }}</div>
-                    <div class="text-hint">{{ new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }) }}</div>
-                  </div>
-                </header>
+            </div>
+          </section>
 
-                <div class="doc-customer">
-                  <div class="who-block">
-                    <small>Para</small>
-                    <div class="who">{{ snapshot.cliente || '—' }}</div>
-                    <div v-if="snapshot.tematica" class="text-hint">Temática · {{ snapshot.tematica }}</div>
-                  </div>
-                  <div class="doc-dates">
-                    <div v-if="snapshot.fFiesta">
-                      <small>Fiesta</small>
-                      <span>{{ niceDate(snapshot.fFiesta) }}</span>
-                    </div>
-                    <div v-if="snapshot.fEntrega">
-                      <small>Entrega</small>
-                      <span>{{ niceDate(snapshot.fEntrega) }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <table v-if="snapshot.lines.length > 0" class="doc-table">
+          <section class="form-section">
+            <header class="form-section-head">
+              <span class="step-pill">4</span>
+              <h4>Productos</h4>
+            </header>
+            <div class="form-section-body">
+              <div
+                class="lines-spreadsheet"
+                tabindex="-1"
+                @focus="handleTableFocus"
+                @blur="handleTableBlur"
+              >
+                <table>
+                  <colgroup>
+                    <col style="width: 22px" />
+                    <col />
+                    <col style="width: 58px" />
+                    <col style="width: 86px" />
+                    <col style="width: 92px" />
+                    <col style="width: 30px" />
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th>Producto</th>
+                      <th></th>
+                      <th>Producto / descripción</th>
                       <th class="num">Cant.</th>
                       <th class="num">Precio</th>
                       <th class="num">Subtotal</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="l in snapshot.lines" :key="l.id">
-                      <td>{{ l.producto }}</td>
-                      <td class="num">{{ l.qty }}</td>
-                      <td class="num">{{ money(parseFloat(l.price)) }}</td>
-                      <td class="num">{{ money((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}</td>
+                    <tr
+                      v-for="l in lineas"
+                      :key="l.id"
+                      :class="[
+                        'ln-row',
+                        activeRow === l.id && 'active',
+                        (l.producto && (!parseFloat(l.qty) || parseFloat(l.qty) <= 0)) && 'error',
+                        dragId === l.id && 'dragging',
+                        dragOverId === l.id && dragId !== l.id && 'drag-over',
+                      ].filter(Boolean).join(' ')"
+                      draggable
+                      @dragstart="dragId = l.id"
+                      @dragover.prevent="dragOverId = l.id"
+                      @drop="onDrop(l.id)"
+                      @dragend="dragId = null; dragOverId = null"
+                      @mousedown="activeRow = l.id"
+                    >
+                      <td class="grip" title="Arrastrar para reordenar">
+                        <GripVertical :size="14" />
+                      </td>
+                      <td>
+                        <input
+                          class="cell-input"
+                          :value="l.producto"
+                          @input="handleProductChange(l.id, ($event.target as HTMLInputElement).value)"
+                          @focus="activeRow = l.id"
+                          :placeholder="l.id === lineas[0]?.id ? 'Producto, descripción o catálogo...' : ''"
+                          list="ed-products"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          class="cell-input num-input"
+                          type="number"
+                          min="0"
+                          step="1"
+                          :value="l.qty"
+                          @input="updateLine(l.id, { qty: ($event.target as HTMLInputElement).value })"
+                          @focus="activeRow = l.id"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          class="cell-input num-input"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          :value="l.price"
+                          @input="updateLine(l.id, { price: ($event.target as HTMLInputElement).value })"
+                          @focus="activeRow = l.id"
+                        />
+                      </td>
+                      <td class="num cell-subtotal">
+                        {{ money((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}
+                      </td>
+                      <td>
+                        <button
+                          class="del-btn"
+                          @click="removeLine(l.id)"
+                          title="Eliminar línea"
+                        >
+                          <Trash2 :size="14" />
+                        </button>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
-                <div v-else class="doc-empty-rows">Sin productos aún.</div>
+                <datalist id="ed-products">
+                  <option v-for="p in productos" :key="p.id" :value="p.nombre" />
+                </datalist>
 
-                <div class="doc-totals">
-                  <div class="r"><span>Subtotal</span><span class="num">{{ money(snapshot.subtotal) }}</span></div>
-                  <div class="r big"><span>Total</span><span class="num">{{ money(snapshot.total) }}</span></div>
-                  <div v-if="snapshot.sena > 0" class="doc-pay">
-                    <div class="r small">
-                      <span>Seña{{ snapshot.pago ? ` (${snapshot.pago})` : '' }}</span>
-                      <span class="num">{{ money(snapshot.sena) }}</span>
-                    </div>
-                    <div class="r small">
-                      <span>Resto a pagar</span>
-                      <span class="num">{{ money(snapshot.resto) }}</span>
-                    </div>
-                  </div>
+                <button
+                  v-if="!editing"
+                  type="button"
+                  class="add-line-btn"
+                  @mousedown.prevent
+                  @click="handleAddLine"
+                >
+                  <Plus :size="14" /> Agregar línea
+                </button>
+                <div v-else class="lines-hint text-hint">
+                  <GripVertical :size="12" /> arrastrá para reordenar &nbsp;·&nbsp; Tab para avanzar &nbsp;·&nbsp; click fuera para cerrar
                 </div>
+              </div>
 
-                <div class="doc-grid">
-                  <div class="doc-block">
-                    <small>Entrega</small>
-                    <div class="block-body">
-                      <template v-if="snapshot.envio === 'envio'">
-                        Envío a domicilio<br />
-                        <span class="text-hint">{{ snapshot.lugar || '—' }}</span>
-                      </template>
-                      <template v-else>Retira en tienda</template>
-                    </div>
-                  </div>
-                  <div class="doc-block">
-                    <small>Contacto</small>
-                    <div class="block-body">
-                      MemyDeni · Papelería para fiestas<br />
-                      <span class="text-hint">hola@memydeni.mx · +52 55 1234 5678</span>
-                    </div>
-                  </div>
+              <div class="ed-totals">
+                <div class="r"><span>Subtotal</span><span class="num">{{ money(subtotal) }}</span></div>
+                <div class="r grand">
+                  <span>Total</span><span class="num v">{{ money(total) }}</span>
                 </div>
-
-                <div v-if="snapshot.includeNotes && snapshot.notes" class="doc-notes">
-                  <small>Notas</small>
-                  <p>{{ snapshot.notes }}</p>
-                </div>
-
-                <footer class="doc-foot text-hint">
-                  Precios en MXN. Vigencia 14 días. Gracias por confiar en MemyDeni
-                </footer>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div class="editor-foot">
-            <button class="btn btn-ghost" @click="emit('close')">Cancelar</button>
-            <div class="spacer"></div>
-            <button class="btn btn-secondary" @click="handleSave('borrador')">Guardar borrador</button>
-            <button class="btn btn-primary" @click="handleSave('enviado')">
-              Enviar <ArrowRight :size="16" />
-            </button>
+          <section class="form-section">
+            <header class="form-section-head">
+              <span class="step-pill">5</span>
+              <h4>Notas</h4>
+            </header>
+            <div class="form-section-body">
+              <div class="field">
+                <textarea
+                  class="textarea"
+                  v-model="notas"
+                  placeholder="Detalles para el cliente: incluye montaje, instrucciones de retiro, alergenos, etc."
+                />
+              </div>
+              <label class="check-row">
+                <input type="checkbox" v-model="includeNotes" />
+                <span>Incluir en impresión / vista web</span>
+              </label>
+            </div>
+          </section>
+
+          <div class="form-tailspace"></div>
+        </div>
+
+        <div class="editor-preview">
+          <div v-if="!snapshot" class="preview-empty">
+            <FileText :size="44" />
+            <p>El presupuesto aparecerá aquí al guardar.</p>
+            <small>Vista del documento como lo recibe el cliente.</small>
+          </div>
+          <div v-else class="preview-doc">
+            <header class="doc-head">
+              <img src="/memydeni-logo.png" alt="MemyDeni" />
+              <div class="doc-meta">
+                <div class="folio">{{ snapshot.folio }}</div>
+                <div class="text-hint">{{ new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }) }}</div>
+              </div>
+            </header>
+
+            <div class="doc-customer">
+              <div class="who-block">
+                <small>Para</small>
+                <div class="who">{{ snapshot.cliente || '—' }}</div>
+                <div v-if="snapshot.tematica" class="text-hint">Temática · {{ snapshot.tematica }}</div>
+              </div>
+              <div class="doc-dates">
+                <div v-if="snapshot.fFiesta">
+                  <small>Fiesta</small>
+                  <span>{{ niceDate(snapshot.fFiesta) }}</span>
+                </div>
+                <div v-if="snapshot.fEntrega">
+                  <small>Entrega</small>
+                  <span>{{ niceDate(snapshot.fEntrega) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <table v-if="snapshot.lines.length > 0" class="doc-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="num">Cant.</th>
+                  <th class="num">Precio</th>
+                  <th class="num">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="l in snapshot.lines" :key="l.id">
+                  <td>{{ l.producto }}</td>
+                  <td class="num">{{ l.qty }}</td>
+                  <td class="num">{{ money(parseFloat(l.price)) }}</td>
+                  <td class="num">{{ money((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-else class="doc-empty-rows">Sin productos aún.</div>
+
+            <div class="doc-totals">
+              <div class="r"><span>Subtotal</span><span class="num">{{ money(snapshot.subtotal) }}</span></div>
+              <div class="r big"><span>Total</span><span class="num">{{ money(snapshot.total) }}</span></div>
+              <div v-if="snapshot.sena > 0" class="doc-pay">
+                <div class="r small">
+                  <span>Seña{{ snapshot.pago ? ` (${snapshot.pago})` : '' }}</span>
+                  <span class="num">{{ money(snapshot.sena) }}</span>
+                </div>
+                <div class="r small">
+                  <span>Resto a pagar</span>
+                  <span class="num">{{ money(snapshot.resto) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="doc-grid">
+              <div class="doc-block">
+                <small>Entrega</small>
+                <div class="block-body">
+                  <template v-if="snapshot.envio === 'envio'">
+                    Envío a domicilio<br />
+                    <span class="text-hint">{{ snapshot.lugar || '—' }}</span>
+                  </template>
+                  <template v-else>Retira en tienda</template>
+                </div>
+              </div>
+              <div class="doc-block">
+                <small>Contacto</small>
+                <div class="block-body">
+                  MemyDeni · Papelería para fiestas<br />
+                  <span class="text-hint">hola@memydeni.mx · +52 55 1234 5678</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="snapshot.includeNotes && snapshot.notes" class="doc-notes">
+              <small>Notas</small>
+              <p>{{ snapshot.notes }}</p>
+            </div>
+
+            <footer class="doc-foot text-hint">
+              Precios en MXN. Vigencia 14 días. Gracias por confiar en MemyDeni
+            </footer>
           </div>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+
+      <div class="editor-foot">
+        <button class="btn btn-ghost" @click="closeEditor">Cancelar</button>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" @click="handleSave('borrador')">Guardar borrador</button>
+        <button class="btn btn-primary" @click="handleSave('enviado')">
+          Enviar <ArrowRight :size="16" />
+        </button>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
 .editor-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-}
-
-.editor-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(28, 26, 30, 0.40);
-  pointer-events: auto;
-}
-
-.editor-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 75%;
-  max-width: 1200px;
+  z-index: 20;
   background: var(--page-bg);
   display: grid;
   grid-template-rows: auto 1fr auto;
-  pointer-events: auto;
-  box-shadow: var(--shadow-2);
   overflow: hidden;
 }
 
@@ -799,7 +792,7 @@ defineExpose({ loadPresupuesto })
   right: 0;
   height: 96px;
   pointer-events: none;
-  z-index: 50;
+  z-index: 30;
   overflow: hidden;
 }
 
@@ -1444,23 +1437,23 @@ defineExpose({ loadPresupuesto })
   margin-top: 4px;
 }
 
-.editor-slide-enter-active .editor-panel,
-.editor-slide-leave-active .editor-panel {
-  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.editor-slide-enter-from .editor-panel,
-.editor-slide-leave-to .editor-panel {
-  transform: translateX(100%);
-}
-
-.editor-slide-enter-active .editor-scrim,
-.editor-slide-leave-active .editor-scrim {
+.editor-slide-enter-active,
+.editor-slide-leave-active {
   transition: opacity 220ms ease;
 }
 
-.editor-slide-enter-from .editor-scrim,
-.editor-slide-leave-to .editor-scrim {
+.editor-slide-enter-from,
+.editor-slide-leave-to {
   opacity: 0;
+}
+
+.editor-slide-enter-active .editor-overlay,
+.editor-slide-leave-active .editor-overlay {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.editor-slide-enter-from .editor-overlay,
+.editor-slide-leave-to .editor-overlay {
+  transform: translateX(30px);
 }
 </style>
