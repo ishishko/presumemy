@@ -8,38 +8,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Gestiona: presupuestos (cotizaciones), catálogo de productos, insumos (inventario) y finanzas.
 
-**Stack:** Nuxt 3 (Vue 3, Composition API). Todos los nuevos archivos deben seguir las convenciones de Nuxt 3.
+**Stack:** Vue 3 + Vite + TypeScript + Tailwind v4 (SPA), con backend Hono + Prisma + Supabase PostgreSQL.
 
 ## Commands
 
+### Frontend (web/)
 ```bash
-# Instalar dependencias
-npm install
-
-# Servidor de desarrollo
-npm run dev
-
-# Build para producción
-npm run build
-
-# Preview del build
-npm run preview
-
-# Lint
-npm run lint
+cd web
+npm install           # instalar dependencias
+npm run dev           # servidor de desarrollo (puerto 5173)
+npm run build         # vue-tsc -b && vite build
+npm run preview       # vite preview
 ```
+
+### Backend (api/)
+```bash
+cd api
+npm run dev           # tsx watch src/index.ts (puerto 3000)
+npm run db:migrate    # prisma migrate dev
+npm run db:studio     # prisma studio
+npm run db:seed       # prisma db seed
+npm run db:reset      # prisma migrate reset --force && prisma db seed
+```
+
+### Verificacion
+```bash
+cd web && npx vue-tsc -b    # typecheck sin build
+```
+
+### Dev en WSL
+Ambos servidores corren simultaneamente. Vite tiene `usePolling: true` para WSL + NTFS.
+El frontend hace proxy de `/api` → `http://localhost:3000`.
 
 ## Design System
 
-El design system completo está en `docs/design-system/project/`. **Leer antes de tocar cualquier UI.**
+El design system completo esta en `docs/MVP/design-system/project/`. **Leer antes de tocar cualquier UI.**
 
 Archivos clave:
-- `docs/design-system/project/colors_and_type.css` — todos los CSS custom properties (colores, tipografía, espaciado, radios, sombras). Importar en el layer de tokens de Nuxt/Tailwind.
-- `docs/design-system/project/ui_kits/presumemi/styles.css` — estilos de componentes (sidebar, topbar, botones, cards, tablas, drawer, etc.)
-- `docs/design-system/project/ui_kits/presumemi/` — prototipo React interactivo con todas las pantallas. **Usar como referencia visual pixel-perfect**, no copiar la implementación.
-- `docs/design-system/project/assets/memydeni-logo.png` — wordmark con fondo transparente. Usar siempre esta versión.
+- `docs/MVP/design-system/project/colors_and_type.css` — todos los CSS custom properties (colores, tipografia, espaciado, radios, sombras).
+- `docs/MVP/design-system/project/ui_kits/presumemi/styles.css` — estilos de componentes (sidebar, topbar, botones, cards, tablas, drawer, etc.)
+- `docs/MVP/design-system/project/ui_kits/presumemi/` — prototipo React interactivo con todas las pantallas. **Usar como referencia visual pixel-perfect**, no copiar la implementacion.
+- `docs/MVP/design-system/project/assets/memydeni-logo.png` — wordmark con fondo transparente. Usar siempre esta version.
 
-El prototipo interactivo se abre en `docs/design-system/project/ui_kits/presumemi/index.html`.
+El prototipo interactivo se abre en `docs/MVP/design-system/project/ui_kits/presumemi/index.html`.
 
 ## Architecture
 
@@ -47,15 +58,14 @@ El prototipo interactivo se abre en `docs/design-system/project/ui_kits/presumem
 
 | Ruta | Pantalla |
 |---|---|
-| `/` o `/dashboard` | Dashboard — KPIs, presupuestos recientes, stock bajo, gráfico semanal |
+| `/` o `/dashboard` | Dashboard — KPIs, presupuestos recientes, stock bajo, grafico semanal |
 | `/presupuestos` | Lista de presupuestos con filtros; abre editor |
-| `/catalogo` | Grid/lista de productos con filtro por categoría |
+| `/productos` | Grid/lista de productos con filtro por categoria |
 | `/insumos` | Tabla de insumos con barras de stock y badges de estado |
 | `/finanzas` | KPIs del mes + libro de movimientos |
 | `/clientes` | Lista de clientes con avatars y tags |
+| `/ajustes` | Configuracion del negocio |
 | `/login` | Login con logo MemyDeni |
-
-El editor de presupuestos es un overlay de pantalla completa (no un drawer lateral), accesible desde `/presupuestos`.
 
 ### Layout del shell
 
@@ -74,30 +84,30 @@ Importar `colors_and_type.css` como capa base. Todos los valores hardcodeados so
 --coral-500    #EA5F3C   SOLO error/destructivo (texto siempre #fff)
 --ink          #1C1A1E   texto body, tablas, labels
 --ink-muted    #6B6270   texto secundario
---page-bg      #F7F5F3   fondo de página
+--page-bg      #F7F5F3   fondo de pagina
 --surface      #FFFFFF   cards, panels
 --border       rgba(28,26,30,0.10)   hairline
 --lavender     #DBA8CD   solo fondos/tags (nunca color de texto)
---mint         #D0EADD   solo fondos éxito
+--mint         #D0EADD   solo fondos exito
 --yellow       #F8D132   solo fondos advertencia (texto: --yellow-ink #7A5D00)
 --coral-50     #FCEBE6   solo fondos error suave
 ```
 
-Grid de espaciado: múltiplos de 4px (`--s-1` a `--s-16`). **Nunca píxeles crudos.**
+Grid de espaciado: multiplos de 4px (`--s-1` a `--s-16`). **Nunca pixeles crudos.**
 
 ### Tipografía
 
 - Fuente: **Onest** (Google Fonts, pesos 400/500/600/700).
 - Headings: peso 500, color `--violet-700`, `letter-spacing: -0.01em`.
 - Body: 14px, peso 400, color `--ink`, `line-height: 1.5`.
-- Mínimo: 12px en cualquier lugar de la UI.
-- Números en tablas/totales: `font-variant-numeric: tabular-nums`.
+- Minimo: 12px en cualquier lugar de la UI.
+- Numeros en tablas/totales: `font-variant-numeric: tabular-nums`.
 
 ### Iconografía
 
 **Lucide** — stroke 1.5px, `currentColor`, nunca color hardcodeado en el SVG.
 
-Tamaños: 16px en UI densa, 20px en headers, 24px en nav del sidebar.
+Tamanos: 16px en UI densa, 20px en headers, 24px en nav del sidebar.
 
 ### Reglas de componentes
 
@@ -117,21 +127,21 @@ Tamaños: 16px en UI densa, 20px en headers, 24px en nav del sidebar.
 
 **Focus:** ring de 3px teal (`--focus-ring`). Ring coral en controles destructivos.
 
-**Animaciones:** 120ms hover (`ease`), 180ms entrada de menús/drawers (`cubic-bezier(0.2, 0.8, 0.2, 1)`). Sin bounces ni spring physics. Transiciones de página: instantáneas.
+**Animaciones:** 120ms hover (`ease`), 180ms entrada de menus/drawers (`cubic-bezier(0.2, 0.8, 0.2, 1)`). Sin bounces ni spring physics. Transiciones de pagina: instantaneas.
 
 ### Contenido / Copy
 
-- **Idioma:** español (es-MX / neutro latinoamericano).
-- **Persona:** tuteo (`tú`). Primera persona plural cuando el sistema actúa (`"guardamos tus cambios"`).
-- **Casing:** sentence case en todo. MAYÚSCULAS solo en eyebrows (`h6`, <=12px) y headers de tabla que necesiten diferenciarse.
+- **Idioma:** espanol (es-MX / neutro latinoamericano).
+- **Persona:** tuteo (`tu`). Primera persona plural cuando el sistema actua (`"guardamos tus cambios"`).
+- **Casing:** sentence case en todo. MAYUSCULAS solo en eyebrows (`h6`, <=12px) y headers de tabla que necesiten diferenciarse.
 - **Sin emojis** en la UI del producto. Nunca.
-- **Puntuación:** sin punto final en botones, ítems de menú, celdas de tabla ni labels.
+- **Puntuacion:** sin punto final en botones, items de menu, celdas de tabla ni labels.
 - **Moneda:** `$ 1,250.00 MXN` en vistas financieras; omitir `MXN` en tablas densas.
 
 ### Logo MemyDeni
 
 - Usar siempre `memydeni-logo.png` (fondo transparente) sobre superficies claras.
 - **No alterar** colores ni proporciones.
-- Ancho mínimo: 96px. En sidebar: 120px. En login hero: 320px.
+- Ancho minimo: 96px. En sidebar: 120px. En login hero: 320px.
 - Espacio libre alrededor: ~25% de la altura del logo en todos los lados.
 - Solo aparece en: sidebar, login, hero de landing. Nunca sobre fondo violeta.

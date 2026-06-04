@@ -2,54 +2,83 @@
 
 ## Estado del proyecto
 
-**Backend API funcionando.** Frontend Vue 3 SPA pendiente.
-Este repo contiene: design system completo (HTML/CSS/JS), backend Hono con Prisma + Supabase, y especificaciones de modulos.
+**MVP completo implementado.** Backend API + Frontend Vue 3 SPA funcionando.
 
-## Arquitectura confirmada
+## Arquitectura
 
-**Backend separado + Frontend SPA (Plan B):**
-- **Backend**: `api/` — Hono (Node.js) con Prisma ORM corriendo en puerto 3000
-- **Frontend**: `web/` — Vue 3 SPA con Vite (pendiente, puerto 5173)
+**Backend separado + Frontend SPA:**
+- **Backend**: `api/` — Hono (Node.js) + Prisma v6 + Supabase PostgreSQL, puerto 3000
+- **Frontend**: `web/` — Vue 3 + Vite + TypeScript + Tailwind v4, puerto 5173
 - **Base de datos**: Supabase PostgreSQL (proyecto: zhegcpjdmcjqodcmhlcc)
-- **Auth**: Supabase Auth (JWT verificado en Hono middleware)
+- **Auth**: Supabase Auth (JWT verificado en frontend y backend)
 
-## Design system — leer antes de tocar UI
+## Comandos para desarrolladores
 
-Todo lo visual ya existe en `docs/MVP/design-system/project/`. No inventar nada.
-
-| Archivo | Que contiene |
-|---|---|
-| `colors_and_type.css` | Tokens CSS (colores, tipografia, espaciado, radios, sombras) |
-| `ui_kits/presumemi/styles.css` | Estilos de componentes (.btn-*, .card, .badge, .data-table, .drawer, etc.) |
-| `ui_kits/presumemi/*.jsx` | Prototipo React interactivo — referencia visual pixel-perfect |
-| `preview/*.html` | Componentes individuales aislados |
-| `assets/memydeni-logo.png` | Logo con fondo transparente (usar siempre este) |
-
-**Regla:** trasladar JSX → Vue SFC. No copiar codigo React.
-
-## Backend (api/) — ya implementado
-
-### Stack
-- Hono + @hono/node-server
-- Prisma v6 (no v7, tiene breaking changes)
-- Zod validacion
-- Supabase Auth middleware
-
-### Comandos
+### Backend (api/)
 ```bash
 cd api
 npm run dev          # tsx watch src/index.ts
 npm run db:migrate   # prisma migrate dev
 npm run db:studio    # prisma studio
 npm run db:seed      # prisma db seed
-npm run db:reset     # reset + seed
+npm run db:reset     # prisma migrate reset --force && prisma db seed
 ```
 
-### Rutas implementadas
+### Frontend (web/)
+```bash
+cd web
+npm run dev          # vite con HMR (usePolling para WSL)
+npm run build        # vue-tsc -b && vite build
+npm run preview      # vite preview
+```
+
+### Verificacion
+```bash
+cd web && npx vue-tsc -b    # typecheck sin build
+```
+
+### Dev en WSL
+Ambos servidores deben correr simultaneamente. Vite tiene `usePolling: true` para WSL + NTFS.
+El frontend hace proxy de `/api` → `http://localhost:3000`.
+
+## Frontend (web/) — estructura
+
+| Directorio | Contenido |
+|---|---|
+| `src/views/` | 7 vistas: Dashboard, Insumos, Catalogo, Clientes, Presupuestos, Finanzas, Ajustes |
+| `src/components/drawers/` | ClienteDrawer, PresupuestoDrawer, MovimientoDrawer, ImprentaDrawer |
+| `src/components/overlays/` | InsumoDetalle, ProductoDetalle (fullscreen) |
+| `src/components/ui/` | DrawerShell, ConfirmDialog, ToastContainer |
+| `src/components/layout/` | AppHeader, PageHead, TheSidebar |
+| `src/composables/` | useCreateTrigger, useDirty, useToast |
+| `src/schemas/` | Zod v4 schemas: insumos, productos, clientes, presupuestos, finanzas |
+| `src/services/` | api.ts (ofetch con JWT), dashboard.ts |
+| `src/stores/` | auth.ts (Pinia + Supabase) |
+| `src/types/` | TypeScript types centralizados |
+
+### Auth
+- `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` requeridos en `.env`
+- Token se guarda en `localStorage` como `sb-token`
+- Router guard: redirige a `/login` si no autenticado
+- API client inyecta `Authorization: Bearer <token>` automaticamente
+
+### Alias
+`@` apunta a `web/src` (configurado en vite.config.ts)
+
+## Backend (api/) — estructura
+
+| Directorio | Contenido |
+|---|---|
+| `src/routes/` | 7 modulos: insumos, productos, clientes, presupuestos, finanzas, dashboard, ajustes |
+| `src/middleware/` | Supabase Auth middleware |
+| `src/lib/` | Prisma client, utilidades |
+| `src/types/` | Zod schemas de validacion |
+
+### Rutas API
 - `GET /health` — health check
-- `/api/insumos` — CRUD completo + categorias + proveedores
-- `/api/productos` — CRUD completo + categorias + BOM
-- `/api/clientes` — CRUD completo + contactos
+- `/api/insumos` — CRUD + categorias + proveedores
+- `/api/productos` — CRUD + categorias + BOM
+- `/api/clientes` — CRUD + contactos
 - `/api/presupuestos` — CRUD + FSM estados + congelar precios
 - `/api/finanzas` — transacciones + ordenes imprenta + distribucion
 - `/api/dashboard` — KPIs agregados
@@ -62,6 +91,22 @@ npm run db:reset     # reset + seed
 - **Campos calculados** (`costo_unitario`, `subtotal`, `total`) se computan en app antes de guardar
 - **FSM presupuestos**: `borrador → enviado → en_curso → cerrado → facturado`. Cualquiera (excepto facturado) → `cancelado`
 
+## Design system — leer antes de tocar UI
+
+Todo lo visual esta en `docs/MVP/design-system/project/`. No inventar nada.
+
+| Archivo | Que contiene |
+|---|---|
+| `colors_and_type.css` | Tokens CSS (colores, tipografia, espaciado, radios, sombras) |
+| `ui_kits/presumemi/styles.css` | Estilos de componentes (.btn-*, .card, .badge, .data-table, .drawer, etc.) |
+| `ui_kits/presumemi/*.jsx` | Prototipo React interactivo — referencia visual pixel-perfect |
+| `preview/*.html` | Componentes individuales aislados |
+| `assets/memydeni-logo.png` | Logo con fondo transparente (usar siempre este) |
+
+**Regla:** trasladar JSX → Vue SFC. No copiar codigo React.
+
+**Leer `CLAUDE.md`** para design system detallado (tokens, componentes, tipografia, iconos, reglas de estilo).
+
 ## Seed data
 
 Fuente: `docs/MVP/design-system/project/ui_kits/presumemi/data.jsx` e `insumo_detalle.jsx`
@@ -70,28 +115,9 @@ Fuente: `docs/MVP/design-system/project/ui_kits/presumemi/data.jsx` e `insumo_de
 - 3 filas distribucion: Meme 40%, Pety 30%, Gastos 30%
 - 1 config inicial (nombre "MemyDeni", moneda ARS)
 
-## Frontend (web/) — pendiente
-
-Implementar con Vue 3 + Vite + TypeScript segun `docs/MVP/Plan de implementacion 2.md` Fase 2.
-
-### Pantallas a implementar
-| Pantalla | Ref. prototipo | Ruta |
-|---|---|---|
-| Dashboard | `dashboard.jsx` | `/dashboard` |
-| Insumos | `screens.jsx` + `insumo_detalle.jsx` | `/insumos` |
-| Catálogo | `screens.jsx` + `producto_detalle.jsx` | `/catalogo` |
-| Clientes | `screens.jsx` + `cliente_detalle.jsx` | `/clientes` |
-| Presupuestos | `screens.jsx` + `editor.jsx` | `/presupuestos` |
-| Finanzas | `screens.jsx` + `finanzas_drawer.jsx` | `/finanzas` |
-| Ajustes | `ajustes.jsx` | `/ajustes` |
-
 ## Copy y contenido
 
 - Idioma: espanol (es-MX / neutro latinoamericano), tuteo
 - Sin emojis en la UI. Nunca.
 - Sentence case. Sin punto final en botones, menus, labels ni celdas de tabla.
 - Moneda: `$ 1,250.00 MXN` en vistas financieras; sin `MXN` en tablas densas.
-
-## CLAUDE.md
-
-Leer `CLAUDE.md` para design system detallado (tokens, componentes, tipografia, iconos, reglas de estilo).
