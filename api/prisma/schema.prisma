@@ -167,7 +167,9 @@ model Presupuesto {
   estado           EstadoPresupuesto  @default(borrador)
   tipoEntrega      TipoEntrega        @default(retira) @map("tipo_entrega")
   direccionEntrega String?            @map("direccion_entrega")
+  fechaFiesta      DateTime?          @map("fecha_fiesta")
   fechaEntrega     DateTime?          @map("fecha_entrega")
+  metodoPago       String?            @map("metodo_pago")
   sena             Decimal            @db.Decimal(10, 2) @default(0)
   total            Decimal            @db.Decimal(10, 2) @default(0)
   notas            String?

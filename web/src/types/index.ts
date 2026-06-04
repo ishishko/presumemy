@@ -107,7 +107,9 @@ export interface Presupuesto {
   estado: 'borrador' | 'enviado' | 'en_curso' | 'cerrado' | 'facturado' | 'cancelado'
   tipoEntrega: 'retira' | 'envio'
   direccionEntrega?: string
+  fechaFiesta?: string
   fechaEntrega?: string
+  metodoPago?: string
   sena: number
   total: number
   notas?: string

@@ -3,17 +3,21 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { Pencil, Trash2 } from '@lucide/vue'
 import { get, del } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
-import PresupuestoDrawer from '@/components/drawers/PresupuestoDrawer.vue'
+import PresupuestoEditor from '@/components/editors/PresupuestoEditor.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import type { Presupuesto, PaginationResult } from '@/types'
+
+const emit = defineEmits<{
+  'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
+}>()
 
 const presupuestos = ref<Presupuesto[]>([])
 const loading = ref(true)
 const error = ref('')
 
 const filter = ref('todos')
-const showDrawer = ref(false)
+const showEditor = ref(false)
 const editingPresupuesto = ref<Presupuesto | null>(null)
 const showConfirmDelete = ref(false)
 const deletingPresupuesto = ref<Presupuesto | null>(null)
@@ -61,16 +65,29 @@ async function loadPresupuestos() {
 
 function handleCreate() {
   editingPresupuesto.value = null
-  showDrawer.value = true
+  showEditor.value = true
+  emit('set-editor-mode', true, 'Nuevo', () => {}, () => {
+    showEditor.value = false
+    emit('set-editor-mode', false, '', () => {}, () => {})
+  })
 }
 
 function handleEdit(p: Presupuesto) {
   editingPresupuesto.value = p
-  showDrawer.value = true
+  showEditor.value = true
+  emit('set-editor-mode', true, p.folio, () => {}, () => {
+    showEditor.value = false
+    emit('set-editor-mode', false, '', () => {}, () => {})
+  })
 }
 
 function handleSaved() {
   loadPresupuestos()
+}
+
+function handleClose() {
+  showEditor.value = false
+  emit('set-editor-mode', false, '', () => {}, () => {})
 }
 
 function handleDeleteClick(p: Presupuesto) {
@@ -173,10 +190,10 @@ watch(createTrigger, (val) => {
     </template>
   </div>
 
-  <PresupuestoDrawer
-    :open="showDrawer"
+  <PresupuestoEditor
+    :open="showEditor"
     :presupuesto="editingPresupuesto"
-    @close="showDrawer = false"
+    @close="handleClose"
     @saved="handleSaved"
   />
 

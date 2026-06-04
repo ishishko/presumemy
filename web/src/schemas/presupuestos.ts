@@ -5,7 +5,9 @@ export const presupuestoSchema = z.object({
   tematica: z.string().optional(),
   tipoEntrega: z.enum(['retira', 'envio']).default('retira'),
   direccionEntrega: z.string().optional(),
+  fechaFiesta: z.string().datetime().optional(),
   fechaEntrega: z.string().datetime().optional(),
+  metodoPago: z.string().optional(),
   sena: z.coerce.number().min(0).default(0),
   notas: z.string().optional(),
   detalles: z.array(z.object({

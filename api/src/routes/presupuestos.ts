@@ -108,7 +108,9 @@ route.post('/', zValidator('json', presupuestoSchema), async (c) => {
       estado: 'borrador',
       tipoEntrega: data.tipoEntrega,
       direccionEntrega: data.direccionEntrega || null,
+      fechaFiesta: data.fechaFiesta ? new Date(data.fechaFiesta) : null,
       fechaEntrega: data.fechaEntrega ? new Date(data.fechaEntrega) : null,
+      metodoPago: data.metodoPago || null,
       sena: data.sena,
       total,
       notas: data.notas || null,
@@ -164,6 +166,8 @@ route.put('/:id', zValidator('json', presupuestoUpdateSchema), async (c) => {
     where: { id },
     data: {
       ...presupuestoData,
+      fechaFiesta: presupuestoData.fechaFiesta ? new Date(presupuestoData.fechaFiesta) : undefined,
+      fechaEntrega: presupuestoData.fechaEntrega ? new Date(presupuestoData.fechaEntrega) : undefined,
       total,
       detalles: detalles ? {
         deleteMany: {},

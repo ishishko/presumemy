@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createTrigger } from '@/composables/useCreateTrigger'
@@ -36,6 +36,11 @@ const showCreate = computed(() => {
 
 const isAuthRoute = computed(() => route.name === 'login')
 
+const editorMode = ref(false)
+const editorTitle = ref('')
+const editorSaveHandler = ref<(() => void) | null>(null)
+const editorCloseHandler = ref<(() => void) | null>(null)
+
 onMounted(async () => {
   await authStore.init()
 })
@@ -51,6 +56,21 @@ async function handleLogout() {
 
 function handleCreate() {
   createTrigger.value = currentRoute.value
+}
+
+function setEditorMode(active: boolean, title: string, onSave: () => void, onClose: () => void) {
+  editorMode.value = active
+  editorTitle.value = title
+  editorSaveHandler.value = onSave
+  editorCloseHandler.value = onClose
+}
+
+function handleEditorSave() {
+  editorSaveHandler.value?.()
+}
+
+function handleEditorClose() {
+  editorCloseHandler.value?.()
 }
 </script>
 
@@ -69,9 +89,13 @@ function handleCreate() {
       <AppHeader
         :title="pageTitle"
         :show-create="showCreate"
+        :editor-mode="editorMode"
+        :editor-title="editorTitle"
         @create="handleCreate"
+        @editor-save="handleEditorSave"
+        @editor-close="handleEditorClose"
       />
-      <RouterView />
+      <RouterView @set-editor-mode="setEditorMode" />
     </div>
   </div>
 
