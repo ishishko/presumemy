@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createTrigger } from '@/composables/useCreateTrigger'
+import { editorMode, editorTitle, editorSaveHandler, editorCloseHandler, setEditorMode } from '@/composables/useEditorMode'
 import TheSidebar from '@/components/layout/TheSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
@@ -36,11 +37,6 @@ const showCreate = computed(() => {
 
 const isAuthRoute = computed(() => route.name === 'login')
 
-const editorMode = ref(false)
-const editorTitle = ref('')
-const editorSaveHandler = ref<(() => void) | null>(null)
-const editorCloseHandler = ref<(() => void) | null>(null)
-
 onMounted(async () => {
   await authStore.init()
 })
@@ -59,10 +55,7 @@ function handleCreate() {
 }
 
 function handleSetEditorMode(active: boolean, title: string, onSave: () => void, onClose: () => void) {
-  editorMode.value = active
-  editorTitle.value = title
-  editorSaveHandler.value = active ? onSave : null
-  editorCloseHandler.value = active ? onClose : null
+  setEditorMode(active, title, onSave, onClose)
 }
 
 function handleEditorSave() {

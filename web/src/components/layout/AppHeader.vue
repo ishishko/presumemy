@@ -18,10 +18,8 @@ defineEmits<{
 <template>
   <div class="app-header">
     <div class="header-left">
+      <h1>{{ title }}</h1>
       <template v-if="editorMode">
-        <button class="icon-btn" @click="$emit('editorClose')" title="Cerrar">
-          <X :size="18" />
-        </button>
         <span class="editor-mode-title">{{ editorTitle || 'Nuevo' }}</span>
         <button
           class="icon-btn"
@@ -30,18 +28,18 @@ defineEmits<{
         >
           <Save :size="18" />
         </button>
-      </template>
-      <template v-else>
-        <h1>{{ title }}</h1>
-        <button
-          v-if="showCreate"
-          class="btn btn-primary btn-icon"
-          :title="`Crear nuevo`"
-          @click="$emit('create')"
-        >
-          <Plus :size="16" :stroke-width="2" />
+        <button class="icon-btn" @click="$emit('editorClose')" title="Cerrar">
+          <X :size="18" />
         </button>
       </template>
+      <button
+        v-else-if="showCreate"
+        class="btn btn-primary btn-icon"
+        :title="`Crear nuevo`"
+        @click="$emit('create')"
+      >
+        <Plus :size="16" :stroke-width="2" />
+      </button>
     </div>
     <div class="search-wrap">
       <div class="search">
