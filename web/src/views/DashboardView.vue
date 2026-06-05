@@ -7,7 +7,7 @@ import { useToast } from '@/composables/useToast'
 const store = useDashboardStore()
 const { toast } = useToast()
 
-const showLoading = computed(() => store.loading && !store.hasFetched)
+const showLoading = computed(() => !store.stats)
 
 function money(v: number): string {
   return `$ ${v.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
