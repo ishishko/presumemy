@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { notFound, badRequest } from '../utils/errors.js'
+import { distribucionSchema } from '../types/finanzas.js'
 
 const route = new Hono()
 
@@ -52,6 +53,47 @@ route.put('/configuracion', zValidator('json', configSchema), async (c) => {
   })
 
   return c.json({ data: config })
+})
+
+// =========================================================
+// GET /api/ajustes/distribucion — Distribucion actual
+// =========================================================
+route.get('/distribucion', async (c) => {
+  const distribucion = await prisma.distribucionGanancia.findMany({
+    where: { activo: true },
+    orderBy: { nombre: 'asc' },
+  })
+
+  return c.json({ data: distribucion })
+})
+
+// =========================================================
+// PUT /api/ajustes/distribucion — Actualizar distribucion
+// =========================================================
+route.put('/distribucion', zValidator('json', distribucionSchema), async (c) => {
+  const { items } = c.req.valid('json')
+
+  const total = items.reduce((sum, item) => sum + item.porcentaje, 0)
+
+  if (total > 100) {
+    throw badRequest('La suma de porcentajes no puede superar 100%')
+  }
+
+  await Promise.all(
+    items.map((item) =>
+      prisma.distribucionGanancia.update({
+        where: { id: item.id },
+        data: { porcentaje: item.porcentaje },
+      })
+    )
+  )
+
+  const distribucion = await prisma.distribucionGanancia.findMany({
+    where: { activo: true },
+    orderBy: { nombre: 'asc' },
+  })
+
+  return c.json({ data: distribucion })
 })
 
 export default route

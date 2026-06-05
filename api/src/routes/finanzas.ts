@@ -303,34 +303,6 @@ route.get('/distribucion', async (c) => {
   return c.json({ data: distribucion })
 })
 
-// =========================================================
-// PUT /api/distribucion — Actualizar distribucion
-// =========================================================
-route.put('/distribucion', zValidator('json', distribucionSchema), async (c) => {
-  const { items } = c.req.valid('json')
-
-  const total = items.reduce((sum, item) => sum + item.porcentaje, 0)
-
-  if (total > 100) {
-    throw badRequest('La suma de porcentajes no puede superar 100%')
-  }
-
-  await Promise.all(
-    items.map((item) =>
-      prisma.distribucionGanancia.update({
-        where: { id: item.id },
-        data: { porcentaje: item.porcentaje },
-      })
-    )
-  )
-
-  const distribucion = await prisma.distribucionGanancia.findMany({
-    where: { activo: true },
-    orderBy: { nombre: 'asc' },
-  })
-
-  return c.json({ data: distribucion })
-})
 
 // =========================================================
 // Helpers
