@@ -14,6 +14,7 @@ Para evitar colisiones de Git, bloqueos de archivos (*file locks*) y pérdidas d
 - **Respeto a Configuraciones Ajenas:** Nunca modificar, sobreescribir ni borrar los archivos `CLAUDE.md`, `AGENTS.md` u `opencode.json`. Son las fuentes de verdad de las otras herramientas.
 - **Flujo de Trabajo Aislado:** Al realizar modificaciones de código masivas o refactorizaciones, priorizar siempre la ejecución en **New Worktree Mode** o generar **Artifacts** estructurados para que el usuario valide los cambios antes de fusionar. Esto permite que Claude Code y Opencode sigan operando en la rama activa sin conflictos.
 - **Políticas de Acceso de Opencode:** Respetar los límites definidos en `opencode.json`. Toda la ruta `./docs/Sessions/**/*` está estrictamente protegida (`deny`) tanto para lectura como para edición.
+- **Control de Commits:** Antes de realizar cualquier commit, el usuario debe probar los cambios él mismo. Los agentes nunca deben realizar commits de forma autónoma sin previa confirmación o autorización explícita tras las pruebas del usuario. Siempre se realiza el comando `git add .` para preparar el commit; cualquier archivo que no quiera ser seguido por el motivo que sea tiene que agregarse al `.gitignore`.
 
 ## 3. Comandos de Verificación e Infraestructura
 Al interactuar con el entorno local o la terminal embebida, utiliza únicamente los comandos estándar del proyecto:

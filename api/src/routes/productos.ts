@@ -72,7 +72,7 @@ route.get('/:id', async (c) => {
       categoria: true,
       bomLineas: {
         include: { insumo: true },
-        orderBy: { orden: 'asc' },
+        orderBy: { id: 'asc' },
       },
     },
   })
@@ -116,7 +116,6 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
           cantidad: linea.cantidad,
           costoUnitario: linea.costoUnitario,
           subtotal: linea.cantidad * linea.costoUnitario,
-          orden: index,
         })),
       } : undefined,
     },
@@ -154,12 +153,11 @@ route.put('/:id', zValidator('json', productoUpdateSchema), async (c) => {
         deleteMany: {},
         create: bomLineas.map((linea, index) => ({
           tipoLinea: linea.tipoLinea,
-          insumoId: linea.insumoId || null,
+          insumo: linea.insumoId ? { connect: { id: linea.insumoId } } : undefined,
           descripcion: linea.descripcion || null,
           cantidad: linea.cantidad,
           costoUnitario: linea.costoUnitario,
           subtotal: linea.cantidad * linea.costoUnitario,
-          orden: index,
         })),
       } : undefined,
     },

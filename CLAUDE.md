@@ -145,3 +145,7 @@ Tamanos: 16px en UI densa, 20px en headers, 24px en nav del sidebar.
 - Ancho minimo: 96px. En sidebar: 120px. En login hero: 320px.
 - Espacio libre alrededor: ~25% de la altura del logo en todos los lados.
 - Solo aparece en: sidebar, login, hero de landing. Nunca sobre fondo violeta.
+
+## Git & Commit Rules
+
+- **Validación del Usuario:** Antes de realizar cualquier commit, el usuario debe probar los cambios él mismo. Los agentes no deben realizar commits de forma autónoma sin confirmación explícita después de que el usuario haya verificado la funcionalidad. Siempre se realiza el comando `git add .` para preparar el commit; cualquier archivo que no quiera ser seguido por el motivo que sea tiene que agregarse al `.gitignore`.

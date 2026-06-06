@@ -121,3 +121,7 @@ Fuente: `docs/MVP/design-system/project/ui_kits/presumemi/data.jsx` e `insumo_de
 - Sin emojis en la UI. Nunca.
 - Sentence case. Sin punto final en botones, menus, labels ni celdas de tabla.
 - Moneda: `$ 1,250.00 MXN` en vistas financieras; sin `MXN` en tablas densas.
+
+## Git & Commits
+
+- **Pruebas previas:** Antes de realizar cualquier commit, el usuario debe probar las cosas él mismo. Los agentes no deben realizar commits de forma autónoma sin previa confirmación o autorización explícita tras las pruebas del usuario. Siempre se realiza el comando `git add .` para preparar el commit; cualquier archivo que no quiera ser seguido por el motivo que sea tiene que agregarse al `.gitignore`.
