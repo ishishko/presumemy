@@ -22,7 +22,7 @@ const editingProducto = ref<Producto | null>(null)
 const showConfirmDelete = ref(false)
 const deletingProducto = ref<Producto | null>(null)
 
-const showLoading = computed(() => store.loading && !store.hasFetched)
+const showLoading = computed(() => !store.hasFetched)
 
 const filtered = computed(() => {
   if (catFilter.value === 'todas') return store.data

@@ -23,7 +23,7 @@ const editingOrden = ref<OrdenImprenta | null>(null)
 const showConfirmDelete = ref(false)
 const deleteTarget = ref<{ type: 'mov' | 'imprenta'; item: Transaccion | OrdenImprenta } | null>(null)
 
-const showLoading = computed(() => store.loading && !store.hasFetched)
+const showLoading = computed(() => !store.hasFetched)
 
 const tipoMovs = [
   { id: 'venta_producto', label: 'Venta producto', color: '#2E6F70' },

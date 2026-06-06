@@ -15,6 +15,7 @@ const emit = defineEmits<{
   close: []
   saved: [insumo: Insumo]
   deleted: []
+  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
 }>()
 
 const { toast } = useToast()
@@ -160,6 +161,13 @@ async function handleSave() {
     costoPaquete: parseFloat(String(costoPaquete.value)) || 0,
     cantidadPack: parseFloat(String(cantidadPack.value)) || 1,
     notas: notas.value || undefined,
+    proveedores: proveedores.value
+      .filter((p) => p.proveedorId > 0)
+      .map((p) => ({
+        proveedorId: p.proveedorId,
+        precio: parseFloat(String(p.precio)) || 0,
+        esPrincipal: p.esPrincipal,
+      })),
   }
 
   try {
@@ -191,20 +199,51 @@ async function handleDelete() {
   showConfirmDelete.value = false
 }
 
+import { editorDirty } from '@/composables/useEditorMode'
+
+function openOverlay() {
+  emit('update:header', {
+    mode: 'editor',
+    title: isEdit.value ? (props.insumo?.codigo || '') : 'Nuevo',
+    onSave: handleSave,
+    onClose: handleClose,
+  })
+}
+
+function closeOverlay() {
+  emit('update:header', { mode: 'normal' })
+  emit('close')
+}
+
+function handleClose() {
+  closeOverlay()
+}
+
 function handleBack() {
   if (dirty.value) {
     showConfirmExit.value = true
   } else {
-    emit('close')
+    handleClose()
   }
 }
 
+watch(dirty, (val) => {
+  editorDirty.value = val
+})
+
 watch(() => props.open, (open) => {
-  if (open) loadInsumo()
+  if (open) {
+    loadInsumo()
+    openOverlay()
+    editorDirty.value = dirty.value
+  } else {
+    closeOverlay()
+    editorDirty.value = false
+  }
 })
 
 watch(() => props.open, async (open) => {
-  if (open && categorias.value.length === 0) {
+  if (open && (categorias.value.length === 0 || proveedoresList.value.length === 0)) {
     try {
       const [catsRes, provsRes] = await Promise.all([
         get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
@@ -222,26 +261,8 @@ defineExpose({ loadInsumo })
 </script>
 
 <template>
-  <Teleport to="body">
     <Transition name="overlay">
       <div v-if="open" class="id-overlay">
-        <div class="id-head">
-          <button class="icon-btn" @click="handleBack" title="Volver a insumos">
-            <ArrowLeft :size="18" />
-          </button>
-          <div class="id-title">
-            <span class="eyebrow">
-              Insumo
-              <span v-if="isEdit" class="code">· {{ insumo!.codigo }}</span>
-            </span>
-            <h2>{{ nombre || 'Sin nombre' }}</h2>
-          </div>
-          <div class="spacer" />
-          <span v-if="dirty" class="dirty-chip">
-            <span class="dot" /> Cambios sin guardar
-          </span>
-        </div>
-
         <div class="id-body">
           <div class="id-top">
             <section class="id-card">
@@ -511,20 +532,16 @@ defineExpose({ loadInsumo })
         />
       </div>
     </Transition>
-  </Teleport>
 </template>
 
 <style scoped>
 .id-overlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 240px;
-  z-index: 30;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   background: var(--page-bg);
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr auto;
   overflow: hidden;
 }
 

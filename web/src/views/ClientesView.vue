@@ -17,7 +17,7 @@ const editingCliente = ref<Cliente | null>(null)
 const showConfirmDelete = ref(false)
 const deletingCliente = ref<Cliente | null>(null)
 
-const showLoading = computed(() => store.loading && !store.hasFetched)
+const showLoading = computed(() => !store.hasFetched)
 
 const canalColors: Record<string, string> = {
   instagram: '#D7548C',

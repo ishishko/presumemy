@@ -54,7 +54,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 .drawer-container {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 80;
   pointer-events: none;
 }
 
@@ -77,6 +77,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
   grid-template-rows: auto 1fr auto;
   pointer-events: auto;
   box-shadow: var(--shadow-2);
+  z-index: 81;
 }
 
 .drawer-head {

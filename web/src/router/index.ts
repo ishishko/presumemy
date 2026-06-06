@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { resetEditorMode } from '@/composables/useEditorMode'
 
 const routes = [
   {
@@ -62,6 +63,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  resetEditorMode()
   const authStore = useAuthStore()
 
   if (authStore.loading) {

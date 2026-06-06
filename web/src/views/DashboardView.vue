@@ -3,9 +3,20 @@ import { computed, onMounted } from 'vue'
 import { ArrowDown, ArrowRight } from '@lucide/vue'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useToast } from '@/composables/useToast'
+import { useClientesStore } from '@/stores/clientes'
+import { useFinanzasStore } from '@/stores/finanzas'
+import { useInsumosStore } from '@/stores/insumos'
+import { usePresupuestosStore } from '@/stores/presupuestos'
+import { useProductosStore } from '@/stores/productos'
 
 const store = useDashboardStore()
 const { toast } = useToast()
+
+const clientesStore = useClientesStore()
+const finanzasStore = useFinanzasStore()
+const insumosStore = useInsumosStore()
+const presupuestosStore = usePresupuestosStore()
+const productosStore = useProductosStore()
 
 const showLoading = computed(() => !store.stats)
 
@@ -32,9 +43,19 @@ const statusTones: Record<string, { tone: string; label: string }> = {
 const chartData = [3200, 4100, 2900, 5400, 4800, 6200, 5800, 7100]
 const chartMax = Math.max(...chartData)
 
+function preloadStores() {
+  if (!clientesStore.hasFetched) clientesStore.fetch().catch(() => {})
+  if (!finanzasStore.hasFetched) finanzasStore.fetch().catch(() => {})
+  if (!insumosStore.hasFetched) insumosStore.fetch().catch(() => {})
+  if (!presupuestosStore.hasFetched) presupuestosStore.fetch().catch(() => {})
+  if (!productosStore.hasFetched) productosStore.fetch().catch(() => {})
+}
+
 async function loadDashboard() {
   try {
     await store.fetch()
+    // Precargar otros almacenes/stores en segundo plano una vez renderizado el dashboard
+    preloadStores()
   } catch (e: any) {
     if (!store.stats) {
       toast(e.message || 'Error al cargar datos', 'error')

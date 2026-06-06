@@ -7,7 +7,10 @@
       "Bash(mkdir -p /d/Desarrollando/presumemy/docs)",
       "Bash(mv /d/Desarrollando/presumemy/presumemi-design-system /d/Desarrollando/presumemy/docs/design-system)",
       "Bash(mkdir -p /mnt/d/Desarrollando/presumemy-open/.claude/skills)",
-      "Bash(cp -r /mnt/d/Desarrollando/presumemy-open/.agents/skills/* /mnt/d/Desarrollando/presumemy-open/.claude/skills/)"
+      "Bash(cp -r /mnt/d/Desarrollando/presumemy-open/.agents/skills/* /mnt/d/Desarrollando/presumemy-open/.claude/skills/)",
+      "Bash(wsl.exe bash *)",
+      "Bash(git -C 'D:\\\\Desarrollando\\\\presumemy' status --short -- api/prisma/schema.prisma)",
+      "Bash(git -C 'D:\\\\Desarrollando\\\\presumemy' status --short -- api/)"
     ]
   }
 }

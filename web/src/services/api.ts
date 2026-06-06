@@ -28,20 +28,20 @@ export function getById<T>(url: string, id: number) {
   })
 }
 
-export function post<T>(url: string, body: any) {
-  return api<T>(url, {
+export function post<T>(url: string, body: any): Promise<T> {
+  return api<{ data: T }>(url, {
     method: 'POST',
     body,
     headers: createHeaders(),
-  })
+  }).then(res => res.data)
 }
 
-export function put<T>(url: string, id: number, body: any) {
-  return api<T>(`${url}/${id}`, {
+export function put<T>(url: string, id: number, body: any): Promise<T> {
+  return api<{ data: T }>(`${url}/${id}`, {
     method: 'PUT',
     body,
     headers: createHeaders(),
-  })
+  }).then(res => res.data)
 }
 
 export function del(url: string, id: number) {

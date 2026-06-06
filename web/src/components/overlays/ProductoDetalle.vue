@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ArrowLeft, Check, Trash2, X, Plus, Lock, Image } from '@lucide/vue'
+import { editorDirty } from '@/composables/useEditorMode'
 import { get, post, put, del } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -145,6 +146,15 @@ function onInsumoChange(idx: number, insumoId: number) {
 }
 
 async function handleSave() {
+  if (!nombre.value.trim()) {
+    toast('El nombre es requerido', 'error')
+    return
+  }
+  if (!categoriaId.value || categoriaId.value <= 0) {
+    toast('Debes seleccionar una categoría', 'error')
+    return
+  }
+
   const payload: any = {
     nombre: nombre.value,
     categoriaId: categoriaId.value,
@@ -161,7 +171,7 @@ async function handleSave() {
       .filter(l => l.descripcion && l.cantidad > 0)
       .map(l => ({
         tipoLinea: l.tipoLinea,
-        insumoId: l.insumoId,
+        insumoId: l.insumoId || undefined,
         descripcion: l.descripcion,
         cantidad: l.cantidad,
         costoUnitario: l.costoUnitario,
@@ -223,12 +233,18 @@ function handleClose() {
   closeOverlay()
 }
 
+watch(dirty, (val) => {
+  editorDirty.value = val
+})
+
 watch(() => props.open, (open) => {
   if (open) {
     loadProducto()
     openOverlay()
+    editorDirty.value = dirty.value
   } else {
     closeOverlay()
+    editorDirty.value = false
   }
 })
 

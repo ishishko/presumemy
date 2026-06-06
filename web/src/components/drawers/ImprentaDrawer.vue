@@ -4,6 +4,7 @@ import { Check, X } from '@lucide/vue'
 import { post, put, get } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import type { OrdenImprenta, Presupuesto, PaginationResult } from '@/types'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const props = defineProps<{
   open: boolean
@@ -121,6 +122,46 @@ watch(() => props.open, async (open) => {
   }
 })
 
+const showConfirmExit = ref(false)
+
+const dirty = computed(() => {
+  if (isEdit.value) {
+    if (!props.orden) return false
+    const o = props.orden
+    return (
+      fecha.value !== o.fecha.slice(0, 10) ||
+      presupuestoId.value !== (o.presupuestoId ? String(o.presupuestoId) : '') ||
+      tematica.value !== (o.tematica || '') ||
+      Number(hojas.value) !== o.hojas ||
+      tipoHoja.value !== o.tipoHoja ||
+      Number(valorNuestro.value) !== o.valorUnitario ||
+      Number(valorPatri.value) !== o.valorTotal ||
+      metodoPago.value !== o.metodoPago ||
+      pagado.value !== o.pagado
+    )
+  } else {
+    return (
+      fecha.value !== new Date().toISOString().slice(0, 10) ||
+      presupuestoId.value !== '' ||
+      tematica.value !== '' ||
+      Number(hojas.value) !== 0 ||
+      tipoHoja.value !== 'Opalina A4 220 g' ||
+      Number(valorNuestro.value) !== 0 ||
+      Number(valorPatri.value) !== 0 ||
+      metodoPago.value !== 'transferencia' ||
+      pagado.value !== false
+    )
+  }
+})
+
+function handleClose() {
+  if (dirty.value) {
+    showConfirmExit.value = true
+  } else {
+    emit('close')
+  }
+}
+
 defineExpose({ loadOrden })
 </script>
 
@@ -128,14 +169,14 @@ defineExpose({ loadOrden })
   <Teleport to="body">
     <Transition name="drawer">
       <div v-if="open" class="drawer-container">
-        <div class="drawer-scrim" @click="emit('close')"></div>
+        <div class="drawer-scrim" @click="handleClose"></div>
         <aside class="drawer-panel">
           <div class="drawer-head">
             <div class="drawer-title-block">
               <span class="drawer-eyebrow">{{ isEdit ? 'Editar orden' : 'Nueva orden de imprenta' }}</span>
               <h3>{{ tematica || 'Orden sin temática' }}</h3>
             </div>
-            <button class="icon-btn" @click="emit('close')" title="Cerrar">
+            <button class="icon-btn" @click="handleClose" title="Cerrar">
               <X :size="18" />
             </button>
           </div>
@@ -258,12 +299,23 @@ defineExpose({ loadOrden })
           </div>
 
           <div class="drawer-foot">
-            <button class="btn btn-ghost" @click="emit('close')">Cancelar</button>
+            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
             <button class="btn btn-primary" @click="handleSave">
               <Check :size="16" /> Guardar
             </button>
           </div>
         </aside>
+
+        <ConfirmDialog
+          :open="showConfirmExit"
+          title="¿Salir sin guardar?"
+          message="Tenés cambios pendientes en esta orden. Si salís ahora, vas a perderlos."
+          confirm-label="Salir sin guardar"
+          cancel-label="Seguir editando"
+          variant="danger"
+          @confirm="emit('close'); showConfirmExit = false"
+          @cancel="showConfirmExit = false"
+        />
       </div>
     </Transition>
   </Teleport>
@@ -273,7 +325,7 @@ defineExpose({ loadOrden })
 .drawer-container {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 80;
   pointer-events: none;
 }
 
@@ -296,6 +348,7 @@ defineExpose({ loadOrden })
   grid-template-rows: auto 1fr auto;
   pointer-events: auto;
   box-shadow: var(--shadow-2);
+  z-index: 81;
 }
 
 .drawer-head {

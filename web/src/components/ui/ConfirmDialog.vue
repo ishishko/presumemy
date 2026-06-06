@@ -54,7 +54,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
   background: rgba(28, 26, 30, 0.30);
   display: grid;
   place-items: center;
-  z-index: 60;
+  z-index: 90;
 }
 
 .confirm-dialog {

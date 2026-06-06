@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ArrowRight, GripVertical, Plus, Trash2, FileText, Calendar } from '@lucide/vue'
 import { get, post, put } from '@/services/api'
 import { useToast } from '@/composables/useToast'
+import { editorDirty } from '@/composables/useEditorMode'
 import type { Presupuesto, Cliente, Producto, PaginationResult } from '@/types'
 import { presupuestoSchema } from '@/schemas/presupuestos'
 
@@ -72,6 +73,35 @@ const restoCalc = computed(() => {
   return Math.max(0, total.value - senaVal)
 })
 
+function getFormSnapshot() {
+  return JSON.stringify({
+    clienteId: clienteId.value,
+    cliente: cliente.value,
+    tematica: tematica.value,
+    fechaFiesta: fechaFiesta.value,
+    fechaEntrega: fechaEntrega.value,
+    tipoEntrega: tipoEntrega.value,
+    direccionEntrega: direccionEntrega.value,
+    metodoPago: metodoPago.value,
+    sena: parseFloat(sena.value) || 0,
+    notas: notas.value,
+    includeNotes: includeNotes.value,
+    lines: lineas.value
+      .filter(l => l.producto || l.qty || l.price)
+      .map(l => ({
+        producto: l.producto,
+        productoId: l.productoId,
+        qty: parseFloat(l.qty) || 0,
+        price: parseFloat(l.price) || 0
+      }))
+  })
+}
+
+const originalFormSnapshot = ref('')
+const isDirty = computed(() => {
+  return getFormSnapshot() !== originalFormSnapshot.value
+})
+
 function reset() {
   cliente.value = ''
   clienteId.value = 0
@@ -119,6 +149,7 @@ function loadPresupuesto() {
       lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
     }
   }
+  originalFormSnapshot.value = getFormSnapshot()
 }
 
 function updateLine(id: number, patch: Partial<{ producto: string; productoId: number; qty: string; price: string }>) {
@@ -231,6 +262,8 @@ function validate(): boolean {
     result.error.issues.forEach((e: any) => {
       errors.value[e.path.join('.')] = e.message
     })
+    const firstError = result.error.issues[0]?.message || 'Datos de presupuesto inválidos'
+    toast(firstError, 'error')
     return false
   }
   errors.value = {}
@@ -303,6 +336,7 @@ async function handleSave(action: 'borrador' | 'enviado') {
     const now = new Date()
     savedAt.value = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
+    originalFormSnapshot.value = getFormSnapshot()
     emit('saved', res)
   } catch (e: any) {
     toast(e.message || 'Error al guardar', 'error')
@@ -336,12 +370,32 @@ onMounted(async () => {
   }
 })
 
+watch(cliente, (newVal) => {
+  if (props.presupuesto && newVal === props.presupuesto.cliente?.nombre) {
+    clienteId.value = props.presupuesto.clienteId
+    return
+  }
+  const match = clientes.value.find(c => c.nombre.toLowerCase() === newVal.toLowerCase())
+  if (match) {
+    clienteId.value = match.id
+  } else {
+    clienteId.value = 0
+  }
+})
+
+watch(isDirty, (val) => {
+  editorDirty.value = val
+})
+
 watch(() => props.open, (open) => {
   if (open) {
     loadPresupuesto()
     openEditor()
+    originalFormSnapshot.value = getFormSnapshot()
+    editorDirty.value = isDirty.value
   } else {
     closeEditor()
+    editorDirty.value = false
   }
 })
 
@@ -351,18 +405,7 @@ defineExpose({ loadPresupuesto })
 <template>
   <Transition name="editor-slide">
     <div v-if="open" class="editor-overlay">
-      <div class="heartbeat-overlay" aria-hidden>
-        <svg viewBox="0 0 1000 80" preserveAspectRatio="none">
-          <path
-            d="M0 40 L 460 40 L 480 40 L 498 18 L 514 64 L 532 16 L 548 50 L 568 40 L 1000 40"
-            fill="none"
-            stroke="var(--violet-700)"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </div>
+
 
       <div class="editor-split">
         <div class="editor-form">
@@ -751,8 +794,8 @@ defineExpose({ loadPresupuesto })
       <div class="editor-foot">
         <button class="btn btn-ghost" @click="closeEditor">Cancelar</button>
         <div class="spacer"></div>
-        <button class="btn btn-secondary" @click="handleSave('borrador')">Guardar borrador</button>
-        <button class="btn btn-primary" @click="handleSave('enviado')">
+        <button class="btn btn-secondary" @click="handleSave('borrador')" :disabled="!isDirty" :style="{ opacity: isDirty ? 1 : 0.5, pointerEvents: isDirty ? 'auto' : 'none' }">Guardar borrador</button>
+        <button class="btn btn-primary" @click="handleSave('enviado')" :disabled="!isDirty" :style="{ opacity: isDirty ? 1 : 0.5, pointerEvents: isDirty ? 'auto' : 'none' }">
           Enviar <ArrowRight :size="16" />
         </button>
       </div>
@@ -771,33 +814,7 @@ defineExpose({ loadPresupuesto })
   overflow: hidden;
 }
 
-.heartbeat-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 96px;
-  pointer-events: none;
-  z-index: 30;
-  overflow: hidden;
-}
 
-.heartbeat-overlay svg {
-  position: absolute;
-  top: 12px;
-  width: 220%;
-  height: 56px;
-  right: -120%;
-  opacity: 0;
-  animation: heartbeat-travel 1500ms cubic-bezier(0.25, 0.6, 0.2, 1) 120ms forwards;
-}
-
-@keyframes heartbeat-travel {
-  0% { right: -120%; opacity: 0; }
-  12% { opacity: 0.55; }
-  82% { opacity: 0.55; }
-  100% { right: 120%; opacity: 0; }
-}
 
 .editor-title {
   display: flex;

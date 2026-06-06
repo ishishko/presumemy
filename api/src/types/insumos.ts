@@ -9,6 +9,11 @@ export const insumoSchema = z.object({
   costoPaquete: z.coerce.number().min(0).default(0),
   cantidadPack: z.coerce.number().min(0.01, 'Cantidad por pack debe ser mayor a 0'),
   notas: z.string().optional(),
+  proveedores: z.array(z.object({
+    proveedorId: z.coerce.number().int().positive(),
+    esPrincipal: z.boolean().default(false),
+    precio: z.coerce.number().min(0).default(0),
+  })).optional(),
 })
 
 export const insumoUpdateSchema = insumoSchema.partial()

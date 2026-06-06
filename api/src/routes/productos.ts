@@ -111,7 +111,7 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
       bomLineas: data.bomLineas ? {
         create: data.bomLineas.map((linea, index) => ({
           tipoLinea: linea.tipoLinea,
-          insumoId: linea.insumoId || null,
+          insumo: linea.insumoId ? { connect: { id: linea.insumoId } } : undefined,
           descripcion: linea.descripcion || null,
           cantidad: linea.cantidad,
           costoUnitario: linea.costoUnitario,

@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Check, Plus, X } from '@lucide/vue'
 import { post, put } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import type { Cliente, ClienteContacto } from '@/types'
 import { clienteSchema } from '@/schemas/clientes'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const props = defineProps<{
   open: boolean
@@ -126,6 +127,58 @@ async function handleSave() {
   }
 }
 
+const showConfirmExit = ref(false)
+
+const dirty = computed(() => {
+  if (isEdit.value) {
+    if (!props.cliente) return false
+    const c = props.cliente
+    const dom = c.domicilio || {}
+    const initContacts = (c.contactos || []).map(co => ({
+      canal: co.canal,
+      valor: co.valor,
+      esPrincipal: co.esPrincipal,
+    }))
+    const currentContacts = contactos.value.map(co => ({
+      canal: co.canal,
+      valor: co.valor,
+      esPrincipal: co.esPrincipal,
+    }))
+    return (
+      nombre.value !== c.nombre ||
+      calle.value !== (dom.calle || '') ||
+      numero.value !== (dom.numero || '') ||
+      localidad.value !== (dom.localidad || '') ||
+      provincia.value !== (dom.provincia || '') ||
+      notas.value !== (c.notas || '') ||
+      JSON.stringify(currentContacts) !== JSON.stringify(initContacts)
+    )
+  } else {
+    const currentContacts = contactos.value.filter(co => co.valor)
+    return (
+      nombre.value !== '' ||
+      calle.value !== '' ||
+      numero.value !== '' ||
+      localidad.value !== '' ||
+      provincia.value !== '' ||
+      notas.value !== '' ||
+      currentContacts.length > 0
+    )
+  }
+})
+
+function handleClose() {
+  if (dirty.value) {
+    showConfirmExit.value = true
+  } else {
+    emit('close')
+  }
+}
+
+watch(() => props.open, (open) => {
+  if (open) loadCliente()
+})
+
 defineExpose({ loadCliente })
 </script>
 
@@ -133,7 +186,7 @@ defineExpose({ loadCliente })
   <Teleport to="body">
     <Transition name="drawer">
       <div v-if="open" class="drawer-container">
-        <div class="drawer-scrim" @click="emit('close')"></div>
+        <div class="drawer-scrim" @click="handleClose"></div>
         <aside class="drawer-panel">
           <div class="drawer-head">
             <div class="drawer-title-block">
@@ -141,7 +194,7 @@ defineExpose({ loadCliente })
               <h3>{{ isEdit ? cliente!.nombre : 'Crear cliente' }}</h3>
             </div>
             <div class="spacer"></div>
-            <button class="icon-btn" @click="emit('close')" title="Cerrar">
+            <button class="icon-btn" @click="handleClose" title="Cerrar">
               <X :size="18" />
             </button>
           </div>
@@ -235,12 +288,23 @@ defineExpose({ loadCliente })
           </div>
 
           <div class="drawer-foot">
-            <button class="btn btn-ghost" @click="emit('close')">Cancelar</button>
+            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
             <button class="btn btn-primary" @click="handleSave">
               <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear cliente' }}
             </button>
           </div>
         </aside>
+
+        <ConfirmDialog
+          :open="showConfirmExit"
+          title="¿Salir sin guardar?"
+          message="Tenés cambios pendientes en este cliente. Si salís ahora, vas a perderlos."
+          confirm-label="Salir sin guardar"
+          cancel-label="Seguir editando"
+          variant="danger"
+          @confirm="emit('close'); showConfirmExit = false"
+          @cancel="showConfirmExit = false"
+        />
       </div>
     </Transition>
   </Teleport>
@@ -250,7 +314,7 @@ defineExpose({ loadCliente })
 .drawer-container {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 80;
   pointer-events: none;
 }
 
@@ -273,6 +337,7 @@ defineExpose({ loadCliente })
   grid-template-rows: auto 1fr auto;
   pointer-events: auto;
   box-shadow: var(--shadow-2);
+  z-index: 81;
 }
 
 .drawer-head {

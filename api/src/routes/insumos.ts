@@ -100,6 +100,17 @@ route.get('/categorias', async (c) => {
 })
 
 // =========================================================
+// GET /api/insumos/proveedores — Lista proveedores
+// =========================================================
+route.get('/proveedores', async (c) => {
+  const proveedores = await prisma.proveedor.findMany({
+    where: { activo: true },
+    orderBy: { nombre: 'asc' },
+  })
+  return c.json({ data: proveedores })
+})
+
+// =========================================================
 // GET /api/insumos/:id — Detalle con proveedores
 // =========================================================
 route.get('/:id', async (c) => {
@@ -136,12 +147,12 @@ route.post('/', zValidator('json', insumoSchema), async (c) => {
     select: { id: true },
   })
 
-  const nextId = (lastInsumo?.id ?? 1000) + 1
+  const nextId = (lastInsumo?.id ?? 0) + 1
 
   const insumo = await prisma.insumo.create({
     data: {
       nombre: data.nombre,
-      codigo: `I-${nextId}`,
+      codigo: `I-${1000 + nextId}`,
       categoriaId: data.categoriaId,
       unidad: data.unidad,
       stock: data.stock,
@@ -151,6 +162,13 @@ route.post('/', zValidator('json', insumoSchema), async (c) => {
       costoUnitario,
       notas: data.notas || null,
       fechaActualizacion: new Date(),
+      proveedores: data.proveedores && data.proveedores.length > 0 ? {
+        create: data.proveedores.map((p) => ({
+          proveedorId: p.proveedorId,
+          precio: p.precio,
+          esPrincipal: p.esPrincipal,
+        })),
+      } : undefined,
     },
     include: {
       categoria: true,
@@ -180,17 +198,40 @@ route.put('/:id', zValidator('json', insumoUpdateSchema), async (c) => {
   const cantidadPack = data.cantidadPack ?? existing.cantidadPack
   const costoUnitario = Number(costoPaquete) / Number(cantidadPack)
 
-  const insumo = await prisma.insumo.update({
-    where: { id },
-    data: {
-      ...data,
-      costoUnitario,
-      fechaActualizacion: new Date(),
-    },
-    include: {
-      categoria: true,
-      proveedores: { include: { proveedor: true } },
-    },
+  const insumo = await prisma.$transaction(async (tx) => {
+    if (data.proveedores) {
+      await tx.insumoProveedor.deleteMany({
+        where: { insumoId: id },
+      })
+      if (data.proveedores.length > 0) {
+        await tx.insumoProveedor.createMany({
+          data: data.proveedores.map((p) => ({
+            insumoId: id,
+            proveedorId: p.proveedorId,
+            precio: p.precio,
+            esPrincipal: p.esPrincipal,
+          })),
+        })
+      }
+    }
+
+    const { proveedores, ...updateData } = data
+
+    return tx.insumo.update({
+      where: { id },
+      data: {
+        ...updateData,
+        costoUnitario,
+        fechaActualizacion: new Date(),
+      },
+      include: {
+        categoria: true,
+        proveedores: {
+          include: { proveedor: true },
+          orderBy: [{ esPrincipal: 'desc' }],
+        },
+      },
+    })
   })
 
   return c.json({ data: insumo })

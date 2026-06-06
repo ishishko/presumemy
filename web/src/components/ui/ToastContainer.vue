@@ -40,7 +40,7 @@ const { toasts, dismiss, undo } = useToast()
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 70;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 8px;

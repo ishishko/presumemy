@@ -12,6 +12,10 @@ import type { Insumo } from '@/types'
 const store = useInsumosStore()
 const { toast } = useToast()
 
+const emit = defineEmits<{
+  'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
+}>()
+
 const stateFilter = ref('todos')
 const catFilter = ref('todas')
 const showOverlay = ref(false)
@@ -19,7 +23,7 @@ const editingInsumo = ref<Insumo | null>(null)
 const showConfirmDelete = ref(false)
 const deletingInsumo = ref<Insumo | null>(null)
 
-const showLoading = computed(() => store.loading && !store.hasFetched)
+const showLoading = computed(() => !store.hasFetched)
 
 type Nivel = 'critico' | 'bajo' | 'ok'
 
@@ -110,6 +114,19 @@ function proveedorPrincipal(i: Insumo): string {
   return principal?.proveedor?.nombre || ''
 }
 
+function handleHeaderUpdate(payload: any) {
+  if (payload.mode === 'editor') {
+    emit('set-editor-mode', true, payload.title, payload.onSave, payload.onClose)
+  } else {
+    emit('set-editor-mode', false, '', () => {}, () => {})
+  }
+}
+
+function handleClose() {
+  showOverlay.value = false
+  emit('set-editor-mode', false, '', () => {}, () => {})
+}
+
 onMounted(loadInsumos)
 
 watch(createTrigger, (val) => {
@@ -166,7 +183,7 @@ watch(createTrigger, (val) => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="i in filtered" :key="i.id">
+          <tr v-for="i in filtered" :key="i.id" @dblclick="handleEdit(i)">
             <td style="font-weight: 500">
               <div style="display: flex; flex-direction: column; gap: 2px">
                 <span>{{ i.nombre }}</span>
@@ -222,8 +239,9 @@ watch(createTrigger, (val) => {
     <InsumoDetalle
       :open="showOverlay"
       :insumo="editingInsumo"
-      @close="showOverlay = false"
+      @close="handleClose"
       @saved="handleSaved"
+      @update:header="handleHeaderUpdate"
     />
     </template>
   </div>
@@ -260,4 +278,9 @@ watch(createTrigger, (val) => {
 
 .row-action-btn:hover { background: var(--page-bg); color: var(--ink); }
 .row-action-danger:hover { background: var(--coral-50); color: var(--coral-500); }
+
+.insumos-table tbody tr {
+  cursor: pointer;
+  user-select: none;
+}
 </style>

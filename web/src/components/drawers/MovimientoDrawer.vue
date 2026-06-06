@@ -4,6 +4,7 @@ import { Check, X } from '@lucide/vue'
 import { post, put, get } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import type { Transaccion, Presupuesto, PaginationResult } from '@/types'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const props = defineProps<{
   open: boolean
@@ -55,8 +56,46 @@ const cuentas = [
 const tipoMeta = computed(() => tipoMovs.find(t => t.id === tipo.value))
 const monto = computed(() => (signo.value === 'in' ? 1 : -1) * (parseFloat(String(valor.value)) || 0))
 
-function moneyAbs(): string {
+const moneyAbs = computed(() => {
   return `$ ${(parseFloat(String(valor.value)) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+})
+
+const showConfirmExit = ref(false)
+
+const dirty = computed(() => {
+  if (isEdit.value) {
+    if (!props.transaccion) return false
+    const t = props.transaccion
+    return (
+      fecha.value !== t.fecha.slice(0, 10) ||
+      tipo.value !== t.tipo ||
+      cuenta.value !== t.cuenta ||
+      signo.value !== (Number(t.monto) >= 0 ? 'in' : 'out') ||
+      Number(valor.value) !== Math.abs(Number(t.monto)) ||
+      detalle.value !== (t.detalle || '') ||
+      nroFactura.value !== (t.nroFactura || '') ||
+      presupuestoId.value !== (t.presupuestoId ? String(t.presupuestoId) : '')
+    )
+  } else {
+    return (
+      fecha.value !== new Date().toISOString().slice(0, 10) ||
+      tipo.value !== 'venta_producto' ||
+      cuenta.value !== 'banco' ||
+      signo.value !== 'in' ||
+      Number(valor.value) !== 0 ||
+      detalle.value !== '' ||
+      nroFactura.value !== '' ||
+      presupuestoId.value !== ''
+    )
+  }
+})
+
+function handleClose() {
+  if (dirty.value) {
+    showConfirmExit.value = true
+  } else {
+    emit('close')
+  }
 }
 
 function reset() {
@@ -139,14 +178,14 @@ defineExpose({ loadTransaccion })
   <Teleport to="body">
     <Transition name="drawer">
       <div v-if="open" class="drawer-container">
-        <div class="drawer-scrim" @click="emit('close')"></div>
+        <div class="drawer-scrim" @click="handleClose"></div>
         <aside class="drawer-panel">
           <div class="drawer-head">
             <div class="drawer-title-block">
               <span class="drawer-eyebrow">{{ isEdit ? 'Editar movimiento' : 'Nuevo movimiento' }}</span>
               <h3>{{ tipoMeta?.label || 'Movimiento' }}</h3>
             </div>
-            <button class="icon-btn" @click="emit('close')" title="Cerrar">
+            <button class="icon-btn" @click="handleClose" title="Cerrar">
               <X :size="18" />
             </button>
           </div>
@@ -253,12 +292,23 @@ defineExpose({ loadTransaccion })
           </div>
 
           <div class="drawer-foot">
-            <button class="btn btn-ghost" @click="emit('close')">Cancelar</button>
+            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
             <button class="btn btn-primary" @click="handleSave">
               <Check :size="16" /> Guardar
             </button>
           </div>
         </aside>
+
+        <ConfirmDialog
+          :open="showConfirmExit"
+          title="¿Salir sin guardar?"
+          message="Tenés cambios pendientes en este movimiento. Si salís ahora, vas a perderlos."
+          confirm-label="Salir sin guardar"
+          cancel-label="Seguir editando"
+          variant="danger"
+          @confirm="emit('close'); showConfirmExit = false"
+          @cancel="showConfirmExit = false"
+        />
       </div>
     </Transition>
   </Teleport>
@@ -268,7 +318,7 @@ defineExpose({ loadTransaccion })
 .drawer-container {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 80;
   pointer-events: none;
 }
 
@@ -291,6 +341,7 @@ defineExpose({ loadTransaccion })
   grid-template-rows: auto 1fr auto;
   pointer-events: auto;
   box-shadow: var(--shadow-2);
+  z-index: 81;
 }
 
 .drawer-head {

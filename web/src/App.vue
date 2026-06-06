@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createTrigger } from '@/composables/useCreateTrigger'
-import { editorMode, editorTitle, editorSaveHandler, editorCloseHandler, setEditorMode } from '@/composables/useEditorMode'
+import { editorMode, editorTitle, editorSaveHandler, editorCloseHandler, setEditorMode, resetEditorMode, editorDirty } from '@/composables/useEditorMode'
 import TheSidebar from '@/components/layout/TheSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
@@ -11,6 +11,13 @@ import ToastContainer from '@/components/ui/ToastContainer.vue'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+
+watch(
+  () => route.path,
+  () => {
+    resetEditorMode()
+  }
+)
 
 const currentRoute = computed(() => (route.name as string) || '')
 
@@ -84,6 +91,7 @@ function handleEditorClose() {
         :show-create="showCreate"
         :editor-mode="editorMode"
         :editor-title="editorTitle"
+        :editor-dirty="editorDirty"
         @create="handleCreate"
         @editor-save="handleEditorSave"
         @editor-close="handleEditorClose"

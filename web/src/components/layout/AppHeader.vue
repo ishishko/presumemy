@@ -6,6 +6,7 @@ defineProps<{
   showCreate?: boolean
   editorMode?: boolean
   editorTitle?: string
+  editorDirty?: boolean
 }>()
 
 defineEmits<{
@@ -25,6 +26,8 @@ defineEmits<{
           class="icon-btn"
           @click="$emit('editorSave')"
           title="Guardar borrador"
+          :disabled="!editorDirty"
+          :style="{ opacity: editorDirty ? 1 : 0.4, cursor: editorDirty ? 'pointer' : 'not-allowed' }"
         >
           <Save :size="18" />
         </button>
@@ -33,7 +36,7 @@ defineEmits<{
         </button>
       </template>
       <button
-        v-else-if="showCreate"
+        v-if="!editorMode && showCreate"
         class="btn btn-primary btn-icon"
         :title="`Crear nuevo`"
         @click="$emit('create')"

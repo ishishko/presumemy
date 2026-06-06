@@ -4,6 +4,7 @@ export const editorMode = ref(false)
 export const editorTitle = ref('')
 export const editorSaveHandler = ref<(() => void) | null>(null)
 export const editorCloseHandler = ref<(() => void) | null>(null)
+export const editorDirty = ref(false)
 
 export function setEditorMode(active: boolean, title: string, onSave: () => void, onClose: () => void) {
   editorMode.value = active
@@ -17,4 +18,5 @@ export function resetEditorMode() {
   editorTitle.value = ''
   editorSaveHandler.value = null
   editorCloseHandler.value = null
+  editorDirty.value = false
 }
