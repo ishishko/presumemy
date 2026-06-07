@@ -44,7 +44,7 @@ route.get('/configuracion', async (c) => {
 // =========================================================
 // PUT /api/configuracion — Actualizar config
 // =========================================================
-route.put('/configuracion', zValidator('json', configSchema), async (c) => {
+route.put('/configuracion/:id', zValidator('json', configSchema), async (c) => {
   const data = c.req.valid('json')
 
   const config = await prisma.configuracionNegocio.update({
@@ -70,7 +70,7 @@ route.get('/distribucion', async (c) => {
 // =========================================================
 // PUT /api/ajustes/distribucion — Actualizar distribucion
 // =========================================================
-route.put('/distribucion', zValidator('json', distribucionSchema), async (c) => {
+route.put('/distribucion/:id', zValidator('json', distribucionSchema), async (c) => {
   const { items } = c.req.valid('json')
 
   const total = items.reduce((sum, item) => sum + item.porcentaje, 0)

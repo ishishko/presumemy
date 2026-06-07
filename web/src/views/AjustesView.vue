@@ -76,6 +76,8 @@ async function saveConfig() {
       domicilio: config.value.domicilio,
       contactoCanal: config.value.contactoCanal,
       contactoValor: config.value.contactoValor,
+      cancelacionAuto: config.value.cancelacionAuto,
+      diasEspera: config.value.diasEspera,
     })
     configDirty.value = false
   } catch (e: any) {
