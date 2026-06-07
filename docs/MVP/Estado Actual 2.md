@@ -122,6 +122,14 @@ npm run preview      # preview del build
 - **Export** — CSV/PDF de tablas
 - **Detalle de registros** — click en fila → drawer/overlay con info completa
 
+### V2 — Próximamente
+- **Widgets del dashboard** — personalizar qué tarjetas aparecen en Inicio y en qué orden:
+  - KPIs del mes
+  - Agenda de entregas
+  - Alertas de stock
+  - Top clientes del mes
+- **Modo oscuro** — toggle entre modo claro y modo oscuro en Ajustes > Apariencia
+
 ### Mejoras técnicas
 - **Tailwind utilities** — actualmente 99% CSS custom en `components.css`. Decidir si migrar a utilities o mantener enfoque actual
 - **Tipado** — tipos TypeScript compartidos entre frontend y backend
