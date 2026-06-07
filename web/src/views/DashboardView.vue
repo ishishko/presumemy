@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowDown, ArrowRight } from '@lucide/vue'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useToast } from '@/composables/useToast'
@@ -10,6 +11,7 @@ import { usePresupuestosStore } from '@/stores/presupuestos'
 import { useProductosStore } from '@/stores/productos'
 
 const store = useDashboardStore()
+const router = useRouter()
 const { toast } = useToast()
 
 const clientesStore = useClientesStore()
@@ -105,7 +107,7 @@ onMounted(loadDashboard)
         <div class="card" style="padding: 0">
           <div class="card-head" style="padding: 18px 20px 14px; margin: 0">
             <h3>Presupuestos recientes</h3>
-            <button class="btn btn-ghost btn-sm">
+            <button class="btn btn-ghost btn-sm" @click="router.push({ name: 'presupuestos' })">
               Ver todos <ArrowRight :size="14" :stroke-width="2" />
             </button>
           </div>
@@ -114,8 +116,13 @@ onMounted(loadDashboard)
           </div>
           <table v-else class="data-table">
             <tbody>
-              <tr v-for="p in store.stats!.presupuestosRecientes" :key="p.folio">
-                <td style="width: 80; color: var(--ink-muted)">{{ p.folio }}</td>
+              <tr
+                v-for="p in store.stats!.presupuestosRecientes"
+                :key="p.folio"
+                @click="router.push({ name: 'presupuestos', query: { edit: p.folio } })"
+                style="cursor: pointer"
+              >
+                <td style="width: 80px; color: var(--ink-muted)">{{ p.folio }}</td>
                 <td>
                   <div style="font-weight: 500">{{ p.cliente?.nombre || 'Sin cliente' }}</div>
                   <div style="font-size: 12px; color: var(--ink-muted); margin-top: 2px">
@@ -137,7 +144,7 @@ onMounted(loadDashboard)
         <div class="card" style="padding: 0">
           <div class="card-head" style="padding: 18px 20px 14px; margin: 0">
             <h3>Insumos bajos</h3>
-            <button class="btn btn-ghost btn-sm">
+            <button class="btn btn-ghost btn-sm" @click="router.push({ name: 'insumos' })">
               Ver inventario <ArrowRight :size="14" :stroke-width="2" />
             </button>
           </div>
@@ -148,7 +155,8 @@ onMounted(loadDashboard)
             <div
               v-for="i in store.stats!.insumosBajos"
               :key="i.id"
-              style="padding: 12px 0; border-bottom: 1px solid var(--border)"
+              @click="router.push({ name: 'insumos', query: { edit: i.codigo } })"
+              style="padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer"
             >
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px">
                 <div>

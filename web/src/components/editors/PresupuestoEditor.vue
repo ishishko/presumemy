@@ -124,10 +124,18 @@ function reset() {
   errors.value = {}
 }
 
-function loadPresupuesto() {
+async function loadPresupuesto() {
   reset()
   if (props.presupuesto) {
-    const p = props.presupuesto
+    let p = props.presupuesto
+    if (!p.detalles) {
+      try {
+        const res = await get<{ data: Presupuesto }>(`/presupuestos/${p.id}`)
+        p = res.data
+      } catch (e: any) {
+        toast('Error al cargar detalles del presupuesto', 'error')
+      }
+    }
     cliente.value = p.cliente?.nombre || ''
     clienteId.value = p.clienteId
     tematica.value = p.tematica || ''
@@ -368,6 +376,13 @@ onMounted(async () => {
   } catch (e: any) {
     toast('Error al cargar datos', 'error')
   }
+
+  if (props.open) {
+    await loadPresupuesto()
+    openEditor()
+    originalFormSnapshot.value = getFormSnapshot()
+    editorDirty.value = isDirty.value
+  }
 })
 
 watch(cliente, (newVal) => {
@@ -387,17 +402,20 @@ watch(isDirty, (val) => {
   editorDirty.value = val
 })
 
-watch(() => props.open, (open) => {
-  if (open) {
-    loadPresupuesto()
-    openEditor()
-    originalFormSnapshot.value = getFormSnapshot()
-    editorDirty.value = isDirty.value
-  } else {
-    closeEditor()
-    editorDirty.value = false
+watch(
+  [() => props.open, () => props.presupuesto],
+  async ([open]) => {
+    if (open) {
+      await loadPresupuesto()
+      openEditor()
+      originalFormSnapshot.value = getFormSnapshot()
+      editorDirty.value = isDirty.value
+    } else {
+      closeEditor()
+      editorDirty.value = false
+    }
   }
-})
+)
 
 defineExpose({ loadPresupuesto })
 </script>

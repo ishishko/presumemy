@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Pencil, Trash2 } from '@lucide/vue'
 import { del } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
@@ -14,6 +15,7 @@ const emit = defineEmits<{
 }>()
 
 const store = usePresupuestosStore()
+const route = useRoute()
 const { toast } = useToast()
 
 const filter = ref('todos')
@@ -114,6 +116,19 @@ function formatDate(d?: string): string {
 }
 
 onMounted(loadPresupuestos)
+
+watch(
+  [() => route.query.edit, () => store.hasFetched],
+  ([editVal, hasFetched]) => {
+    if (editVal && hasFetched) {
+      const p = store.data.find(item => item.folio === editVal || String(item.id) === editVal)
+      if (p) {
+        handleEdit(p)
+      }
+    }
+  },
+  { immediate: true }
+)
 
 watch(createTrigger, (val) => {
   if (val === 'presupuestos') {

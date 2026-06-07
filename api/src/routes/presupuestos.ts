@@ -39,6 +39,10 @@ route.get('/', zValidator('query', paginationSchema), async (c) => {
         cliente: {
           select: { id: true, nombre: true, codigo: true },
         },
+        detalles: {
+          include: { producto: true },
+          orderBy: { orden: 'asc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip: offset,

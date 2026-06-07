@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Pencil, Trash2 } from '@lucide/vue'
 import { del } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
@@ -10,6 +11,7 @@ import { useToast } from '@/composables/useToast'
 import type { Insumo } from '@/types'
 
 const store = useInsumosStore()
+const route = useRoute()
 const { toast } = useToast()
 
 const emit = defineEmits<{
@@ -128,6 +130,19 @@ function handleClose() {
 }
 
 onMounted(loadInsumos)
+
+watch(
+  [() => route.query.edit, () => store.hasFetched],
+  ([editVal, hasFetched]) => {
+    if (editVal && hasFetched) {
+      const i = store.data.find(item => item.codigo === editVal || String(item.id) === editVal)
+      if (i) {
+        handleEdit(i)
+      }
+    }
+  },
+  { immediate: true }
+)
 
 watch(createTrigger, (val) => {
   if (val === 'insumos') {

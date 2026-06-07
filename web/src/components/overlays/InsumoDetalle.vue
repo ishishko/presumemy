@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ArrowLeft, Check, Trash2, X, Plus, Lock } from '@lucide/vue'
 import { get, post, put, del } from '@/services/api'
 import { useToast } from '@/composables/useToast'
@@ -231,16 +231,19 @@ watch(dirty, (val) => {
   editorDirty.value = val
 })
 
-watch(() => props.open, (open) => {
-  if (open) {
-    loadInsumo()
-    openOverlay()
-    editorDirty.value = dirty.value
-  } else {
-    closeOverlay()
-    editorDirty.value = false
+watch(
+  [() => props.open, () => props.insumo],
+  ([open]) => {
+    if (open) {
+      loadInsumo()
+      openOverlay()
+      editorDirty.value = dirty.value
+    } else {
+      closeOverlay()
+      editorDirty.value = false
+    }
   }
-})
+)
 
 watch(() => props.open, async (open) => {
   if (open && (categorias.value.length === 0 || proveedoresList.value.length === 0)) {
@@ -254,6 +257,26 @@ watch(() => props.open, async (open) => {
     } catch (e: any) {
       toast('Error al cargar datos', 'error')
     }
+  }
+})
+
+onMounted(async () => {
+  if (props.open) {
+    if (categorias.value.length === 0 || proveedoresList.value.length === 0) {
+      try {
+        const [catsRes, provsRes] = await Promise.all([
+          get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
+          get<{ data: Proveedor[] }>('/insumos/proveedores'),
+        ])
+        categorias.value = catsRes.data
+        proveedoresList.value = provsRes.data
+      } catch (e: any) {
+        toast('Error al cargar datos', 'error')
+      }
+    }
+    loadInsumo()
+    openOverlay()
+    editorDirty.value = dirty.value
   }
 })
 
