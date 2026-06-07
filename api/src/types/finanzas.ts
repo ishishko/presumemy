@@ -9,7 +9,7 @@ export const transaccionSchema = z.object({
   ]),
   cuenta: z.enum(['efectivo', 'banco', 'tarjeta', 'billetera']),
   monto: z.coerce.number().min(0.01),
-  fecha: z.string().datetime(),
+  fecha: z.string(),
   referencia: z.string().optional(),
   detalle: z.string().optional(),
   nroFactura: z.string().optional(),
@@ -19,7 +19,7 @@ export const transaccionSchema = z.object({
 export const transaccionUpdateSchema = transaccionSchema.omit({ fecha: true }).partial()
 
 export const ordenImprentaSchema = z.object({
-  fecha: z.string().datetime(),
+  fecha: z.string(),
   presupuestoId: z.coerce.number().int().positive().optional(),
   productoId: z.coerce.number().int().positive().optional(),
   tematica: z.string().optional(),
