@@ -14,7 +14,21 @@ import ajustesRoutes from './routes/ajustes.js'
 const app = new Hono()
 
 // Middleware global
-app.use('*', cors({ origin: 'http://localhost:5173' }))
+const allowedOrigins = [
+  'http://localhost:5173',
+  ...(process.env.NETLIFY_URL ? [process.env.NETLIFY_URL] : []),
+  ...(process.env.CUSTOM_DOMAIN ? [process.env.CUSTOM_DOMAIN] : []),
+]
+
+app.use('*', cors({
+  origin: (origin) => {
+    if (!origin) return '*'
+    if (allowedOrigins.includes(origin)) return origin
+    if (origin.endsWith('.netlify.app')) return origin
+    return ''
+  },
+  credentials: true,
+}))
 app.use('*', logger())
 
 // Health check

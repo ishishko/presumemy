@@ -12,7 +12,7 @@ function createHeaders(): Record<string, string> {
 }
 
 const api = ofetch.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
 export function get<T>(url: string, query?: Record<string, any>) {

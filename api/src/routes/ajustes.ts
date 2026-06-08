@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { notFound, badRequest } from '../utils/errors.js'
@@ -47,9 +48,14 @@ route.get('/configuracion', async (c) => {
 route.put('/configuracion/:id', zValidator('json', configSchema), async (c) => {
   const data = c.req.valid('json')
 
+  const prismaData: any = { ...data }
+  if (prismaData.domicilio === null) {
+    prismaData.domicilio = Prisma.JsonNull
+  }
+
   const config = await prisma.configuracionNegocio.update({
     where: { id: 1 },
-    data,
+    data: prismaData,
   })
 
   return c.json({ data: config })

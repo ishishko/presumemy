@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { notFound } from '../utils/errors.js'
@@ -113,7 +114,7 @@ route.post('/', zValidator('json', clienteSchema), async (c) => {
     data: {
       nombre: data.nombre,
       codigo: `C-${nextId}`,
-      domicilio: data.domicilio || null,
+      domicilio: data.domicilio ?? Prisma.JsonNull,
       notas: data.notas || null,
       contactos: data.contactos ? {
         create: data.contactos.map((contacto, index) => ({
@@ -147,6 +148,10 @@ route.put('/:id', zValidator('json', clienteUpdateSchema), async (c) => {
   }
 
   const { contactos, ...clienteData } = data
+
+  if (clienteData.domicilio === null) {
+    clienteData.domicilio = Prisma.JsonNull as any
+  }
 
   const cliente = await prisma.cliente.update({
     where: { id },
