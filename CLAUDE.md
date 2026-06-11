@@ -149,3 +149,4 @@ Tamanos: 16px en UI densa, 20px en headers, 24px en nav del sidebar.
 ## Git & Commit Rules
 
 - **Validación del Usuario:** Antes de realizar cualquier commit, el usuario debe probar los cambios él mismo. Los agentes no deben realizar commits de forma autónoma sin confirmación explícita después de que el usuario haya verificado la funcionalidad. Siempre se realiza el comando `git add .` para preparar el commit; cualquier archivo que no quiera ser seguido por el motivo que sea tiene que agregarse al `.gitignore`.
+- **Sin coautor:** Nunca agregar el trailer `Co-Authored-By` ni mencionar a Claude/agentes en los mensajes de commit. Los commits no llevan coautoría de IA.

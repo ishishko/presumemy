@@ -666,6 +666,11 @@ defineExpose({ loadPresupuesto })
                   />
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-section-body">
               <div class="form-row">
                 <div class="field">
                   <FloatingField
@@ -736,13 +741,13 @@ defineExpose({ loadPresupuesto })
           </section>
 
           <section class="form-section">
-            <header class="form-section-head">
-              <h4>Entrega</h4>
-              <span id="ed-envio-label" class="form-subhead">Método de envío</span>
-            </header>
             <div class="form-section-body">
               <div class="form-row form-row-envio">
                 <div class="field">
+                  <div class="envio-head">
+                    <h4>Entrega</h4>
+                    <span id="ed-envio-label" class="form-subhead">Método de envío</span>
+                  </div>
                   <div
                     class="segmented"
                     role="radiogroup"
@@ -1208,11 +1213,25 @@ defineExpose({ loadPresupuesto })
 }
 
 .form-row-3 { grid-template-columns: 2fr 1fr 1fr; }
-.form-row-envio { grid-template-columns: auto 1fr; }
 
-/* Entrega: el segmented ocupa solo lo necesario, el lugar de envío llena el resto */
+/* Entrega: field control (Entrega + método + pill) y field input alineados por su base */
+.form-row-envio {
+  grid-template-columns: auto 1fr;
+  align-items: end;
+}
 .form-row-envio .segmented {
   width: auto;
+}
+.envio-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.envio-head h4 {
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: -0.005em;
 }
 
 /* marca de inicio de la tabla de productos */
