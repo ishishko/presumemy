@@ -108,33 +108,37 @@ npm run preview      # preview del build
 ```
 
 ---
-
-## Pendiente
+## Pendiente V2 — Próximamente
 
 ### Create/Edit flows
 - Drawers y formularios para crear/editar en cada módulo
 - Validación con Zod en frontend
 - Confirmación de cambios y undo
+- Genera campo Medidas en productos.
 
 ### Funcionalidades
 - **Búsqueda** — barra del header aún no filtra resultados
 - **Paginación** — actualmente carga todo (limit 100)
 - **Export** — CSV/PDF de tablas
 - **Detalle de registros** — click en fila → drawer/overlay con info completa
+- **FSM de presupuestos** — Definicion de estados:
+  - Borrador → Enviado → En curso → Cerrado → Facturado (+ cancelado) 
+  - Logica de edicion por estados
 
-### V2 — Próximamente
+### Dashboard V2
 - **Widgets del dashboard** — personalizar qué tarjetas aparecen en Inicio y en qué orden:
   - KPIs del mes
   - Agenda de entregas
   - Alertas de stock
   - Top clientes del mes
-- **Modo oscuro** — toggle entre modo claro y modo oscuro en Ajustes > Apariencia
+
 
 ### Mejoras técnicas
+- **Accesibilidad** — mejorar la accesibilidad de la aplicación. Priorizanado el desplazmiento intuitivo y con posibilidad de realizar keyboard navigation a través de toda la interfaz, sin necesidad de mouse.  
 - **Tailwind utilities** — actualmente 99% CSS custom en `components.css`. Decidir si migrar a utilities o mantener enfoque actual
 - **Tipado** — tipos TypeScript compartidos entre frontend y backend
 - **Tests** — Vitest configurado pero sin tests escritos
-
+- **Modo oscuro** — toggle entre modo claro y modo oscuro en Ajustes > Apariencia
 ---
 
 ## Bugs corregidos (sesión actual)

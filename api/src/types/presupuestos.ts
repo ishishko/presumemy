@@ -16,6 +16,7 @@ export const presupuestoSchema = z.object({
     cantidad: z.coerce.number().min(0.01),
     precioUnitario: z.coerce.number().min(0),
   })).min(1, 'Al menos un detalle es requerido'),
+  estado: z.enum(['borrador', 'en_curso', 'facturado']).optional(),
 })
 
 export const presupuestoUpdateSchema = presupuestoSchema.partial()

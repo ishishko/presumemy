@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Pencil, Trash2 } from '@lucide/vue'
-import { del } from '@/services/api'
+import { del, patch } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
 import { usePresupuestosStore } from '@/stores/presupuestos'
 import PresupuestoEditor from '@/components/editors/PresupuestoEditor.vue'
@@ -37,17 +37,91 @@ function money(v: number): string {
 
 const statusTones: Record<string, { tone: string; label: string }> = {
   borrador: { tone: 'default', label: 'Borrador' },
-  enviado: { tone: 'violet', label: 'Enviado' },
   en_curso: { tone: 'teal', label: 'En curso' },
   cerrado: { tone: 'mint', label: 'Cerrado' },
   facturado: { tone: 'lavender', label: 'Facturado' },
   cancelado: { tone: 'coral', label: 'Cancelado' },
+  enviado: { tone: 'violet', label: 'Enviado' }, // Legacy fallback
+}
+
+const TRANSITIONS: Record<string, string[]> = {
+  borrador: ['en_curso', 'cancelado'],
+  en_curso: ['cerrado', 'cancelado'],
+  cerrado: ['facturado', 'en_curso'],
+  facturado: [],
+  cancelado: [],
+  enviado: ['en_curso', 'cancelado'], // Legacy fallback
+}
+
+function getAvailableTransitions(state: string): string[] {
+  return TRANSITIONS[state] || []
+}
+
+const activeDropdownId = ref<number | null>(null)
+const showConfirmStateChange = ref(false)
+const stateChangeTarget = ref<{ presupuesto: Presupuesto; newStatus: string } | null>(null)
+
+function toggleDropdown(id: number) {
+  if (activeDropdownId.value === id) {
+    activeDropdownId.value = null
+  } else {
+    activeDropdownId.value = id
+  }
+}
+
+function closeAllDropdowns() {
+  activeDropdownId.value = null
+}
+
+onMounted(() => {
+  window.addEventListener('click', closeAllDropdowns)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeAllDropdowns)
+})
+
+async function handleStatusChange(p: Presupuesto, newStatus: string) {
+  if (newStatus === 'facturado' || newStatus === 'cancelado') {
+    stateChangeTarget.value = { presupuesto: p, newStatus }
+    showConfirmStateChange.value = true
+    return
+  }
+  await proceedStatusChange(p, newStatus)
+}
+
+async function proceedStatusChange(p: Presupuesto, newStatus: string) {
+  const originalStatus = p.estado
+  // Optimistic update
+  p.estado = newStatus as any
+  try {
+    const updated = await patch<Presupuesto>('/presupuestos', `${p.id}/estado`, { estado: newStatus })
+    store.upsert(updated)
+    toast(`Estado actualizado a ${statusTones[newStatus]?.label || newStatus}`)
+  } catch (e: any) {
+    // Revert on failure
+    p.estado = originalStatus
+    toast(e.message || 'Error al actualizar el estado', 'error')
+  }
+}
+
+function handleStateChangeConfirm() {
+  if (stateChangeTarget.value) {
+    const { presupuesto, newStatus } = stateChangeTarget.value
+    proceedStatusChange(presupuesto, newStatus)
+  }
+  showConfirmStateChange.value = false
+  stateChangeTarget.value = null
+}
+
+function handleStateChangeCancel() {
+  showConfirmStateChange.value = false
+  stateChangeTarget.value = null
 }
 
 const filters = [
   { id: 'todos', label: 'Todos' },
   { id: 'borrador', label: 'Borrador' },
-  { id: 'enviado', label: 'Enviado' },
   { id: 'en_curso', label: 'En curso' },
   { id: 'cerrado', label: 'Cerrado' },
   { id: 'facturado', label: 'Facturado' },
@@ -166,7 +240,7 @@ watch(createTrigger, (val) => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in filtered" :key="p.id">
+          <tr v-for="p in filtered" :key="p.id" @dblclick="handleEdit(p)">
             <td style="color: var(--ink-muted); font-family: var(--font-mono)">{{ p.folio }}</td>
             <td style="font-weight: 500">{{ p.cliente?.nombre || 'Sin cliente' }}</td>
             <td>
@@ -174,10 +248,32 @@ watch(createTrigger, (val) => {
             </td>
             <td style="color: var(--ink-muted)">{{ formatDate(p.fechaEntrega || p.createdAt) }}</td>
             <td>
-              <span :class="['badge', statusTones[p.estado]?.tone || 'default']">
-                <span class="dot" />
-                {{ statusTones[p.estado]?.label || p.estado }}
-              </span>
+              <div class="custom-status-dropdown" @click.stop @dblclick.stop>
+                <button
+                  type="button"
+                  class="status-badge-wrap"
+                  :class="[statusTones[p.estado]?.tone || 'default', getAvailableTransitions(p.estado).length > 0 && 'interactive']"
+                  @click="toggleDropdown(p.id)"
+                  :disabled="getAvailableTransitions(p.estado).length === 0"
+                >
+                  <span class="dot" />
+                  <span>{{ statusTones[p.estado]?.label || p.estado }}</span>
+                  <span v-if="getAvailableTransitions(p.estado).length > 0" class="chevron-arrow"></span>
+                </button>
+                <div v-if="activeDropdownId === p.id" class="status-dropdown-menu">
+                  <button
+                    v-for="t in getAvailableTransitions(p.estado)"
+                    :key="t"
+                    type="button"
+                    class="status-dropdown-item"
+                    :class="statusTones[t]?.tone || 'default'"
+                    @click="handleStatusChange(p, t); activeDropdownId = null"
+                  >
+                    <span class="dot" />
+                    <span>{{ statusTones[t]?.label || t }}</span>
+                  </button>
+                </div>
+              </div>
             </td>
             <td class="num" style="font-weight: 500">{{ money(p.total) }}</td>
             <td>
@@ -218,6 +314,18 @@ watch(createTrigger, (val) => {
     variant="danger"
     @confirm="handleDeleteConfirm"
     @cancel="showConfirmDelete = false; deletingPresupuesto = null"
+  />
+
+  <ConfirmDialog
+    :open="showConfirmStateChange"
+    :title="`Cambiar estado a ${statusTones[stateChangeTarget?.newStatus || '']?.label || ''}`"
+    :message="stateChangeTarget?.newStatus === 'facturado'
+      ? `¿Estás seguro de que deseas facturar el presupuesto ${stateChangeTarget?.presupuesto?.folio}? Esta acción registrará automáticamente los movimientos financieros de ingresos, egresos y retiros, y no se podrá deshacer.`
+      : `¿Estás seguro de que deseas cancelar el presupuesto ${stateChangeTarget?.presupuesto?.folio}? Esta acción no se podrá deshacer.`"
+    :confirm-label="stateChangeTarget?.newStatus === 'facturado' ? 'Facturar' : 'Cancelar presupuesto'"
+    :variant="stateChangeTarget?.newStatus === 'facturado' ? 'default' : 'danger'"
+    @confirm="handleStateChangeConfirm"
+    @cancel="handleStateChangeCancel"
   />
 </template>
 

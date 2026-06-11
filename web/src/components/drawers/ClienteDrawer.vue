@@ -201,8 +201,9 @@ defineExpose({ loadCliente })
 
           <div class="drawer-body">
             <div class="field" :class="{ 'field-error': errors.nombre }">
-              <label>Nombre</label>
+              <label for="cl-nombre">Nombre</label>
               <input
+                id="cl-nombre"
                 class="input"
                 v-model="nombre"
                 placeholder="Nombre del cliente"
@@ -215,23 +216,23 @@ defineExpose({ loadCliente })
 
             <div class="fd-row">
               <div class="field" style="flex: 2">
-                <label>Calle</label>
-                <input class="input" v-model="calle" placeholder="Calle" />
+                <label for="cl-calle">Calle</label>
+                <input id="cl-calle" class="input" v-model="calle" placeholder="Calle" />
               </div>
               <div class="field" style="flex: 1">
-                <label>Número</label>
-                <input class="input" v-model="numero" placeholder="N°" />
+                <label for="cl-numero">Número</label>
+                <input id="cl-numero" class="input" v-model="numero" placeholder="N°" />
               </div>
             </div>
 
             <div class="fd-row">
               <div class="field" style="flex: 1">
-                <label>Localidad</label>
-                <input class="input" v-model="localidad" placeholder="Localidad" />
+                <label for="cl-localidad">Localidad</label>
+                <input id="cl-localidad" class="input" v-model="localidad" placeholder="Localidad" />
               </div>
               <div class="field" style="flex: 1">
-                <label>Provincia</label>
-                <input class="input" v-model="provincia" placeholder="Provincia" />
+                <label for="cl-provincia">Provincia</label>
+                <input id="cl-provincia" class="input" v-model="provincia" placeholder="Provincia" />
               </div>
             </div>
 
@@ -277,8 +278,9 @@ defineExpose({ loadCliente })
             </button>
 
             <div class="field" style="margin-top: 18px">
-              <label>Notas</label>
+              <label for="cl-notas">Notas</label>
               <textarea
+                id="cl-notas"
                 class="textarea"
                 v-model="notas"
                 placeholder="Información interna · solo visible para tu equipo"

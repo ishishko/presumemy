@@ -3,8 +3,6 @@
    ERP UI for MemyDeni (paper goods for parties & events)
    ========================================================= */
 
-@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap");
-
 :root {
   /* -------- Brand / semantic colors -------- */
   --violet-700:   #8B2570;   /* headings, sidebar bg, active borders   (text: #fff) */

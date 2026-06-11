@@ -51,10 +51,20 @@ export function del(url: string, id: number) {
   })
 }
 
+export function patch<T>(url: string, id: number | string, body: any): Promise<T> {
+  return api<{ data: T }>(`${url}/${id}`, {
+    method: 'PATCH',
+    body,
+    headers: createHeaders(),
+  }).then(res => res.data)
+}
+
 export default {
   get,
   getById,
   post,
   put,
   del,
+  patch,
 }
+

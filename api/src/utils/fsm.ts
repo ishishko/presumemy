@@ -7,10 +7,10 @@ export type EstadoPresupuesto =
   | 'cancelado'
 
 export const TRANSITIONS: Record<EstadoPresupuesto, EstadoPresupuesto[]> = {
-  borrador: ['enviado', 'cancelado'],
+  borrador: ['en_curso', 'cancelado'],
   enviado: ['en_curso', 'cancelado'],
   en_curso: ['cerrado', 'cancelado'],
-  cerrado: ['facturado', 'cancelado'],
+  cerrado: ['facturado', 'en_curso'],
   facturado: [],
   cancelado: [],
 }

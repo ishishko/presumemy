@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { ArrowRight, GripVertical, Plus, Trash2, FileText, Calendar } from '@lucide/vue'
-import { get, post, put } from '@/services/api'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { GripVertical, Plus, Trash2, FileText, Calendar } from '@lucide/vue'
+import { get, post, put, patch } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import { editorDirty } from '@/composables/useEditorMode'
 import type { Presupuesto, Cliente, Producto, PaginationResult } from '@/types'
 import { presupuestoSchema } from '@/schemas/presupuestos'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const props = defineProps<{
   open: boolean
@@ -22,6 +23,48 @@ const { toast } = useToast()
 
 const isNew = computed(() => !props.presupuesto)
 const docFolio = computed(() => props.presupuesto?.folio || 'P-...')
+const estado = ref('borrador')
+
+const isEditable = computed(() => {
+  return isNew.value || estado.value === 'borrador' || estado.value === 'en_curso'
+})
+
+const statusTones: Record<string, { tone: string; label: string }> = {
+  borrador: { tone: 'default', label: 'Borrador' },
+  en_curso: { tone: 'teal', label: 'En curso' },
+  cerrado: { tone: 'mint', label: 'Cerrado' },
+  facturado: { tone: 'lavender', label: 'Facturado' },
+  cancelado: { tone: 'coral', label: 'Cancelado' },
+  enviado: { tone: 'violet', label: 'Enviado' }, // Legacy fallback
+}
+
+const TRANSITIONS: Record<string, string[]> = {
+  borrador: ['en_curso', 'cancelado'],
+  en_curso: ['cerrado', 'cancelado'],
+  cerrado: ['facturado'],
+  facturado: [],
+  cancelado: [],
+  enviado: ['en_curso', 'cancelado'], // Legacy fallback
+}
+
+function getAvailableTransitions(state: string): string[] {
+  return TRANSITIONS[state] || []
+}
+
+const dropdownOpen = ref(false)
+
+function toggleDropdown() {
+  dropdownOpen.value = !dropdownOpen.value
+}
+
+function closeDropdown() {
+  dropdownOpen.value = false
+}
+
+function handleStatusChange(newStatus: string) {
+  estado.value = newStatus
+  toast(`Estado cambiado localmente a ${statusTones[newStatus]?.label || newStatus}. Guardá para persistir.`, 'info')
+}
 
 const clientes = ref<Cliente[]>([])
 const productos = ref<Producto[]>([])
@@ -37,6 +80,16 @@ const metodoPago = ref('')
 const sena = ref('')
 const notas = ref('')
 const includeNotes = ref(true)
+
+const showConfirmExit = ref(false)
+
+const selectedCliente = computed(() => {
+  return clientes.value.find(c => c.id === clienteId.value)
+})
+
+const mainContacto = computed(() => {
+  return selectedCliente.value?.contactos?.find(co => co.esPrincipal) || selectedCliente.value?.contactos?.[0]
+})
 
 const lineas = ref<Array<{ id: number; producto: string; productoId: number; qty: string; price: string }>>([])
 const activeRow = ref<number | null>(null)
@@ -75,6 +128,7 @@ const restoCalc = computed(() => {
 
 function getFormSnapshot() {
   return JSON.stringify({
+    estado: estado.value,
     clienteId: clienteId.value,
     cliente: cliente.value,
     tematica: tematica.value,
@@ -122,6 +176,7 @@ function reset() {
   snapshot.value = null
   savedAt.value = ''
   errors.value = {}
+  estado.value = 'borrador'
 }
 
 async function loadPresupuesto() {
@@ -156,6 +211,7 @@ async function loadPresupuesto() {
     if (lineas.value.length === 0) {
       lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
     }
+    estado.value = p.estado
   }
   originalFormSnapshot.value = getFormSnapshot()
 }
@@ -301,7 +357,7 @@ function captureSnapshot(status: string) {
   }
 }
 
-async function handleSave(action: 'borrador' | 'enviado') {
+async function handleSave() {
   if (!validate()) return
 
   const detalles = lineas.value
@@ -330,24 +386,61 @@ async function handleSave(action: 'borrador' | 'enviado') {
     let res: Presupuesto
     if (!isNew.value && props.presupuesto) {
       res = await put<Presupuesto>('/presupuestos', props.presupuesto.id, payload)
+      if (estado.value !== props.presupuesto.estado) {
+        res = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: estado.value })
+      }
       toast('Presupuesto actualizado')
     } else {
       res = await post<Presupuesto>('/presupuestos', payload)
-      toast(action === 'enviado' ? 'Presupuesto enviado' : 'Borrador guardado')
+      if (estado.value !== 'borrador') {
+        res = await patch<Presupuesto>('/presupuestos', `${res.id}/estado`, { estado: estado.value })
+      }
+      toast('Borrador guardado')
     }
 
-    if (action === 'enviado' && isNew.value) {
-      await put<Presupuesto>('/presupuestos/estado', res.id, { estado: 'enviado' })
-    }
-
-    snapshot.value = captureSnapshot(action === 'enviado' ? 'enviado' : 'borrador')
+    snapshot.value = captureSnapshot(estado.value)
     const now = new Date()
     savedAt.value = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
     originalFormSnapshot.value = getFormSnapshot()
     emit('saved', res)
+    await loadPresupuesto()
   } catch (e: any) {
     toast(e.message || 'Error al guardar', 'error')
+  }
+}
+
+async function handleSendToClient() {
+  if (!validate()) return
+
+  if (isDirty.value) {
+    await handleSave()
+  }
+
+  if (isNew.value || !props.presupuesto) return
+
+  try {
+    const updated = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: 'en_curso' })
+    estado.value = updated.estado
+    originalFormSnapshot.value = getFormSnapshot()
+    emit('saved', updated)
+    await loadPresupuesto()
+
+    if (mainContacto.value) {
+      toast(`Presupuesto enviado por ${mainContacto.value.canal}: ${mainContacto.value.valor}`)
+    } else {
+      toast('Presupuesto enviado al cliente')
+    }
+  } catch (e: any) {
+    toast(e.message || 'Error al enviar presupuesto', 'error')
+  }
+}
+
+function triggerClose() {
+  if (isDirty.value) {
+    showConfirmExit.value = true
+  } else {
+    closeEditor()
   }
 }
 
@@ -355,8 +448,8 @@ function openEditor() {
   emit('update:header', {
     mode: 'editor',
     title: isNew.value ? 'Nuevo' : (props.presupuesto?.folio || ''),
-    onSave: () => handleSave('borrador'),
-    onClose: () => emit('close'),
+    onSave: () => handleSave(),
+    onClose: triggerClose,
   })
 }
 
@@ -366,6 +459,7 @@ function closeEditor() {
 }
 
 onMounted(async () => {
+  window.addEventListener('click', closeDropdown)
   try {
     const [clientesRes, productosRes] = await Promise.all([
       get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 100 }),
@@ -383,6 +477,10 @@ onMounted(async () => {
     originalFormSnapshot.value = getFormSnapshot()
     editorDirty.value = isDirty.value
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeDropdown)
 })
 
 watch(cliente, (newVal) => {
@@ -428,47 +526,76 @@ defineExpose({ loadPresupuesto })
       <div class="editor-split">
         <div class="editor-form">
           <section class="form-section">
-            <header class="form-section-head">
-              <span class="step-pill">1</span>
+            <header class="form-section-head" style="justify-content: space-between; width: 100%;">
               <h4>Cliente y evento</h4>
+              <div v-if="!isNew" class="custom-status-dropdown" @click.stop>
+                <button
+                  type="button"
+                  class="status-badge-wrap"
+                  :class="[statusTones[estado]?.tone || 'default', getAvailableTransitions(estado).length > 0 && 'interactive']"
+                  @click="toggleDropdown"
+                  :disabled="getAvailableTransitions(estado).length === 0"
+                >
+                  <span class="dot" />
+                  <span>{{ statusTones[estado]?.label || estado }}</span>
+                  <span v-if="getAvailableTransitions(estado).length > 0" class="chevron-arrow"></span>
+                </button>
+                <div v-if="dropdownOpen" class="status-dropdown-menu">
+                  <button
+                    v-for="t in getAvailableTransitions(estado)"
+                    :key="t"
+                    type="button"
+                    class="status-dropdown-item"
+                    :class="statusTones[t]?.tone || 'default'"
+                    @click="handleStatusChange(t); dropdownOpen = false"
+                  >
+                    <span class="dot" />
+                    <span>{{ statusTones[t]?.label || t }}</span>
+                  </button>
+                </div>
+              </div>
             </header>
             <div class="form-section-body">
               <div class="form-row">
                 <div class="field">
-                  <label>Cliente</label>
+                  <label for="ed-cliente">Cliente</label>
                   <input
+                    id="ed-cliente"
                     class="input"
                     :value="cliente"
                     @input="cliente = ($event.target as HTMLInputElement).value"
                     placeholder="Buscar o agregar cliente..."
                     list="ed-clients"
+                    :disabled="!isEditable"
                   />
                   <datalist id="ed-clients">
                     <option v-for="c in clientes" :key="c.id" :value="c.nombre" />
                   </datalist>
                 </div>
                 <div class="field">
-                  <label>Temática</label>
+                  <label for="ed-tematica">Temática</label>
                   <input
+                    id="ed-tematica"
                     class="input"
                     v-model="tematica"
                     placeholder="Ej. Jardín pastel, dinosaurios, neón..."
+                    :disabled="!isEditable"
                   />
                 </div>
               </div>
               <div class="form-row">
                 <div class="field">
-                  <label>Fecha de fiesta</label>
+                  <label for="ed-fecha-fiesta">Fecha de fiesta</label>
                   <div class="date-wrap">
                     <Calendar :size="16" />
-                    <input type="date" class="input date-input" v-model="fechaFiesta" />
+                    <input id="ed-fecha-fiesta" type="date" class="input date-input" v-model="fechaFiesta" :disabled="!isEditable" />
                   </div>
                 </div>
                 <div class="field">
-                  <label>Fecha de entrega</label>
+                  <label for="ed-fecha-entrega">Fecha de entrega</label>
                   <div class="date-wrap">
                     <Calendar :size="16" />
-                    <input type="date" class="input date-input" v-model="fechaEntrega" />
+                    <input id="ed-fecha-entrega" type="date" class="input date-input" v-model="fechaEntrega" :disabled="!isEditable" />
                   </div>
                 </div>
               </div>
@@ -477,7 +604,6 @@ defineExpose({ loadPresupuesto })
 
           <section class="form-section">
             <header class="form-section-head">
-              <span class="step-pill">2</span>
               <h4>Entrega</h4>
             </header>
             <div class="form-section-body">
@@ -490,23 +616,27 @@ defineExpose({ loadPresupuesto })
                       role="tab"
                       :aria-selected="tipoEntrega === 'retira'"
                       :class="['seg-btn', tipoEntrega === 'retira' && 'active']"
-                      @click="tipoEntrega = 'retira'"
+                      @click="isEditable && (tipoEntrega = 'retira')"
+                      :disabled="!isEditable"
                     >Retira</button>
                     <button
                       type="button"
                       role="tab"
                       :aria-selected="tipoEntrega === 'envio'"
                       :class="['seg-btn', tipoEntrega === 'envio' && 'active']"
-                      @click="tipoEntrega = 'envio'"
+                      @click="isEditable && (tipoEntrega = 'envio')"
+                      :disabled="!isEditable"
                     >Envío</button>
                   </div>
                 </div>
                 <div v-if="tipoEntrega === 'envio'" class="field">
-                  <label>Lugar de envío</label>
+                  <label for="ed-lugar-envio">Lugar de envío</label>
                   <input
+                    id="ed-lugar-envio"
                     class="input"
                     v-model="direccionEntrega"
                     placeholder="Calle, número, colonia, CP"
+                    :disabled="!isEditable"
                   />
                 </div>
               </div>
@@ -515,42 +645,46 @@ defineExpose({ loadPresupuesto })
 
           <section class="form-section">
             <header class="form-section-head">
-              <span class="step-pill">3</span>
               <h4>Pago</h4>
             </header>
             <div class="form-section-body">
               <div class="form-row form-row-3">
                 <div class="field">
-                  <label>Método de pago</label>
+                  <label for="ed-metodo-pago">Método de pago</label>
                   <input
+                    id="ed-metodo-pago"
                     class="input"
                     v-model="metodoPago"
                     placeholder="Transferencia, MP, efectivo..."
+                    :disabled="!isEditable"
                   />
                 </div>
                 <div class="field">
-                  <label>Seña</label>
+                  <label for="ed-sena">Seña</label>
                   <div class="money-wrap">
                     <span class="money-prefix">$</span>
                     <input
+                      id="ed-sena"
                       class="input money-input"
                       type="number"
                       min="0"
                       step="0.01"
                       v-model="sena"
                       placeholder="0.00"
+                      :disabled="!isEditable"
                     />
                   </div>
                 </div>
                 <div class="field">
-                  <label>Resto</label>
+                  <label for="ed-resto">Resto</label>
                   <div class="money-wrap">
                     <span class="money-prefix">$</span>
                     <input
+                      id="ed-resto"
                       class="input money-input"
                       type="text"
                       readonly
-                      :value="money(restoCalc)"
+                      :value="restoCalc.toFixed(2)"
                       placeholder="0.00"
                       style="background: var(--page-bg)"
                     />
@@ -562,14 +696,13 @@ defineExpose({ loadPresupuesto })
 
           <section class="form-section">
             <header class="form-section-head">
-              <span class="step-pill">4</span>
               <h4>Productos</h4>
             </header>
             <div class="form-section-body">
               <div
                 class="lines-spreadsheet"
                 tabindex="-1"
-                @focus="handleTableFocus"
+                @focus="isEditable && handleTableFocus()"
                 @blur="handleTableBlur"
               >
                 <table>
@@ -578,7 +711,7 @@ defineExpose({ loadPresupuesto })
                     <col />
                     <col style="width: 58px" />
                     <col style="width: 86px" />
-                    <col style="width: 92px" />
+                    <col style="width: 110px" />
                     <col style="width: 30px" />
                   </colgroup>
                   <thead>
@@ -602,12 +735,12 @@ defineExpose({ loadPresupuesto })
                         dragId === l.id && 'dragging',
                         dragOverId === l.id && dragId !== l.id && 'drag-over',
                       ].filter(Boolean).join(' ')"
-                      draggable
-                      @dragstart="dragId = l.id"
-                      @dragover.prevent="dragOverId = l.id"
-                      @drop="onDrop(l.id)"
+                      :draggable="isEditable"
+                      @dragstart="isEditable && (dragId = l.id)"
+                      @dragover.prevent="isEditable && (dragOverId = l.id)"
+                      @drop="isEditable && onDrop(l.id)"
                       @dragend="dragId = null; dragOverId = null"
-                      @mousedown="activeRow = l.id"
+                      @mousedown="isEditable && (activeRow = l.id)"
                     >
                       <td class="grip" title="Arrastrar para reordenar">
                         <GripVertical :size="14" />
@@ -620,6 +753,7 @@ defineExpose({ loadPresupuesto })
                           @focus="activeRow = l.id"
                           :placeholder="l.id === lineas[0]?.id ? 'Producto, descripción o catálogo...' : ''"
                           list="ed-products"
+                          :disabled="!isEditable"
                         />
                       </td>
                       <td>
@@ -631,6 +765,7 @@ defineExpose({ loadPresupuesto })
                           :value="l.qty"
                           @input="updateLine(l.id, { qty: ($event.target as HTMLInputElement).value })"
                           @focus="activeRow = l.id"
+                          :disabled="!isEditable"
                         />
                       </td>
                       <td>
@@ -642,6 +777,7 @@ defineExpose({ loadPresupuesto })
                           :value="l.price"
                           @input="updateLine(l.id, { price: ($event.target as HTMLInputElement).value })"
                           @focus="activeRow = l.id"
+                          :disabled="!isEditable"
                         />
                       </td>
                       <td class="num cell-subtotal">
@@ -652,6 +788,8 @@ defineExpose({ loadPresupuesto })
                           class="del-btn"
                           @click="removeLine(l.id)"
                           title="Eliminar línea"
+                          :disabled="!isEditable"
+                          v-if="isEditable"
                         >
                           <Trash2 :size="14" />
                         </button>
@@ -664,7 +802,7 @@ defineExpose({ loadPresupuesto })
                 </datalist>
 
                 <button
-                  v-if="!editing"
+                  v-if="!editing && isEditable"
                   type="button"
                   class="add-line-btn"
                   @mousedown.prevent
@@ -672,7 +810,7 @@ defineExpose({ loadPresupuesto })
                 >
                   <Plus :size="14" /> Agregar línea
                 </button>
-                <div v-else class="lines-hint text-hint">
+                <div v-else-if="isEditable" class="lines-hint text-hint">
                   <GripVertical :size="12" /> arrastrá para reordenar &nbsp;·&nbsp; Tab para avanzar &nbsp;·&nbsp; click fuera para cerrar
                 </div>
               </div>
@@ -688,19 +826,21 @@ defineExpose({ loadPresupuesto })
 
           <section class="form-section">
             <header class="form-section-head">
-              <span class="step-pill">5</span>
               <h4>Notas</h4>
             </header>
             <div class="form-section-body">
               <div class="field">
+                <label for="ed-notas">Notas</label>
                 <textarea
+                  id="ed-notas"
                   class="textarea"
                   v-model="notas"
                   placeholder="Detalles para el cliente: incluye montaje, instrucciones de retiro, alergenos, etc."
+                  :disabled="!isEditable"
                 />
               </div>
               <label class="check-row">
-                <input type="checkbox" v-model="includeNotes" />
+                <input type="checkbox" v-model="includeNotes" :disabled="!isEditable" />
                 <span>Incluir en impresión / vista web</span>
               </label>
             </div>
@@ -810,15 +950,40 @@ defineExpose({ loadPresupuesto })
       </div>
 
       <div class="editor-foot">
-        <button class="btn btn-ghost" @click="closeEditor">Cancelar</button>
-        <div class="spacer"></div>
-        <button class="btn btn-secondary" @click="handleSave('borrador')" :disabled="!isDirty" :style="{ opacity: isDirty ? 1 : 0.5, pointerEvents: isDirty ? 'auto' : 'none' }">Guardar borrador</button>
-        <button class="btn btn-primary" @click="handleSave('enviado')" :disabled="!isDirty" :style="{ opacity: isDirty ? 1 : 0.5, pointerEvents: isDirty ? 'auto' : 'none' }">
-          Enviar <ArrowRight :size="16" />
-        </button>
+        <div class="editor-foot-left">
+          <button class="btn btn-ghost" @click="triggerClose">{{ isEditable ? 'Cancelar' : 'Cerrar' }}</button>
+          <div class="spacer"></div>
+          <button
+            v-if="isEditable && estado === 'borrador' && !isNew"
+            class="btn btn-secondary"
+            @click="handleSendToClient"
+          >
+            Enviar a {{ mainContacto ? (mainContacto.valor ? `${mainContacto.canal} (${mainContacto.valor})` : mainContacto.canal) : 'cliente' }}
+          </button>
+          <button
+            v-if="isEditable"
+            class="btn btn-primary"
+            @click="handleSave"
+            :disabled="!isDirty"
+            :style="{ opacity: isDirty ? 1 : 0.5, pointerEvents: isDirty ? 'auto' : 'none' }"
+          >
+            {{ isNew ? 'Crear presupuesto' : 'Guardar cambios' }}
+          </button>
+        </div>
+        <div class="editor-foot-right"></div>
       </div>
     </div>
   </Transition>
+
+  <ConfirmDialog
+    :open="showConfirmExit"
+    title="Salir sin guardar"
+    message="Tenés cambios sin guardar en este presupuesto. ¿Querés salir de todos modos?"
+    confirm-label="Salir"
+    variant="danger"
+    @confirm="showConfirmExit = false; closeEditor()"
+    @cancel="showConfirmExit = false"
+  />
 </template>
 
 <style scoped>
@@ -1111,6 +1276,7 @@ defineExpose({ loadPresupuesto })
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
 }
 
 .lines-spreadsheet .del-btn {
@@ -1218,14 +1384,25 @@ defineExpose({ loadPresupuesto })
 }
 
 .editor-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   padding: 14px 28px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   position: relative;
   z-index: 5;
+}
+
+.editor-foot-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 28px;
+  border-right: 1px solid var(--border);
+}
+
+.editor-foot-right {
+  display: block;
 }
 
 .preview-empty {

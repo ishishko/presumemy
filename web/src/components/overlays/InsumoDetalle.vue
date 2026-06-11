@@ -297,8 +297,9 @@ defineExpose({ loadInsumo })
               </div>
 
               <div class="id-field">
-                <label>Nombre</label>
+                <label for="ins-nombre">Nombre</label>
                 <input
+                  id="ins-nombre"
                   class="id-inline-name"
                   v-model="nombre"
                   placeholder="Nombre del insumo"
@@ -307,30 +308,30 @@ defineExpose({ loadInsumo })
 
               <div class="id-grid-2">
                 <div class="id-field">
-                  <label>Categoría</label>
-                  <select class="select" v-model.number="categoriaId">
+                  <label for="ins-categoria">Categoría</label>
+                  <select id="ins-categoria" class="select" v-model.number="categoriaId">
                     <option :value="0" disabled>Seleccionar</option>
                     <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                   </select>
                 </div>
                 <div class="id-field">
-                  <label>Unidad de medida</label>
-                  <input class="input" v-model="unidad" placeholder="Ej. pliego, m, rollo" />
+                  <label for="ins-unidad">Unidad de medida</label>
+                  <input id="ins-unidad" class="input" v-model="unidad" placeholder="Ej. pliego, m, rollo" />
                 </div>
               </div>
 
               <div class="id-grid-2">
                 <div class="id-field">
-                  <label>Stock actual</label>
+                  <label for="ins-stock-actual">Stock actual</label>
                   <div class="id-num-with-unit">
-                    <input class="input" type="number" min="0" step="1" v-model.number="stockActual" />
+                    <input id="ins-stock-actual" class="input" type="number" min="0" step="1" v-model.number="stockActual" />
                     <span class="id-unit-pill">{{ unidad || 'u' }}</span>
                   </div>
                 </div>
                 <div class="id-field">
-                  <label>Stock mínimo</label>
+                  <label for="ins-stock-minimo">Stock mínimo</label>
                   <div class="id-num-with-unit">
-                    <input class="input" type="number" min="0" step="1" v-model.number="stockMinimo" />
+                    <input id="ins-stock-minimo" class="input" type="number" min="0" step="1" v-model.number="stockMinimo" />
                     <span class="id-unit-pill">{{ unidad || 'u' }}</span>
                   </div>
                 </div>
@@ -347,6 +348,8 @@ defineExpose({ loadInsumo })
                   tabindex="0"
                   :class="['id-switch', { on: activo }]"
                   @click="activo = !activo"
+                  @keydown.space.prevent="activo = !activo"
+                  @keydown.enter.prevent="activo = !activo"
                 />
               </div>
 
@@ -384,8 +387,9 @@ defineExpose({ loadInsumo })
 
               <div class="id-grid-2">
                 <div class="id-field">
-                  <label>Costo del paquete</label>
+                  <label for="ins-costo-paquete">Costo del paquete</label>
                   <input
+                    id="ins-costo-paquete"
                     class="input"
                     type="number"
                     min="0"
@@ -395,9 +399,10 @@ defineExpose({ loadInsumo })
                   />
                 </div>
                 <div class="id-field">
-                  <label>Cantidad por pack</label>
+                  <label for="ins-cantidad-pack">Cantidad por pack</label>
                   <div class="id-num-with-unit">
                     <input
+                      id="ins-cantidad-pack"
                       class="input"
                       type="number"
                       min="0"
@@ -499,10 +504,13 @@ defineExpose({ loadInsumo })
 
           <section class="id-prov-card id-notes">
             <div class="head">
-              <h4>Notas</h4>
+              <label for="ins-notas" style="display: block; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;">
+                <h4 style="margin: 0; display: inline">Notas</h4>
+              </label>
               <span class="hint">Información interna · solo visible para tu equipo</span>
             </div>
             <textarea
+              id="ins-notas"
               class="textarea"
               v-model="notas"
               placeholder="Anotá variaciones de proveedor, tiempos de entrega, observaciones de calidad"
@@ -1075,5 +1083,9 @@ defineExpose({ loadInsumo })
 @keyframes overlay-out {
   from { transform: translateY(0); opacity: 1; }
   to { transform: translateY(4px); opacity: 0.6; }
+}
+.id-switch:focus-visible {
+  outline: 2px solid var(--violet-700);
+  outline-offset: 2px;
 }
 </style>

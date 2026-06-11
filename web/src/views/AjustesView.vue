@@ -134,12 +134,12 @@ onMounted(async () => {
             <div class="aj-block-body">
               <div class="aj-grid-2">
                 <div class="aj-field">
-                  <label>Nombre del negocio</label>
-                  <input class="input" :value="config.nombre" @input="updateConfig('nombre', ($event.target as HTMLInputElement).value)" />
+                  <label for="aj-nombre-negocio">Nombre del negocio</label>
+                  <input id="aj-nombre-negocio" class="input" :value="config.nombre" @input="updateConfig('nombre', ($event.target as HTMLInputElement).value)" />
                 </div>
                 <div class="aj-field">
-                  <label>Moneda</label>
-                  <select class="select" :value="config.moneda" @change="updateConfig('moneda', ($event.target as HTMLSelectElement).value)">
+                  <label for="aj-moneda">Moneda</label>
+                  <select id="aj-moneda" class="select" :value="config.moneda" @change="updateConfig('moneda', ($event.target as HTMLSelectElement).value)">
                     <option v-for="m in MONEDAS" :key="m.id" :value="m.id">{{ m.label }}</option>
                   </select>
                 </div>
@@ -148,37 +148,37 @@ onMounted(async () => {
               <h5 class="aj-subhead">Domicilio</h5>
               <div class="aj-dom-grid">
                 <div class="aj-field" style="grid-column: 1 / span 2">
-                  <label>Calle</label>
-                  <input class="input" :value="domicilio?.calle || ''" @input="updateDomicilio('calle', ($event.target as HTMLInputElement).value)" />
+                  <label for="aj-calle">Calle</label>
+                  <input id="aj-calle" class="input" :value="domicilio?.calle || ''" @input="updateDomicilio('calle', ($event.target as HTMLInputElement).value)" />
                 </div>
                 <div class="aj-field">
-                  <label>Número</label>
-                  <input class="input" :value="domicilio?.numero || ''" @input="updateDomicilio('numero', ($event.target as HTMLInputElement).value)" />
+                  <label for="aj-numero">Número</label>
+                  <input id="aj-numero" class="input" :value="domicilio?.numero || ''" @input="updateDomicilio('numero', ($event.target as HTMLInputElement).value)" />
                 </div>
                 <div class="aj-field">
-                  <label>Ciudad</label>
-                  <input class="input" :value="domicilio?.ciudad || ''" @input="updateDomicilio('ciudad', ($event.target as HTMLInputElement).value)" />
+                  <label for="aj-ciudad">Ciudad</label>
+                  <input id="aj-ciudad" class="input" :value="domicilio?.ciudad || ''" @input="updateDomicilio('ciudad', ($event.target as HTMLInputElement).value)" />
                 </div>
                 <div class="aj-field">
-                  <label>Provincia</label>
-                  <input class="input" :value="domicilio?.provincia || ''" @input="updateDomicilio('provincia', ($event.target as HTMLInputElement).value)" />
+                  <label for="aj-provincia">Provincia</label>
+                  <input id="aj-provincia" class="input" :value="domicilio?.provincia || ''" @input="updateDomicilio('provincia', ($event.target as HTMLInputElement).value)" />
                 </div>
               </div>
 
               <h5 class="aj-subhead">Contacto del negocio</h5>
               <div class="aj-grid-2">
                 <div class="aj-field">
-                  <label>Canal</label>
+                  <label for="aj-canal">Canal</label>
                   <div class="aj-canal-select">
                     <span class="canal-dot" :style="{ background: canalMeta.color }" />
-                    <select class="select" :value="config.contactoCanal || 'instagram'" @change="updateConfig('contactoCanal', ($event.target as HTMLSelectElement).value)">
+                    <select id="aj-canal" class="select" :value="config.contactoCanal || 'instagram'" @change="updateConfig('contactoCanal', ($event.target as HTMLSelectElement).value)">
                       <option v-for="(label, id) in canalLabels" :key="id" :value="id">{{ label }}</option>
                     </select>
                   </div>
                 </div>
                 <div class="aj-field">
-                  <label>Valor</label>
-                  <input class="input" :value="config.contactoValor || ''" @input="updateConfig('contactoValor', ($event.target as HTMLInputElement).value)" />
+                  <label for="aj-contacto-valor">Valor</label>
+                  <input id="aj-contacto-valor" class="input" :value="config.contactoValor || ''" @input="updateConfig('contactoValor', ($event.target as HTMLInputElement).value)" />
                 </div>
               </div>
             </div>
@@ -205,13 +205,22 @@ onMounted(async () => {
                   <span class="t">Cancelación automática por tiempo</span>
                   <span class="h">Los presupuestos en estado <strong>Enviado</strong> se cancelarán automáticamente luego de X días sin confirmación.</span>
                 </div>
-                <div class="aj-switch" :class="{ on: config.cancelacionAuto }" @click="updateConfig('cancelacionAuto', !config.cancelacionAuto)" />
+                <div
+                  class="aj-switch"
+                  :class="{ on: config.cancelacionAuto }"
+                  role="switch"
+                  :aria-checked="config.cancelacionAuto"
+                  tabindex="0"
+                  @click="updateConfig('cancelacionAuto', !config.cancelacionAuto)"
+                  @keydown.space.prevent="updateConfig('cancelacionAuto', !config.cancelacionAuto)"
+                  @keydown.enter.prevent="updateConfig('cancelacionAuto', !config.cancelacionAuto)"
+                />
               </div>
               <div v-if="config.cancelacionAuto" class="aj-conditional">
                 <div class="aj-field" style="max-width: 220px">
-                  <label>Días de espera</label>
+                  <label for="aj-dias-espera">Días de espera</label>
                   <div class="aj-num-with-unit">
-                    <input class="input" type="number" min="1" step="1" :value="config.diasEspera" @input="updateConfig('diasEspera', Number(($event.target as HTMLInputElement).value))" style="text-align: right; font-variant-numeric: tabular-nums" />
+                    <input id="aj-dias-espera" class="input" type="number" min="1" step="1" :value="config.diasEspera" @input="updateConfig('diasEspera', Number(($event.target as HTMLInputElement).value))" style="text-align: right; font-variant-numeric: tabular-nums" />
                     <span class="aj-unit-pill">días</span>
                   </div>
                 </div>
@@ -260,7 +269,16 @@ onMounted(async () => {
                         </div>
                       </td>
                       <td class="center">
-                        <div class="aj-switch" :class="{ on: s.activo }" @click="updateSocio(s.id, { activo: !s.activo })" />
+                        <div
+                          class="aj-switch"
+                          :class="{ on: s.activo }"
+                          role="switch"
+                          :aria-checked="s.activo"
+                          tabindex="0"
+                          @click="updateSocio(s.id, { activo: !s.activo })"
+                          @keydown.space.prevent="updateSocio(s.id, { activo: !s.activo })"
+                          @keydown.enter.prevent="updateSocio(s.id, { activo: !s.activo })"
+                        />
                       </td>
                     </tr>
                   </tbody>
@@ -289,12 +307,12 @@ onMounted(async () => {
             <div class="aj-block-body">
               <div class="aj-grid-2">
                 <div class="aj-field">
-                  <label>Nombre</label>
-                  <input class="input" :value="config.nombre" disabled />
+                  <label for="aj-nombre-cuenta">Nombre</label>
+                  <input id="aj-nombre-cuenta" class="input" :value="config.nombre" disabled />
                 </div>
                 <div class="aj-field">
-                  <label>Email <span class="optional">(solo lectura)</span></label>
-                  <input class="input readonly" :value="config.contactoValor || '—'" readonly tabindex="-1" />
+                  <label for="aj-email-cuenta">Email <span class="optional">(solo lectura)</span></label>
+                  <input id="aj-email-cuenta" class="input readonly" :value="config.contactoValor || '—'" readonly tabindex="-1" />
                 </div>
               </div>
             </div>
@@ -686,5 +704,10 @@ onMounted(async () => {
   font-size: 12px;
   color: var(--ink-muted);
   margin-top: 2px;
+}
+
+.aj-switch:focus-visible {
+  outline: 2px solid var(--violet-700);
+  outline-offset: 2px;
 }
 </style>
