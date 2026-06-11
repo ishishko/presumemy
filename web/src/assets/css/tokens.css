@@ -31,6 +31,16 @@
   --teal-100:     #D6F0F1;
   --coral-50:     #FCEBE6;
 
+  /* -------- Strong / "ink" variants (legible como texto sobre claro) -------- */
+  --teal-700:     #2E6F70;   /* celeste fuerte (texto/acento) */
+  --coral-700:    #C24524;   /* coral fuerte (texto error) */
+  --violet-900:   #6E1D59;   /* violeta oscuro (focus) */
+
+  /* -------- Green (success / valid) — no existía en el DS -------- */
+  --green-50:     #E7F4EC;   /* fill suave */
+  --green-500:    #34A56C;   /* acento / sombra de estado válido */
+  --green-700:    #1B7A4B;   /* verde fuerte (texto label) */
+
   /* -------- State helpers -------- */
   --focus-ring:   0 0 0 3px rgba(117, 204, 206, 0.45);  /* teal */
   --danger-ring:  0 0 0 3px rgba(234, 95, 60, 0.35);

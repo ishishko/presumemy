@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { GripVertical, Plus, Trash2, FileText, Calendar } from '@lucide/vue'
+import { GripVertical, Plus, Trash2, FileText } from '@lucide/vue'
 import { get, post, put, patch } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import { editorDirty } from '@/composables/useEditorMode'
@@ -104,6 +104,17 @@ const mkId = () => ++idRef.value
 const snapshot = ref<any>(null)
 const savedAt = ref('')
 const errors = ref<Record<string, string>>({})
+
+// validez por campo para las sombras de estado del FloatingField
+const clienteInvalid = computed(() =>
+  !!errors.value.clienteId || (cliente.value.trim().length > 0 && clienteId.value === 0)
+)
+const senaInvalid = computed(() => {
+  const v = sena.value
+  if (v === '' || v == null) return false
+  const n = parseFloat(v)
+  return isNaN(n) || n < 0
+})
 
 // --- Accesibilidad: focus-trap del dialog ---
 const overlayEl = ref<HTMLElement | null>(null)
@@ -591,51 +602,53 @@ defineExpose({ loadPresupuesto })
     >
       <div class="editor-split">
         <div class="editor-form">
-          <section class="form-section">
-            <header class="form-section-head" style="justify-content: space-between; width: 100%;">
-              <h4>Cliente y evento</h4>
-              <div v-if="!isNew" class="custom-status-dropdown" @click.stop>
+          <div v-if="!isNew" class="editor-status-row" @click.stop>
+            <div class="custom-status-dropdown">
+              <button
+                type="button"
+                class="status-badge-wrap"
+                :class="[statusTones[estado]?.tone || 'default', getAvailableTransitions(estado).length > 0 && 'interactive']"
+                @click="toggleDropdown"
+                :disabled="getAvailableTransitions(estado).length === 0"
+                :aria-haspopup="getAvailableTransitions(estado).length > 0 ? 'menu' : undefined"
+                :aria-expanded="getAvailableTransitions(estado).length > 0 ? dropdownOpen : undefined"
+                :aria-label="`Estado: ${statusTones[estado]?.label || estado}${getAvailableTransitions(estado).length > 0 ? ', cambiar estado' : ''}`"
+              >
+                <span class="dot" aria-hidden="true" />
+                <span>{{ statusTones[estado]?.label || estado }}</span>
+                <span v-if="getAvailableTransitions(estado).length > 0" class="chevron-arrow" aria-hidden="true"></span>
+              </button>
+              <div v-if="dropdownOpen" class="status-dropdown-menu" role="menu">
                 <button
+                  v-for="t in getAvailableTransitions(estado)"
+                  :key="t"
                   type="button"
-                  class="status-badge-wrap"
-                  :class="[statusTones[estado]?.tone || 'default', getAvailableTransitions(estado).length > 0 && 'interactive']"
-                  @click="toggleDropdown"
-                  :disabled="getAvailableTransitions(estado).length === 0"
-                  :aria-haspopup="getAvailableTransitions(estado).length > 0 ? 'menu' : undefined"
-                  :aria-expanded="getAvailableTransitions(estado).length > 0 ? dropdownOpen : undefined"
-                  :aria-label="`Estado: ${statusTones[estado]?.label || estado}${getAvailableTransitions(estado).length > 0 ? ', cambiar estado' : ''}`"
+                  role="menuitem"
+                  class="status-dropdown-item"
+                  :class="statusTones[t]?.tone || 'default'"
+                  @click="handleStatusChange(t); dropdownOpen = false"
                 >
                   <span class="dot" aria-hidden="true" />
-                  <span>{{ statusTones[estado]?.label || estado }}</span>
-                  <span v-if="getAvailableTransitions(estado).length > 0" class="chevron-arrow" aria-hidden="true"></span>
+                  <span>{{ statusTones[t]?.label || t }}</span>
                 </button>
-                <div v-if="dropdownOpen" class="status-dropdown-menu" role="menu">
-                  <button
-                    v-for="t in getAvailableTransitions(estado)"
-                    :key="t"
-                    type="button"
-                    role="menuitem"
-                    class="status-dropdown-item"
-                    :class="statusTones[t]?.tone || 'default'"
-                    @click="handleStatusChange(t); dropdownOpen = false"
-                  >
-                    <span class="dot" aria-hidden="true" />
-                    <span>{{ statusTones[t]?.label || t }}</span>
-                  </button>
-                </div>
               </div>
-            </header>
+            </div>
+          </div>
+
+          <section class="form-section">
             <div class="form-section-body">
               <div class="form-row">
                 <div class="field">
                   <FloatingField
                     id="ed-cliente"
                     label="Cliente"
+                    float-size="16px"
+                    required
                     v-model="cliente"
                     placeholder="Buscar o agregar cliente..."
                     list="ed-clients"
                     :disabled="!isEditable"
-                    :invalid="!!errors.clienteId"
+                    :invalid="clienteInvalid"
                     :describedby="errors.clienteId ? 'ed-cliente-err' : undefined"
                   />
                   <datalist id="ed-clients">
@@ -646,7 +659,7 @@ defineExpose({ loadPresupuesto })
                 <div class="field">
                   <FloatingField
                     id="ed-tematica"
-                    label="Temática"
+                    label="Evento"
                     v-model="tematica"
                     placeholder="Ej. Jardín pastel, dinosaurios, neón..."
                     :disabled="!isEditable"
@@ -655,18 +668,68 @@ defineExpose({ loadPresupuesto })
               </div>
               <div class="form-row">
                 <div class="field">
-                  <label for="ed-fecha-fiesta">Fecha de fiesta</label>
-                  <div class="date-wrap">
-                    <Calendar :size="16" aria-hidden="true" />
-                    <input id="ed-fecha-fiesta" type="date" class="input date-input" v-model="fechaFiesta" :disabled="!isEditable" />
-                  </div>
+                  <FloatingField
+                    id="ed-fecha-fiesta"
+                    label="Fecha de fiesta"
+                    type="date"
+                    always-float
+                    v-model="fechaFiesta"
+                    :disabled="!isEditable"
+                  />
                 </div>
                 <div class="field">
-                  <label for="ed-fecha-entrega">Fecha de entrega</label>
-                  <div class="date-wrap">
-                    <Calendar :size="16" aria-hidden="true" />
-                    <input id="ed-fecha-entrega" type="date" class="input date-input" v-model="fechaEntrega" :disabled="!isEditable" />
-                  </div>
+                  <FloatingField
+                    id="ed-fecha-entrega"
+                    label="Fecha de entrega"
+                    type="date"
+                    always-float
+                    v-model="fechaEntrega"
+                    :disabled="!isEditable"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-section-body">
+              <div class="form-row form-row-3">
+                <div class="field">
+                  <FloatingField
+                    id="ed-metodo-pago"
+                    label="Método de pago"
+                    v-model="metodoPago"
+                    placeholder="Transferencia, MP, efectivo..."
+                    :disabled="!isEditable"
+                  />
+                </div>
+                <div class="field">
+                  <FloatingField
+                    id="ed-sena"
+                    label="Seña"
+                    type="number"
+                    prefix="$"
+                    float-size="13px"
+                    v-model="sena"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    :invalid="senaInvalid"
+                    :disabled="!isEditable"
+                  />
+                </div>
+                <div class="field">
+                  <FloatingField
+                    id="ed-resto"
+                    label="Resto"
+                    prefix="$"
+                    float-size="13px"
+                    always-float
+                    readonly
+                    tabindex="-1"
+                    aria-label="Resto a pagar, calculado automáticamente"
+                    :model-value="restoCalc.toFixed(2)"
+                  />
                 </div>
               </div>
             </div>
@@ -678,8 +741,7 @@ defineExpose({ loadPresupuesto })
             </header>
             <div class="form-section-body">
               <div class="form-row form-row-envio">
-                <div class="field">
-                  <label id="ed-envio-label">Método de envío</label>
+                <div class="field field-envio">
                   <div
                     class="segmented"
                     role="radiogroup"
@@ -705,12 +767,12 @@ defineExpose({ loadPresupuesto })
                       :disabled="!isEditable"
                     >Envío</button>
                   </div>
+                  <label id="ed-envio-label" class="envio-label">Método de envío</label>
                 </div>
                 <div v-if="tipoEntrega === 'envio'" class="field">
-                  <label for="ed-lugar-envio">Lugar de envío</label>
-                  <input
+                  <FloatingField
                     id="ed-lugar-envio"
-                    class="input"
+                    label="Lugar de envío"
                     v-model="direccionEntrega"
                     placeholder="Calle, número, colonia, CP"
                     :disabled="!isEditable"
@@ -721,61 +783,6 @@ defineExpose({ loadPresupuesto })
           </section>
 
           <section class="form-section">
-            <header class="form-section-head">
-              <h4>Pago</h4>
-            </header>
-            <div class="form-section-body">
-              <div class="form-row form-row-3">
-                <div class="field">
-                  <label for="ed-metodo-pago">Método de pago</label>
-                  <input
-                    id="ed-metodo-pago"
-                    class="input"
-                    v-model="metodoPago"
-                    placeholder="Transferencia, MP, efectivo..."
-                    :disabled="!isEditable"
-                  />
-                </div>
-                <div class="field">
-                  <label for="ed-sena">Seña</label>
-                  <div class="money-wrap">
-                    <span class="money-prefix">$</span>
-                    <input
-                      id="ed-sena"
-                      class="input money-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      v-model="sena"
-                      placeholder="0.00"
-                      :disabled="!isEditable"
-                    />
-                  </div>
-                </div>
-                <div class="field">
-                  <label for="ed-resto">Resto</label>
-                  <div class="money-wrap">
-                    <span class="money-prefix">$</span>
-                    <input
-                      id="ed-resto"
-                      class="input money-input"
-                      type="text"
-                      readonly
-                      tabindex="-1"
-                      aria-label="Resto a pagar, calculado automáticamente"
-                      :value="restoCalc.toFixed(2)"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="form-section">
-            <header class="form-section-head">
-              <h4>Productos</h4>
-            </header>
             <div class="form-section-body">
               <div
                 class="lines-spreadsheet"
@@ -795,7 +802,7 @@ defineExpose({ loadPresupuesto })
                   <thead>
                     <tr>
                       <th></th>
-                      <th>Producto / descripción</th>
+                      <th><strong class="th-producto">Producto</strong> / descripción</th>
                       <th class="num">Cant.</th>
                       <th class="num">Precio</th>
                       <th class="num">Subtotal</th>
@@ -906,15 +913,12 @@ defineExpose({ loadPresupuesto })
           </section>
 
           <section class="form-section">
-            <header class="form-section-head">
-              <h4>Notas</h4>
-            </header>
             <div class="form-section-body">
               <div class="field">
-                <label for="ed-notas">Notas</label>
-                <textarea
+                <FloatingField
                   id="ed-notas"
-                  class="textarea"
+                  label="Notas"
+                  multiline
                   v-model="notas"
                   placeholder="Detalles para el cliente: incluye montaje, instrucciones de retiro, alergenos, etc."
                   :disabled="!isEditable"
@@ -1197,7 +1201,37 @@ defineExpose({ loadPresupuesto })
 }
 
 .form-row-3 { grid-template-columns: 2fr 1fr 1fr; }
-.form-row-envio { grid-template-columns: 240px 1fr; }
+.form-row-envio { grid-template-columns: auto 1fr; }
+
+/* fila del badge de estado, arriba a la derecha del form */
+.editor-status-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* "Método de envío": segmented a la izquierda, label chico a la base-derecha */
+.field-envio {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--s-3);
+}
+.field-envio .segmented {
+  width: auto;
+}
+.envio-label {
+  font-size: var(--fs-12);
+  font-weight: 500;
+  color: var(--ink-muted);
+  line-height: 1.1;
+  padding-bottom: 11px;
+  white-space: nowrap;
+}
+
+/* marca de inicio de la tabla de productos */
+.th-producto {
+  font-weight: 700;
+  color: var(--ink);
+}
 
 .date-wrap { position: relative; }
 .date-wrap > svg {
