@@ -1,0 +1,16 @@
+# Normalización de fin de línea: el repositorio guarda SIEMPRE LF.
+# Vale para cualquier SO (Windows, WSL, Mac) sin configurar nada por máquina.
+* text=auto eol=lf
+
+# Binarios: git no debe intentar normalizarlos nunca
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
