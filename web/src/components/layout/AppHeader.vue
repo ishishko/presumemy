@@ -35,6 +35,8 @@ defineEmits<{
           <X :size="18" />
         </button>
       </template>
+      <!-- destino del badge de estado del editor (Teleport desde PresupuestoEditor) -->
+      <div id="editor-header-status" class="header-status-slot"></div>
       <button
         v-if="!editorMode && showCreate"
         class="btn btn-primary btn-icon"
@@ -64,5 +66,14 @@ defineEmits<{
   font-weight: 600;
   color: var(--violet-700);
   letter-spacing: -0.01em;
+}
+
+/* slot del badge de estado; sin contenido no ocupa lugar (evita gap fantasma) */
+.header-status-slot {
+  display: inline-flex;
+  align-items: center;
+}
+.header-status-slot:empty {
+  display: none;
 }
 </style>

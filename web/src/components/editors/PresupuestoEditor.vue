@@ -602,8 +602,8 @@ defineExpose({ loadPresupuesto })
     >
       <div class="editor-split">
         <div class="editor-form">
-          <div v-if="!isNew" class="editor-status-row" @click.stop>
-            <div class="custom-status-dropdown">
+          <Teleport to="#editor-header-status">
+            <div v-if="!isNew" class="custom-status-dropdown" @click.stop>
               <button
                 type="button"
                 class="status-badge-wrap"
@@ -633,7 +633,7 @@ defineExpose({ loadPresupuesto })
                 </button>
               </div>
             </div>
-          </div>
+          </Teleport>
 
           <section class="form-section">
             <div class="form-section-body">
@@ -738,10 +738,11 @@ defineExpose({ loadPresupuesto })
           <section class="form-section">
             <header class="form-section-head">
               <h4>Entrega</h4>
+              <span id="ed-envio-label" class="form-subhead">Método de envío</span>
             </header>
             <div class="form-section-body">
               <div class="form-row form-row-envio">
-                <div class="field field-envio">
+                <div class="field">
                   <div
                     class="segmented"
                     role="radiogroup"
@@ -767,7 +768,6 @@ defineExpose({ loadPresupuesto })
                       :disabled="!isEditable"
                     >Envío</button>
                   </div>
-                  <label id="ed-envio-label" class="envio-label">Método de envío</label>
                 </div>
                 <div v-if="tipoEntrega === 'envio'" class="field">
                   <FloatingField
@@ -1162,8 +1162,8 @@ defineExpose({ loadPresupuesto })
 
 .form-section-head {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .form-section-head h4 {
@@ -1171,6 +1171,13 @@ defineExpose({ loadPresupuesto })
   color: var(--ink);
   font-weight: 500;
   letter-spacing: -0.005em;
+}
+
+/* subtítulo inline del header (ej. "Método de envío") */
+.form-subhead {
+  font-size: var(--fs-12);
+  font-weight: 500;
+  color: var(--ink-muted);
 }
 
 .step-pill {
@@ -1190,59 +1197,28 @@ defineExpose({ loadPresupuesto })
 .form-section-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  align-items: end;
+  gap: 16px;
+  align-items: start;
 }
 
 .form-row-3 { grid-template-columns: 2fr 1fr 1fr; }
 .form-row-envio { grid-template-columns: auto 1fr; }
 
-/* fila del badge de estado, arriba a la derecha del form */
-.editor-status-row {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* "Método de envío": segmented a la izquierda, label chico a la base-derecha */
-.field-envio {
-  flex-direction: row;
-  align-items: flex-end;
-  gap: var(--s-3);
-}
-.field-envio .segmented {
+/* Entrega: el segmented ocupa solo lo necesario, el lugar de envío llena el resto */
+.form-row-envio .segmented {
   width: auto;
-}
-.envio-label {
-  font-size: var(--fs-12);
-  font-weight: 500;
-  color: var(--ink-muted);
-  line-height: 1.1;
-  padding-bottom: 11px;
-  white-space: nowrap;
 }
 
 /* marca de inicio de la tabla de productos */
 .th-producto {
   font-weight: 700;
   color: var(--ink);
-}
-
-.date-wrap { position: relative; }
-.date-wrap > svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--ink-muted);
-  pointer-events: none;
 }
 
 .date-input { padding-left: 36px; }
