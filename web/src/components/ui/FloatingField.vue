@@ -57,6 +57,10 @@ const state = computed(() => {
 })
 const isInvalid = computed(() => state.value === 'invalid')
 
+// el label se divide en caracteres para la animación "wave" (escalonada);
+// los espacios se vuelven no-rompibles para que el flex no los colapse
+const labelChars = computed(() => Array.from(props.label).map(c => (c === ' ' ? ' ' : c)))
+
 const placeholderShown = computed(() =>
   (isFocused.value || effectiveAlwaysFloat.value) ? props.placeholder : ' '
 )
@@ -111,7 +115,14 @@ function onBlur() {
       @blur="onBlur"
       v-bind="$attrs"
     />
-    <label :for="id" class="ff-label">{{ label }}</label>
+    <label :for="id" class="ff-label">
+      <span
+        v-for="(ch, i) in labelChars"
+        :key="i"
+        class="ff-char"
+        :style="{ '--index': i }"
+      >{{ ch === ' ' ? ' ' : ch }}</span>
+    </label>
   </div>
 </template>
 
@@ -124,6 +135,11 @@ function onBlur() {
   --ff-green: 52, 165, 108;    /* --green-500 */
   --ff-red: 234, 95, 60;       /* --coral-500 */
   --ff-violet: 139, 37, 112;   /* --violet-700 */
+  /* desplazamiento del label en reposo (posición de placeholder) */
+  --ff-rest-y: 24px;
+}
+.ff-group.is-multiline {
+  --ff-rest-y: 16px;
 }
 
 .ff-control {
@@ -166,47 +182,50 @@ function onBlur() {
   pointer-events: none;
 }
 
-/* --- Label: placeholder en reposo, pill al flotar --- */
+/* --- Label: pill al flotar; los caracteres suben escalonados (wave) --- */
 .ff-label {
   position: absolute;
-  left: 10px;
-  top: 50%;
+  left: 6px;
+  top: 0;
   transform: translateY(-50%);
-  padding: 0 6px;
-  pointer-events: none;
-  color: var(--ink-muted);
-  font-size: 14px;
-  font-family: var(--font-sans);
-  background: transparent;
+  display: flex;
+  padding: 1px 8px;
   border-radius: var(--r-pill);
-  transition: top 150ms ease, font-size 150ms ease, color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  pointer-events: none;
+  background: transparent;
+  box-shadow: none;
+  transition: background 160ms ease, box-shadow 160ms ease;
 }
 .ff-group.has-prefix .ff-label {
-  left: 22px;
+  left: 18px;
 }
+
+.ff-char {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--ink-muted);
+  /* reposo: bajado a la posición de placeholder */
+  transform: translateY(var(--ff-rest-y));
+  transition: transform 200ms ease, font-size 200ms ease, color 200ms ease;
+  transition-delay: calc(var(--index) * 0.02s);
+}
+
+/* flotado: los caracteres suben a la línea del borde (con stagger) */
 .ff-group.is-floated .ff-label {
-  top: 0;
-  left: 10px;
-  font-size: var(--ff-float-size);
-  padding: 1px 8px;
   background: var(--surface);
   box-shadow: var(--shadow-1);
 }
-/* el textarea ancla el label arriba, no al centro */
-.ff-group.is-multiline .ff-label {
-  top: 14px;
-  transform: none;
-}
-.ff-group.is-multiline.is-floated .ff-label {
-  top: 0;
-  transform: translateY(-50%);
+.ff-group.is-floated .ff-char {
+  transform: translateY(0);
+  font-size: var(--ff-float-size);
 }
 
 /* color del label flotado = color FUERTE del estado; solo focus es violeta */
-.ff-empty.is-floated .ff-label   { color: var(--teal-700); }
-.ff-valid.is-floated .ff-label   { color: var(--green-700); }
-.ff-invalid.is-floated .ff-label { color: var(--coral-700); }
-.ff-focus.is-floated .ff-label   { color: var(--violet-900); }
+.ff-empty.is-floated .ff-char   { color: var(--teal-700); }
+.ff-valid.is-floated .ff-char   { color: var(--green-700); }
+.ff-invalid.is-floated .ff-char { color: var(--coral-700); }
+.ff-focus.is-floated .ff-char   { color: var(--violet-900); }
 
 /* --- Rings de estado en el input (tenues; focus = violeta más visible) --- */
 .ff-empty .ff-control {
@@ -234,7 +253,7 @@ function onBlur() {
   color: var(--ink-muted);
   cursor: not-allowed;
 }
-.ff-group.is-disabled .ff-label {
+.ff-group.is-disabled .ff-char {
   color: var(--ink-muted) !important;
 }
 .ff-group.is-disabled.is-floated .ff-label {
