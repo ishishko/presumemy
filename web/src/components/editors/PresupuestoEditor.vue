@@ -7,6 +7,7 @@ import { editorDirty } from '@/composables/useEditorMode'
 import type { Presupuesto, Cliente, Producto, PaginationResult } from '@/types'
 import { presupuestoSchema } from '@/schemas/presupuestos'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FloatingField from '@/components/ui/FloatingField.vue'
 
 const props = defineProps<{
   open: boolean
@@ -103,6 +104,50 @@ const mkId = () => ++idRef.value
 const snapshot = ref<any>(null)
 const savedAt = ref('')
 const errors = ref<Record<string, string>>({})
+
+// --- Accesibilidad: focus-trap del dialog ---
+const overlayEl = ref<HTMLElement | null>(null)
+let prevFocused: HTMLElement | null = null
+
+function getFocusable(): HTMLElement[] {
+  if (!overlayEl.value) return []
+  const sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  return Array.from(overlayEl.value.querySelectorAll<HTMLElement>(sel))
+    .filter(el => el.offsetParent !== null)
+}
+
+function onOverlayKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    triggerClose()
+    return
+  }
+  if (e.key === 'Tab') {
+    const f = getFocusable()
+    if (f.length === 0) return
+    const first = f[0]
+    const last = f[f.length - 1]
+    const active = document.activeElement as HTMLElement
+    if (e.shiftKey && active === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+}
+
+async function focusFirstField() {
+  prevFocused = document.activeElement as HTMLElement | null
+  await nextTick()
+  getFocusable()[0]?.focus()
+}
+
+function restoreFocus() {
+  prevFocused?.focus?.()
+  prevFocused = null
+}
 
 function money(n: number): string {
   return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -436,6 +481,18 @@ async function handleSendToClient() {
   }
 }
 
+function onEnvioKeydown(e: KeyboardEvent) {
+  if (!isEditable.value) return
+  if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) {
+    e.preventDefault()
+    tipoEntrega.value = tipoEntrega.value === 'retira' ? 'envio' : 'retira'
+    nextTick(() => {
+      const group = (e.currentTarget as HTMLElement)
+      group?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus()
+    })
+  }
+}
+
 function triggerClose() {
   if (isDirty.value) {
     showConfirmExit.value = true
@@ -456,6 +513,7 @@ function openEditor() {
 function closeEditor() {
   emit('update:header', { mode: 'normal' })
   emit('close')
+  restoreFocus()
 }
 
 onMounted(async () => {
@@ -476,6 +534,7 @@ onMounted(async () => {
     openEditor()
     originalFormSnapshot.value = getFormSnapshot()
     editorDirty.value = isDirty.value
+    focusFirstField()
   }
 })
 
@@ -508,6 +567,7 @@ watch(
       openEditor()
       originalFormSnapshot.value = getFormSnapshot()
       editorDirty.value = isDirty.value
+      focusFirstField()
     } else {
       closeEditor()
       editorDirty.value = false
@@ -520,9 +580,15 @@ defineExpose({ loadPresupuesto })
 
 <template>
   <Transition name="editor-slide">
-    <div v-if="open" class="editor-overlay">
-
-
+    <div
+      v-if="open"
+      ref="overlayEl"
+      class="editor-overlay"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="isNew ? 'Nuevo presupuesto' : `Presupuesto ${docFolio}`"
+      @keydown="onOverlayKeydown"
+    >
       <div class="editor-split">
         <div class="editor-form">
           <section class="form-section">
@@ -535,21 +601,25 @@ defineExpose({ loadPresupuesto })
                   :class="[statusTones[estado]?.tone || 'default', getAvailableTransitions(estado).length > 0 && 'interactive']"
                   @click="toggleDropdown"
                   :disabled="getAvailableTransitions(estado).length === 0"
+                  :aria-haspopup="getAvailableTransitions(estado).length > 0 ? 'menu' : undefined"
+                  :aria-expanded="getAvailableTransitions(estado).length > 0 ? dropdownOpen : undefined"
+                  :aria-label="`Estado: ${statusTones[estado]?.label || estado}${getAvailableTransitions(estado).length > 0 ? ', cambiar estado' : ''}`"
                 >
-                  <span class="dot" />
+                  <span class="dot" aria-hidden="true" />
                   <span>{{ statusTones[estado]?.label || estado }}</span>
-                  <span v-if="getAvailableTransitions(estado).length > 0" class="chevron-arrow"></span>
+                  <span v-if="getAvailableTransitions(estado).length > 0" class="chevron-arrow" aria-hidden="true"></span>
                 </button>
-                <div v-if="dropdownOpen" class="status-dropdown-menu">
+                <div v-if="dropdownOpen" class="status-dropdown-menu" role="menu">
                   <button
                     v-for="t in getAvailableTransitions(estado)"
                     :key="t"
                     type="button"
+                    role="menuitem"
                     class="status-dropdown-item"
                     :class="statusTones[t]?.tone || 'default'"
                     @click="handleStatusChange(t); dropdownOpen = false"
                   >
-                    <span class="dot" />
+                    <span class="dot" aria-hidden="true" />
                     <span>{{ statusTones[t]?.label || t }}</span>
                   </button>
                 </div>
@@ -558,25 +628,25 @@ defineExpose({ loadPresupuesto })
             <div class="form-section-body">
               <div class="form-row">
                 <div class="field">
-                  <label for="ed-cliente">Cliente</label>
-                  <input
+                  <FloatingField
                     id="ed-cliente"
-                    class="input"
-                    :value="cliente"
-                    @input="cliente = ($event.target as HTMLInputElement).value"
+                    label="Cliente"
+                    v-model="cliente"
                     placeholder="Buscar o agregar cliente..."
                     list="ed-clients"
                     :disabled="!isEditable"
+                    :invalid="!!errors.clienteId"
+                    :describedby="errors.clienteId ? 'ed-cliente-err' : undefined"
                   />
                   <datalist id="ed-clients">
                     <option v-for="c in clientes" :key="c.id" :value="c.nombre" />
                   </datalist>
+                  <p v-if="errors.clienteId" id="ed-cliente-err" class="err" role="alert">{{ errors.clienteId }}</p>
                 </div>
                 <div class="field">
-                  <label for="ed-tematica">Temática</label>
-                  <input
+                  <FloatingField
                     id="ed-tematica"
-                    class="input"
+                    label="Temática"
                     v-model="tematica"
                     placeholder="Ej. Jardín pastel, dinosaurios, neón..."
                     :disabled="!isEditable"
@@ -587,14 +657,14 @@ defineExpose({ loadPresupuesto })
                 <div class="field">
                   <label for="ed-fecha-fiesta">Fecha de fiesta</label>
                   <div class="date-wrap">
-                    <Calendar :size="16" />
+                    <Calendar :size="16" aria-hidden="true" />
                     <input id="ed-fecha-fiesta" type="date" class="input date-input" v-model="fechaFiesta" :disabled="!isEditable" />
                   </div>
                 </div>
                 <div class="field">
                   <label for="ed-fecha-entrega">Fecha de entrega</label>
                   <div class="date-wrap">
-                    <Calendar :size="16" />
+                    <Calendar :size="16" aria-hidden="true" />
                     <input id="ed-fecha-entrega" type="date" class="input date-input" v-model="fechaEntrega" :disabled="!isEditable" />
                   </div>
                 </div>
@@ -609,20 +679,27 @@ defineExpose({ loadPresupuesto })
             <div class="form-section-body">
               <div class="form-row form-row-envio">
                 <div class="field">
-                  <label>Método de envío</label>
-                  <div class="segmented" role="tablist">
+                  <label id="ed-envio-label">Método de envío</label>
+                  <div
+                    class="segmented"
+                    role="radiogroup"
+                    aria-labelledby="ed-envio-label"
+                    @keydown="onEnvioKeydown"
+                  >
                     <button
                       type="button"
-                      role="tab"
-                      :aria-selected="tipoEntrega === 'retira'"
+                      role="radio"
+                      :aria-checked="tipoEntrega === 'retira'"
+                      :tabindex="tipoEntrega === 'retira' ? 0 : -1"
                       :class="['seg-btn', tipoEntrega === 'retira' && 'active']"
                       @click="isEditable && (tipoEntrega = 'retira')"
                       :disabled="!isEditable"
                     >Retira</button>
                     <button
                       type="button"
-                      role="tab"
-                      :aria-selected="tipoEntrega === 'envio'"
+                      role="radio"
+                      :aria-checked="tipoEntrega === 'envio'"
+                      :tabindex="tipoEntrega === 'envio' ? 0 : -1"
                       :class="['seg-btn', tipoEntrega === 'envio' && 'active']"
                       @click="isEditable && (tipoEntrega = 'envio')"
                       :disabled="!isEditable"
@@ -684,9 +761,10 @@ defineExpose({ loadPresupuesto })
                       class="input money-input"
                       type="text"
                       readonly
+                      tabindex="-1"
+                      aria-label="Resto a pagar, calculado automáticamente"
                       :value="restoCalc.toFixed(2)"
                       placeholder="0.00"
-                      style="background: var(--page-bg)"
                     />
                   </div>
                 </div>
@@ -742,7 +820,7 @@ defineExpose({ loadPresupuesto })
                       @dragend="dragId = null; dragOverId = null"
                       @mousedown="isEditable && (activeRow = l.id)"
                     >
-                      <td class="grip" title="Arrastrar para reordenar">
+                      <td class="grip" title="Arrastrar para reordenar" aria-hidden="true">
                         <GripVertical :size="14" />
                       </td>
                       <td>
@@ -788,10 +866,11 @@ defineExpose({ loadPresupuesto })
                           class="del-btn"
                           @click="removeLine(l.id)"
                           title="Eliminar línea"
+                          aria-label="Eliminar línea"
                           :disabled="!isEditable"
                           v-if="isEditable"
                         >
-                          <Trash2 :size="14" />
+                          <Trash2 :size="14" aria-hidden="true" />
                         </button>
                       </td>
                     </tr>
@@ -814,6 +893,8 @@ defineExpose({ loadPresupuesto })
                   <GripVertical :size="12" /> arrastrá para reordenar &nbsp;·&nbsp; Tab para avanzar &nbsp;·&nbsp; click fuera para cerrar
                 </div>
               </div>
+
+              <p v-if="errors.detalles" class="err" role="alert">{{ errors.detalles }}</p>
 
               <div class="ed-totals">
                 <div class="r"><span>Subtotal</span><span class="num">{{ money(subtotal) }}</span></div>

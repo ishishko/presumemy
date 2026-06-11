@@ -493,6 +493,36 @@
   box-shadow: var(--focus-ring);
 }
 
+/* Estados deshabilitado / solo lectura: distinción visual clara */
+.input:disabled,
+.select:disabled,
+.textarea:disabled,
+.input[readonly] {
+  background: var(--page-bg);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+.input[readonly] {
+  cursor: default;
+}
+
+/* Foco visible por teclado en controles interactivos sin estilo propio */
+.btn:focus-visible,
+.seg-btn:focus-visible,
+[role="radio"]:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Mensaje de error inline (también fuera de .field) */
+.err {
+  font-size: 12px;
+  color: var(--coral-500);
+  margin-top: 2px;
+}
+
 /* --- Badges --- */
 .badge {
   display: inline-flex;
