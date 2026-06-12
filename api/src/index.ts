@@ -10,6 +10,7 @@ import presupuestosRoutes from './routes/presupuestos.js'
 import finanzasRoutes from './routes/finanzas.js'
 import dashboardRoutes from './routes/dashboard.js'
 import ajustesRoutes from './routes/ajustes.js'
+import publicRoutes from './routes/public.js'
 
 const app = new Hono()
 
@@ -42,6 +43,7 @@ app.route('/api/presupuestos', presupuestosRoutes)
 app.route('/api/finanzas', finanzasRoutes)
 app.route('/api/dashboard', dashboardRoutes)
 app.route('/api/ajustes', ajustesRoutes)
+app.route('/api/public', publicRoutes) // sin auth: acceso por token aleatorio
 
 // 404 handler
 app.notFound((c) => c.json({ error: 'Ruta no encontrada' }, 404))

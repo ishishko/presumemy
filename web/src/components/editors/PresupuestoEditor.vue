@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { GripVertical, Plus, Trash2, FileText } from '@lucide/vue'
+import { GripVertical, Plus, Trash2, FileText, Download, Link2 } from '@lucide/vue'
 import { get, post, put, patch } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import { editorDirty } from '@/composables/useEditorMode'
-import type { Presupuesto, Cliente, Producto, PaginationResult } from '@/types'
+import type { Presupuesto, Cliente, Producto, PaginationResult, ConfiguracionNegocio } from '@/types'
 import { presupuestoSchema } from '@/schemas/presupuestos'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import FloatingField from '@/components/ui/FloatingField.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
+import PresupuestoDoc from '@/components/presupuestos/PresupuestoDoc.vue'
 
 const props = defineProps<{
   open: boolean
@@ -70,6 +71,7 @@ function handleStatusChange(newStatus: string) {
 
 const clientes = ref<Cliente[]>([])
 const productos = ref<Producto[]>([])
+const config = ref<ConfiguracionNegocio | null>(null)
 
 const cliente = ref('')
 const clienteId = ref<number>(0)
@@ -165,13 +167,6 @@ function money(n: number): string {
   return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function niceDate(iso: string): string {
-  if (!iso) return ''
-  const d = new Date(iso + 'T00:00:00')
-  if (isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
-}
-
 const subtotal = computed(() =>
   lineas.value.reduce((s, l) => s + (parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0), 0)
 )
@@ -257,6 +252,7 @@ async function loadPresupuesto() {
     metodoPago.value = p.metodoPago || ''
     sena.value = p.sena ? p.sena.toString() : '0'
     notas.value = p.notas || ''
+    includeNotes.value = p.notasPublicas ?? true
     lineas.value = (p.detalles || []).map((d) => ({
       id: mkId(),
       producto: d.producto?.nombre || d.descripcion,
@@ -268,6 +264,8 @@ async function loadPresupuesto() {
       lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
     }
     estado.value = p.estado
+    // presupuesto ya guardado: mostrar el documento de entrada en el panel derecho
+    snapshot.value = captureSnapshot(p.estado)
   }
   originalFormSnapshot.value = getFormSnapshot()
 }
@@ -476,6 +474,7 @@ async function handleSave() {
     metodoPago: metodoPago.value,
     sena: parseFloat(sena.value) || 0,
     notas: notas.value,
+    notasPublicas: includeNotes.value,
     detalles,
   }
 
@@ -533,6 +532,51 @@ async function handleSendToClient() {
   }
 }
 
+// --- Documento: descarga de PDF y link público ---
+// el documento existe solo con el estado persistido más allá de borrador
+const canShareDoc = computed(() => {
+  const persistido = props.presupuesto?.estado
+  return !isNew.value && !!persistido && persistido !== 'borrador' && persistido !== 'cancelado'
+})
+
+const pdfLoading = ref(false)
+
+async function handleDownloadPdf() {
+  if (!props.presupuesto || pdfLoading.value) return
+  pdfLoading.value = true
+  try {
+    const res = await get<{ data: { url: string } }>(`/presupuestos/${props.presupuesto.id}/pdf`)
+    window.open(res.data.url, '_blank')
+  } catch (e: any) {
+    toast(e.data?.error || 'Error al generar el PDF', 'error')
+  } finally {
+    pdfLoading.value = false
+  }
+}
+
+async function handleCopyLink() {
+  if (!props.presupuesto) return
+  let token = props.presupuesto.publicToken
+  if (!token) {
+    try {
+      const res = await get<{ data: Presupuesto }>(`/presupuestos/${props.presupuesto.id}`)
+      token = res.data.publicToken
+    } catch {
+      // se reporta abajo si sigue faltando
+    }
+  }
+  if (!token) {
+    toast('No se pudo obtener el link del presupuesto', 'error')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(`${location.origin}/p/${token}`)
+    toast('Link copiado al portapapeles')
+  } catch {
+    toast('No se pudo copiar el link', 'error')
+  }
+}
+
 function triggerClose() {
   if (isDirty.value) {
     showConfirmExit.value = true
@@ -559,12 +603,14 @@ function closeEditor() {
 onMounted(async () => {
   window.addEventListener('click', closeDropdown)
   try {
-    const [clientesRes, productosRes] = await Promise.all([
+    const [clientesRes, productosRes, configRes] = await Promise.all([
       get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 100 }),
       get<PaginationResult<Producto>>('/productos', { page: 1, limit: 100 }),
+      get<{ data: ConfiguracionNegocio }>('/ajustes/configuracion'),
     ])
     clientes.value = clientesRes.data
     productos.value = productosRes.data
+    config.value = configRes.data
   } catch (e: any) {
     toast('Error al cargar datos', 'error')
   }
@@ -953,97 +999,7 @@ defineExpose({ loadPresupuesto })
             <p>El presupuesto aparecerá aquí al guardar.</p>
             <small>Vista del documento como lo recibe el cliente.</small>
           </div>
-          <div v-else class="preview-doc">
-            <header class="doc-head">
-              <img src="/memydeni-logo.png" alt="MemyDeni" />
-              <div class="doc-meta">
-                <div class="folio">{{ snapshot.folio }}</div>
-                <div class="text-hint">{{ new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }) }}</div>
-              </div>
-            </header>
-
-            <div class="doc-customer">
-              <div class="who-block">
-                <small>Para</small>
-                <div class="who">{{ snapshot.cliente || '—' }}</div>
-                <div v-if="snapshot.tematica" class="text-hint">Temática · {{ snapshot.tematica }}</div>
-              </div>
-              <div class="doc-dates">
-                <div v-if="snapshot.fFiesta">
-                  <small>Fiesta</small>
-                  <span>{{ niceDate(snapshot.fFiesta) }}</span>
-                </div>
-                <div v-if="snapshot.fEntrega">
-                  <small>Entrega</small>
-                  <span>{{ niceDate(snapshot.fEntrega) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <table v-if="snapshot.lines.length > 0" class="doc-table">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th class="num">Cant.</th>
-                  <th class="num">Precio</th>
-                  <th class="num">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="l in snapshot.lines" :key="l.id">
-                  <td>{{ l.producto }}</td>
-                  <td class="num">{{ l.qty }}</td>
-                  <td class="num">{{ money(parseFloat(l.price)) }}</td>
-                  <td class="num">{{ money((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="doc-empty-rows">Sin productos aún.</div>
-
-            <div class="doc-totals">
-              <div class="r"><span>Subtotal</span><span class="num">{{ money(snapshot.subtotal) }}</span></div>
-              <div class="r big"><span>Total</span><span class="num">{{ money(snapshot.total) }}</span></div>
-              <div v-if="snapshot.sena > 0" class="doc-pay">
-                <div class="r small">
-                  <span>Seña{{ snapshot.pago ? ` (${snapshot.pago})` : '' }}</span>
-                  <span class="num">{{ money(snapshot.sena) }}</span>
-                </div>
-                <div class="r small">
-                  <span>Resto a pagar</span>
-                  <span class="num">{{ money(snapshot.resto) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="doc-grid">
-              <div class="doc-block">
-                <small>Entrega</small>
-                <div class="block-body">
-                  <template v-if="snapshot.envio === 'envio'">
-                    Envío a domicilio<br />
-                    <span class="text-hint">{{ snapshot.lugar || '—' }}</span>
-                  </template>
-                  <template v-else>Retira en tienda</template>
-                </div>
-              </div>
-              <div class="doc-block">
-                <small>Contacto</small>
-                <div class="block-body">
-                  MemyDeni · Papelería para fiestas<br />
-                  <span class="text-hint">hola@memydeni.mx · +52 55 1234 5678</span>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="snapshot.includeNotes && snapshot.notes" class="doc-notes">
-              <small>Notas</small>
-              <p>{{ snapshot.notes }}</p>
-            </div>
-
-            <footer class="doc-foot text-hint">
-              Precios en MXN. Vigencia 14 días. Gracias por confiar en MemyDeni
-            </footer>
-          </div>
+          <PresupuestoDoc v-else :doc="snapshot" :config="config" />
         </div>
       </div>
 
@@ -1068,7 +1024,18 @@ defineExpose({ loadPresupuesto })
             {{ isNew ? 'Crear presupuesto' : 'Guardar cambios' }}
           </button>
         </div>
-        <div class="editor-foot-right"></div>
+        <div class="editor-foot-right">
+          <template v-if="canShareDoc">
+            <button class="btn btn-secondary" type="button" @click="handleCopyLink">
+              <Link2 :size="16" aria-hidden="true" />
+              Copiar link
+            </button>
+            <button class="btn btn-secondary" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
+              <Download :size="16" aria-hidden="true" />
+              {{ pdfLoading ? 'Generando...' : 'Descargar PDF' }}
+            </button>
+          </template>
+        </div>
       </div>
     </div>
   </Transition>
@@ -1388,7 +1355,15 @@ defineExpose({ loadPresupuesto })
 }
 
 .editor-foot-right {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-foot-right .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .preview-empty {
@@ -1423,192 +1398,6 @@ defineExpose({ loadPresupuesto })
 }
 
 .preview-empty small { font-size: 12px; color: var(--ink-muted); }
-
-.preview-doc {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 36px 40px 30px;
-  box-shadow: var(--shadow-2);
-  max-width: 620px;
-  margin: 0 auto;
-  opacity: 1;
-  animation: doc-pop 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes doc-pop {
-  from { transform: translateY(10px) scale(0.985); }
-  to { transform: translateY(0) scale(1); }
-}
-
-.preview-doc .doc-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.preview-doc .doc-head img { width: 130px; height: auto; display: block; }
-.preview-doc .doc-meta { text-align: right; }
-.preview-doc .doc-meta .folio {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--violet-700);
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-.preview-doc .doc-meta .text-hint { margin-top: 2px; }
-
-.preview-doc .doc-customer {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.preview-doc .doc-customer small,
-.preview-doc .doc-block small,
-.preview-doc .doc-notes small {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  color: var(--ink-muted);
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.preview-doc .doc-customer .who {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--ink);
-  letter-spacing: -0.005em;
-  margin-bottom: 4px;
-}
-
-.preview-doc .doc-dates {
-  display: flex;
-  gap: 28px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.preview-doc .doc-dates > div span {
-  font-size: 14px;
-  color: var(--ink);
-  display: block;
-  text-transform: capitalize;
-}
-
-.preview-doc .doc-table {
-  width: 100%;
-  margin: 22px 0 0;
-  border-collapse: collapse;
-}
-
-.preview-doc .doc-table th {
-  text-align: left;
-  padding: 10px 0;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  color: var(--ink-muted);
-  font-weight: 500;
-  border-bottom: 1px solid var(--border);
-}
-.preview-doc .doc-table th.num { text-align: right; }
-
-.preview-doc .doc-table td {
-  padding: 14px 0;
-  font-size: 13px;
-  color: var(--ink);
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-.preview-doc .doc-table td.num { font-variant-numeric: tabular-nums; }
-
-.preview-doc .doc-empty-rows {
-  padding: 22px 0;
-  color: var(--ink-muted);
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-
-.preview-doc .doc-totals {
-  padding: 14px 0;
-  font-variant-numeric: tabular-nums;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.preview-doc .doc-totals .r {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  font-size: 14px;
-  min-width: 240px;
-}
-
-.preview-doc .doc-totals .r.big {
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--violet-700);
-  border-top: 1px solid var(--border-strong);
-  padding-top: 12px;
-  margin-top: 8px;
-  letter-spacing: -0.01em;
-}
-
-.preview-doc .doc-totals .r.small {
-  font-size: 12px;
-  color: var(--ink-muted);
-}
-
-.preview-doc .doc-pay {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.preview-doc .doc-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  padding: 18px 0;
-  border-top: 1px solid var(--border);
-}
-
-.preview-doc .doc-block .block-body {
-  font-size: 13px;
-  color: var(--ink);
-  line-height: 1.5;
-}
-
-.preview-doc .doc-notes {
-  padding: 18px 0;
-  border-top: 1px solid var(--border);
-}
-
-.preview-doc .doc-notes p {
-  font-size: 13px;
-  color: var(--ink);
-  line-height: 1.55;
-  white-space: pre-wrap;
-}
-
-.preview-doc .doc-foot {
-  text-align: center;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-}
 
 .editor-slide-enter-active,
 .editor-slide-leave-active {

@@ -1,9 +1,12 @@
+import { randomBytes } from 'node:crypto'
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { notFound, forbidden } from '../utils/errors.js'
 import { canTransition } from '../utils/fsm.js'
+import { generarPdfPresupuesto, signedPdfUrl } from '../lib/pdf.js'
 import {
   presupuestoSchema,
   presupuestoUpdateSchema,
@@ -14,6 +17,15 @@ import {
 const route = new Hono()
 
 route.use('*', authMiddleware)
+
+const newPublicToken = () => randomBytes(16).toString('base64url')
+
+// regeneración en segundo plano: nunca bloquea ni rompe la respuesta
+function regenerarPdfEnBackground(id: number) {
+  void generarPdfPresupuesto(id).catch((err) => {
+    console.error(`❌ Error generando PDF del presupuesto ${id}:`, err)
+  })
+}
 
 // =========================================================
 // GET /api/presupuestos — Lista con filtros
@@ -83,6 +95,16 @@ route.get('/:id', async (c) => {
     throw notFound('Presupuesto no encontrado')
   }
 
+  // backfill perezoso del token para presupuestos previos a la feature de vista pública
+  if (!presupuesto.publicToken) {
+    const { publicToken } = await prisma.presupuesto.update({
+      where: { id },
+      data: { publicToken: newPublicToken() },
+      select: { publicToken: true },
+    })
+    presupuesto.publicToken = publicToken
+  }
+
   return c.json({ data: presupuesto })
 })
 
@@ -150,6 +172,8 @@ route.post('/', zValidator('json', presupuestoSchema), async (c) => {
           sena: data.sena,
           total,
           notas: data.notas || null,
+          notasPublicas: data.notasPublicas ?? true,
+          publicToken: newPublicToken(),
           detalles: {
             create: data.detalles.map((detalle, index) => ({
               productoId: detalle.productoId,
@@ -230,6 +254,8 @@ route.post('/', zValidator('json', presupuestoSchema), async (c) => {
       timeout: 30000
     })
 
+    regenerarPdfEnBackground(budget.id)
+
     return c.json({ data: budget }, 201)
   }
 
@@ -247,6 +273,8 @@ route.post('/', zValidator('json', presupuestoSchema), async (c) => {
       sena: data.sena,
       total,
       notas: data.notas || null,
+      notasPublicas: data.notasPublicas ?? true,
+      publicToken: newPublicToken(),
       detalles: {
         create: data.detalles.map((detalle, index) => ({
           productoId: detalle.productoId,
@@ -263,6 +291,10 @@ route.post('/', zValidator('json', presupuestoSchema), async (c) => {
       detalles: { include: { producto: true } },
     },
   })
+
+  if (estadoInicial !== 'borrador') {
+    regenerarPdfEnBackground(presupuesto.id)
+  }
 
   return c.json({ data: presupuesto }, 201)
 })
@@ -320,6 +352,10 @@ route.put('/:id', zValidator('json', presupuestoUpdateSchema), async (c) => {
     },
   })
 
+  if (presupuesto.estado !== 'borrador') {
+    regenerarPdfEnBackground(presupuesto.id)
+  }
+
   return c.json({ data: presupuesto })
 })
 
@@ -343,6 +379,20 @@ route.patch('/:id/estado', zValidator('json', estadoChangeSchema), async (c) => 
       `No se puede cambiar de "${existing.estado}" a "${nuevoEstado}"`
     )
   }
+
+  // backfill perezoso del token público para presupuestos previos a esta feature
+  if (!existing.publicToken) {
+    await prisma.presupuesto.update({
+      where: { id },
+      data: { publicToken: newPublicToken() },
+    })
+  }
+
+  // el documento existe fuera de borrador/cancelado: generar al salir de borrador
+  const generaPdf =
+    (existing.estado === 'borrador' || existing.estado === 'enviado') &&
+    nuevoEstado !== 'cancelado' &&
+    nuevoEstado !== 'borrador'
 
   // If state is transitioning to 'facturado', run the automatic distribution logic
   if (nuevoEstado === 'facturado') {
@@ -472,6 +522,10 @@ route.patch('/:id/estado', zValidator('json', estadoChangeSchema), async (c) => 
       timeout: 30000
     })
 
+    if (generaPdf) {
+      regenerarPdfEnBackground(id)
+    }
+
     return c.json({ data: presupuesto })
   } else {
     // Normal transitions
@@ -491,8 +545,59 @@ route.patch('/:id/estado', zValidator('json', estadoChangeSchema), async (c) => 
       },
     })
 
+    if (generaPdf) {
+      regenerarPdfEnBackground(id)
+    }
+
     return c.json({ data: presupuesto })
   }
+})
+
+// =========================================================
+// GET /api/presupuestos/:id/pdf — URL firmada de descarga
+// Genera on-demand si el PDF falta o quedó desactualizado.
+// =========================================================
+route.get('/:id/pdf', async (c) => {
+  const id = parseInt(c.req.param('id'))
+
+  const existing = await prisma.presupuesto.findUnique({
+    where: { id, activo: true },
+  })
+
+  if (!existing) {
+    throw notFound('Presupuesto no encontrado')
+  }
+
+  if (existing.estado === 'borrador' || existing.estado === 'cancelado') {
+    throw forbidden('El documento solo está disponible cuando el presupuesto avanza más allá de borrador')
+  }
+
+  if (!existing.publicToken) {
+    await prisma.presupuesto.update({
+      where: { id },
+      data: { publicToken: newPublicToken() },
+    })
+  }
+
+  let pdfPath = existing.pdfPath
+  const stale =
+    !pdfPath ||
+    !existing.pdfGeneratedAt ||
+    existing.pdfGeneratedAt < existing.updatedAt
+
+  if (stale) {
+    pdfPath = await generarPdfPresupuesto(id)
+  }
+
+  if (!pdfPath) {
+    throw notFound('No se pudo generar el documento')
+  }
+
+  const generatedAt = stale ? new Date() : existing.pdfGeneratedAt
+
+  const url = await signedPdfUrl(pdfPath)
+
+  return c.json({ data: { url, generatedAt } })
 })
 
 // =========================================================

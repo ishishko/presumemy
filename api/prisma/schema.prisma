@@ -175,8 +175,13 @@ model Presupuesto {
   sena             Decimal            @db.Decimal(10, 2) @default(0)
   total            Decimal            @db.Decimal(10, 2) @default(0)
   notas            String?
+  notasPublicas    Boolean            @default(true) @map("notas_publicas")
+  publicToken      String?            @unique @map("public_token")
+  pdfPath          String?            @map("pdf_path")
+  pdfGeneratedAt   DateTime?          @map("pdf_generated_at")
   activo           Boolean            @default(true)
   createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at")
 
   detalles         DetallePresupuesto[]
   transacciones    Transaccion[]

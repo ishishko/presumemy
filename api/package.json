@@ -26,6 +26,7 @@
     "@types/node": "^25.9.1",
     "hono": "^4.12.23",
     "prisma": "^6.19.3",
+    "puppeteer": "^25.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

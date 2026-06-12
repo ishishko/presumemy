@@ -113,8 +113,13 @@ export interface Presupuesto {
   sena: number
   total: number
   notas?: string
+  notasPublicas?: boolean
+  publicToken?: string | null
+  pdfPath?: string | null
+  pdfGeneratedAt?: string | null
   activo: boolean
   createdAt: string
+  updatedAt?: string
   detalles?: DetallePresupuesto[]
 }
 

@@ -10,6 +10,7 @@ export const presupuestoSchema = z.object({
   metodoPago: z.string().optional(),
   sena: z.coerce.number().min(0).default(0),
   notas: z.string().optional(),
+  notasPublicas: z.boolean().optional(),
   detalles: z.array(z.object({
     productoId: z.coerce.number().int().positive(),
     descripcion: z.string().min(1, 'La descripcion es requerida'),

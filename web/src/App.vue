@@ -42,7 +42,8 @@ const showCreate = computed(() => {
   return ['presupuestos', 'productos', 'insumos', 'finanzas', 'clientes'].includes(currentRoute.value)
 })
 
-const isAuthRoute = computed(() => route.name === 'login')
+// rutas sin shell (sidebar/topbar): login y vistas públicas
+const isBareRoute = computed(() => route.name === 'login' || route.meta.public === true)
 
 onMounted(async () => {
   await authStore.init()
@@ -75,7 +76,7 @@ function handleEditorClose() {
 </script>
 
 <template>
-  <div v-if="isAuthRoute">
+  <div v-if="isBareRoute">
     <RouterView />
   </div>
 
