@@ -170,3 +170,35 @@ El reveal del grip se hacía poniendo `opacity` sobre el `<td class="grip">` com
 ### Archivos
 - [MODIFY] `web/src/components/editors/PresupuestoEditor.vue` (lógica + se quita el bloque `.lines-spreadsheet` duplicado del scoped)
 - [MODIFY] `web/src/assets/css/components.css` (foco `--violet-50`, sin hover de fila, grip solo en hover, papelera siempre visible)
+
+---
+
+## Tablas — Pase a detalle (parte 1 · comportamiento de edición de la tabla de líneas)
+
+Sobre la base ya estabilizada, le dimos a la tabla el comportamiento "vivo" de planilla. Todo vive en `PresupuestoEditor.vue`; Tab (navegación por celda) y `onOverlayKeydown` (Escape/Tab) no se tocaron.
+
+### Cantidad automática al elegir producto
+- `handleProductChange` ahora, además de completar el precio, pone `cantidad = 1` cuando se elige un producto real del catálogo y la celda de cantidad está vacía.
+
+### Enter = navegación por fila
+Sumamos un estado `cellDirty` (ref) que marca si la celda enfocada fue editada desde que recibió el foco: se resetea en `onCellFocus(id)` (que también setea `activeRow`) y se prende en cada input (`onCellInput` para cantidad/precio, y dentro de `handleProductChange` para producto).
+
+`onCellEnter(id)` (cableado con `@keydown.enter.prevent` en las tres celdas) implementa:
+- Celda **recién editada** (`cellDirty`) → confirma el cambio y se queda (resetea el flag); hace falta un segundo Enter para avanzar.
+- Celda **no editada** → baja a la **primera celda de la fila siguiente** (`focusRowFirstCell`, que ubica la fila por un `data-id` agregado al `<tr>`).
+- **Sin fila debajo**: si la fila actual tiene datos → crea una fila nueva y la enfoca (`handleAddLine`); si está vacía → saca el foco fuera de la tabla, al siguiente focusable de la página (`focusAfterTable`, vía `getFocusable`).
+
+### Prune en blur
+- `onTableFocusout`, al salir el foco realmente de la tabla, además de limpiar `activeRow`, elimina las filas vacías. Si no queda ninguna, deja una fila limpia (invariante ya usado en `reset`/`removeLine`).
+
+### Vacío vs. inválido (feedback rojo)
+Definimos dos helpers para distinguir estados de fila, ambos mirando los tres campos (producto, cantidad, precio):
+- `isRowEmpty(l)` → fila sin ningún dato. Se usa para el prune y para decidir si Enter sale de la tabla. **Clave**: mira los tres campos, no solo el producto; así una fila con cantidad/precio cargados pero sin producto **no** se considera vacía (antes salía de la tabla por error al hacer Enter).
+- `isRowInvalid(l)` → fila con algún dato pero incompleta (sin producto, o sin una cantidad > 0). Reemplaza la condición inline previa del borde rojo y ahora **también** marca en rojo el caso "cantidad/precio cargados sin producto seleccionado", que antes no daba feedback visual.
+
+### Verificación
+- `npx vue-tsc -b` → cero errores.
+- Manual: elegir producto con cantidad vacía completa precio + cantidad 1; Enter en celda recién editada se queda y el segundo baja a la fila siguiente; Enter en última fila con datos crea fila nueva; Enter en fila nueva vacía saca el foco de la tabla; al salir de la tabla las filas vacías desaparecen; una fila con cantidad/precio sin producto queda en rojo; Tab sigue moviéndose celda a celda.
+
+### Archivos
+- [MODIFY] `web/src/components/editors/PresupuestoEditor.vue`

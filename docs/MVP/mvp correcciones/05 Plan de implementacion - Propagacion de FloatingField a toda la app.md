@@ -74,6 +74,25 @@ Las tablas con `cell-input` (patrón spreadsheet, no floating-label) se trabajan
 - **Fuente única de CSS**: el bloque `.lines-spreadsheet` estaba duplicado (global + scoped, ya divergente). Se borró el scoped; `components.css` queda como único dueño.
 - **Hover estable**: la fila no cambia de fondo en hover; lo único que aparece es el ícono del grip (con la opacidad sobre el SVG, no sobre el `<td>`, para no borrar el borde activo). Papelera siempre visible. Chevron nativo del datalist oculto.
 
+#### Comportamiento de edición (planificado)
+
+Sobre la base ya estabilizada (foco único, fuente única de CSS, hover calmo), se planifica el comportamiento "vivo" de planilla. Todo vive en `web/src/components/editors/PresupuestoEditor.vue`; Tab (navegación por celda) y `onOverlayKeydown` (Escape/Tab) no se tocan.
+
+**Objetivos**
+1. **Cantidad automática**: al elegir un producto real del catálogo, además del precio se completa `cantidad = 1` si la celda de cantidad está vacía.
+2. **Enter = navegación por fila** (distinta de Tab):
+   - Enter sobre una celda **no editada en ese foco** → salta a la **primera celda de la fila de abajo**.
+   - Si no hay fila debajo y la actual **tiene datos** → crea una fila nueva y la enfoca (comportamiento actual de `handleAddLine`).
+   - Si no hay fila debajo y la actual **está vacía** → el foco sale de la tabla, al siguiente focusable de la página.
+   - Enter sobre una celda **recién editada** → solo confirma el cambio y se queda (hace falta un segundo Enter para avanzar).
+3. **Prune en blur**: al salir el foco de la tabla, las filas **sin datos** (sin producto) se eliminan; si no queda ninguna, se deja una fila limpia.
+
+**Consideración**: `@keydown.enter.prevent` en la celda Producto puede interferir con confirmar una sugerencia del `<datalist>` con teclado; como el Enter "sucio" solo confirma sin mover, el valor tipeado se conserva. Se valida en runtime.
+
+**Verificación**
+- `cd web && npx vue-tsc -b` sin errores.
+- Manual: producto con cantidad vacía → precio + cantidad 1; Enter en celda recién editada se queda, segundo Enter baja a la fila siguiente; Enter en última fila con datos crea fila nueva; Enter en fila nueva vacía saca el foco de la tabla; al salir de la tabla las filas vacías desaparecen; Tab sigue moviéndose celda a celda.
+
 ### Pendiente (próximas partes)
 - **Tabla de socios** (`AjustesView`): switch + radios dentro de la tabla.
 - **BOM de Producto** (`ProductoDetalle`): celdas de receta.

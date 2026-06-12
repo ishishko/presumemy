@@ -95,6 +95,7 @@ const mainContacto = computed(() => {
 
 const lineas = ref<Array<{ id: number; producto: string; productoId: number; qty: string; price: string }>>([])
 const activeRow = ref<number | null>(null)
+const cellDirty = ref(false)
 const dragId = ref<number | null>(null)
 const dragOverId = ref<number | null>(null)
 const idRef = ref(1)
@@ -275,6 +276,18 @@ function updateLine(id: number, patch: Partial<{ producto: string; productoId: n
   lineas.value = lineas.value.map(l => l.id === id ? { ...l, ...patch } : l)
 }
 
+// input de cantidad/precio: marca la celda como editada
+function onCellInput(id: number, patch: Partial<{ qty: string; price: string }>) {
+  cellDirty.value = true
+  updateLine(id, patch)
+}
+
+// foco de celda: marca la fila activa y resetea el estado de edición
+function onCellFocus(id: number) {
+  activeRow.value = id
+  cellDirty.value = false
+}
+
 function removeLine(id: number) {
   lineas.value = lineas.value.filter(l => l.id !== id)
   if (lineas.value.length === 0) {
@@ -283,23 +296,78 @@ function removeLine(id: number) {
 }
 
 function handleProductChange(id: number, val: string) {
+  cellDirty.value = true
+  const line = lineas.value.find(l => l.id === id)
   const p = productos.value.find(p => p.nombre === val)
   const patch: any = { producto: val }
   if (p) {
     patch.productoId = p.id
     patch.price = p.precio.toString()
+    if (line && line.qty.trim() === '') patch.qty = '1'
   } else {
     patch.productoId = 0
   }
   updateLine(id, patch)
 }
 
-// limpia el resaltado de fila activa cuando el foco sale de la tabla
+const isRowEmpty = (l: { producto: string; qty: string; price: string }) =>
+  !l.producto.trim() && !l.qty.trim() && !l.price.trim()
+
+// fila incompleta: tiene algún dato pero le falta producto o una cantidad válida
+const isRowInvalid = (l: { producto: string; qty: string; price: string }) =>
+  !isRowEmpty(l) && (!l.producto.trim() || !(parseFloat(l.qty) > 0))
+
+// enfoca la primera celda editable de una fila por su id
+function focusRowFirstCell(rowId: number) {
+  nextTick(() => {
+    const row = document.querySelector(`.lines-spreadsheet tbody tr[data-id="${rowId}"]`) as HTMLElement | null
+    const input = row?.querySelector('.cell-input') as HTMLInputElement | undefined
+    input?.focus()
+  })
+}
+
+// saca el foco fuera de la tabla, al siguiente focusable de la página
+function focusAfterTable() {
+  const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
+  if (!table) return
+  const focusables = getFocusable()
+  const active = document.activeElement as HTMLElement
+  const fromIdx = focusables.indexOf(active)
+  const next = focusables.find((el, i) => i > fromIdx && !table.contains(el))
+  next?.focus()
+}
+
+// Enter = navegación por fila (distinta de Tab, que es por celda)
+function onCellEnter(rowId: number) {
+  // celda recién editada: confirma y se queda (un segundo Enter avanzará)
+  if (cellDirty.value) {
+    cellDirty.value = false
+    return
+  }
+  const idx = lineas.value.findIndex(l => l.id === rowId)
+  const nextRow = lineas.value[idx + 1]
+  if (nextRow) {
+    focusRowFirstCell(nextRow.id)
+    return
+  }
+  // no hay fila debajo
+  const current = lineas.value[idx]
+  if (current && isRowEmpty(current)) {
+    focusAfterTable()
+  } else {
+    handleAddLine()
+  }
+}
+
+// limpia el resaltado de fila activa y elimina filas vacías al salir de la tabla
 function onTableFocusout(e: FocusEvent) {
   const next = e.relatedTarget as HTMLElement | null
   const table = e.currentTarget as HTMLElement
   if (next && table.contains(next)) return
   activeRow.value = null
+  cellDirty.value = false
+  const kept = lineas.value.filter(l => !isRowEmpty(l))
+  lineas.value = kept.length > 0 ? kept : [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
 }
 
 function onDrop(id: number) {
@@ -761,10 +829,11 @@ defineExpose({ loadPresupuesto })
                       :class="[
                         'ln-row',
                         activeRow === l.id && 'active',
-                        (l.producto && (!parseFloat(l.qty) || parseFloat(l.qty) <= 0)) && 'error',
+                        isRowInvalid(l) && 'error',
                         dragId === l.id && 'dragging',
                         dragOverId === l.id && dragId !== l.id && 'drag-over',
                       ].filter(Boolean).join(' ')"
+                      :data-id="l.id"
                       :draggable="isEditable"
                       @dragstart="isEditable && (dragId = l.id)"
                       @dragover.prevent="isEditable && (dragOverId = l.id)"
@@ -780,7 +849,8 @@ defineExpose({ loadPresupuesto })
                           class="cell-input"
                           :value="l.producto"
                           @input="handleProductChange(l.id, ($event.target as HTMLInputElement).value)"
-                          @focus="activeRow = l.id"
+                          @focus="onCellFocus(l.id)"
+                          @keydown.enter.prevent="onCellEnter(l.id)"
                           :placeholder="l.id === lineas[0]?.id ? 'Producto, descripción o catálogo...' : ''"
                           list="ed-products"
                           :disabled="!isEditable"
@@ -793,8 +863,9 @@ defineExpose({ loadPresupuesto })
                           min="0"
                           step="1"
                           :value="l.qty"
-                          @input="updateLine(l.id, { qty: ($event.target as HTMLInputElement).value })"
-                          @focus="activeRow = l.id"
+                          @input="onCellInput(l.id, { qty: ($event.target as HTMLInputElement).value })"
+                          @focus="onCellFocus(l.id)"
+                          @keydown.enter.prevent="onCellEnter(l.id)"
                           :disabled="!isEditable"
                         />
                       </td>
@@ -805,8 +876,9 @@ defineExpose({ loadPresupuesto })
                           min="0"
                           step="0.5"
                           :value="l.price"
-                          @input="updateLine(l.id, { price: ($event.target as HTMLInputElement).value })"
-                          @focus="activeRow = l.id"
+                          @input="onCellInput(l.id, { price: ($event.target as HTMLInputElement).value })"
+                          @focus="onCellFocus(l.id)"
+                          @keydown.enter.prevent="onCellEnter(l.id)"
                           :disabled="!isEditable"
                         />
                       </td>
