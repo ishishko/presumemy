@@ -31,3 +31,37 @@ Implementamos el núcleo de las fundaciones que habilitan reutilizar la estétic
 - [MODIFY] `web/src/assets/css/components.css` (estilos `.ff-*` globales + variante select)
 - [MODIFY] `web/src/components/ui/FloatingField.vue` (sin estilos scoped)
 - [NEW] `web/src/components/ui/FloatingSelect.vue`
+
+---
+
+## Fase 1 — Migración de campos directos
+
+Migramos los formularios a `FloatingField` / `FloatingSelect`, archivo por archivo, conservando los controles especiales de cada pantalla. Se mantuvo el criterio de no degradar UX: lo que no es un campo estándar (switches, segmented, tablas editables, montos grandes coloreados, nombres inline, filas compactas de repetidores) se dejó como estaba.
+
+### Extensión previa de FloatingField
+- Se agregó soporte de `v-model.number` (vía `modelModifiers`) y se amplió `modelValue` a `string | number`, para los campos numéricos que alimentan cálculos (hojas, valores, stocks, costos, etc.).
+
+### Archivos migrados
+- **ImprentaDrawer**: fecha, presupuesto, temática, hojas, tipo de hoja, valores ($), método de pago (select). Se dejó el checkbox "pagado".
+- **MovimientoDrawer**: fecha, cuenta y tipo (selects), detalle, nro de factura, presupuesto. Se dejó el bloque especial de Valor (toggle Ingreso/Egreso + monto grande coloreado).
+- **ClienteDrawer**: nombre (con error de zod cableado a `invalid`/`required`), domicilio y notas. Se dejó la fila compacta de contactos (select + input + radio).
+- **AjustesView**: nombre del negocio, moneda, domicilio, canal y valor de contacto, y los campos de Cuenta (nombre/email, readonly). Se dejaron switches, tabla de socios y "días de espera" (con su pill). Se eliminó el dot de color del canal (al pasar a FloatingSelect).
+- **InsumoDetalle**: categoría (select), unidad, stock actual/mínimo y costos, manteniendo las pills de unidad al lado del campo. Se dejó el nombre inline, el costo unitario readonly, el switch, la tabla de proveedores y la card de notas.
+- **ProductoDetalle**: URL de imagen, categoría (select), medida y descripción. Se dejó el nombre inline, los switches, toda la card de Precios (segmented + montos) y el BOM.
+
+### Pendiente
+- **LoginView**: por decisión del usuario, se deja con su estilo propio (inputs con ícono Mail/Lock); no se migra.
+- Controles secundarios compartidos (`ToggleSwitch`, `CheckRow`, `SegmentedControl`): se extraerán cuando se aborden esos controles de forma unificada (no fue necesario para la migración de campos directos).
+
+### Verificación
+- `npx vue-tsc -b` → cero errores tras cada archivo.
+- Verificación visual de cada drawer/overlay/vista a cargo del usuario.
+
+### Archivos
+- [MODIFY] `web/src/components/ui/FloatingField.vue` (soporte `v-model.number`)
+- [MODIFY] `web/src/components/drawers/ImprentaDrawer.vue`
+- [MODIFY] `web/src/components/drawers/MovimientoDrawer.vue`
+- [MODIFY] `web/src/components/drawers/ClienteDrawer.vue`
+- [MODIFY] `web/src/views/AjustesView.vue`
+- [MODIFY] `web/src/components/overlays/InsumoDetalle.vue`
+- [MODIFY] `web/src/components/overlays/ProductoDetalle.vue`

@@ -5,6 +5,8 @@ import { post, put, get } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import type { OrdenImprenta, Presupuesto, PaginationResult } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FloatingField from '@/components/ui/FloatingField.vue'
+import FloatingSelect from '@/components/ui/FloatingSelect.vue'
 
 const props = defineProps<{
   open: boolean
@@ -184,13 +186,18 @@ defineExpose({ loadOrden })
           <div class="drawer-body">
             <div class="fd-row">
               <div class="field">
-                <label>Fecha</label>
-                <input class="input" type="date" v-model="fecha" />
+                <FloatingField
+                  id="fd-i-fecha"
+                  label="Fecha"
+                  type="date"
+                  always-float
+                  v-model="fecha"
+                />
               </div>
               <div class="field">
-                <label>Presupuesto</label>
-                <input
-                  class="input"
+                <FloatingField
+                  id="fd-i-presupuesto"
+                  label="Presupuesto"
                   v-model="presupuestoId"
                   placeholder="P-1024 (opcional)"
                   list="fd-presupuestos-i"
@@ -203,9 +210,9 @@ defineExpose({ loadOrden })
 
             <div class="fd-row single">
               <div class="field">
-                <label>Temática / cliente</label>
-                <input
-                  class="input"
+                <FloatingField
+                  id="fd-i-tematica"
+                  label="Temática / cliente"
                   v-model="tematica"
                   placeholder="Ej. Cumple Mila · unicornios pastel"
                 />
@@ -214,20 +221,19 @@ defineExpose({ loadOrden })
 
             <div class="fd-row">
               <div class="field">
-                <label>Cantidad de hojas</label>
-                <input
-                  class="input"
+                <FloatingField
+                  id="fd-i-hojas"
+                  label="Cantidad de hojas"
                   type="number"
+                  v-model.number="hojas"
                   min="0"
                   step="1"
-                  v-model.number="hojas"
-                  style="text-align: right; font-variant-numeric: tabular-nums"
                 />
               </div>
               <div class="field">
-                <label>Tipo de hoja</label>
-                <input
-                  class="input"
+                <FloatingField
+                  id="fd-i-tipohoja"
+                  label="Tipo de hoja"
                   v-model="tipoHoja"
                   placeholder="Opalina A4 220 g"
                 />
@@ -238,23 +244,25 @@ defineExpose({ loadOrden })
 
             <div class="fd-row">
               <div class="field">
-                <label>Valor nuestro</label>
-                <input
-                  class="fd-money-input"
+                <FloatingField
+                  id="fd-i-valornuestro"
+                  label="Valor nuestro"
                   type="number"
+                  prefix="$"
+                  v-model.number="valorNuestro"
                   min="0"
                   step="0.01"
-                  v-model.number="valorNuestro"
                 />
               </div>
               <div class="field">
-                <label>Valor Patri</label>
-                <input
-                  class="fd-money-input"
+                <FloatingField
+                  id="fd-i-valorpatri"
+                  label="Valor Patri"
                   type="number"
+                  prefix="$"
+                  v-model.number="valorPatri"
                   min="0"
                   step="0.01"
-                  v-model.number="valorPatri"
                 />
               </div>
             </div>
@@ -280,10 +288,13 @@ defineExpose({ loadOrden })
 
             <div class="fd-row">
               <div class="field">
-                <label>Método de pago</label>
-                <select class="select" v-model="metodoPago">
+                <FloatingSelect
+                  id="fd-i-metodopago"
+                  label="Método de pago"
+                  v-model="metodoPago"
+                >
                   <option v-for="m in metodosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
-                </select>
+                </FloatingSelect>
               </div>
               <div class="field">
                 <label>Estado</label>
@@ -401,6 +412,11 @@ defineExpose({ loadOrden })
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.fd-row > .field {
+  flex: 1;
+  min-width: 0;
 }
 
 .fd-row.single { grid-template-columns: 1fr; }

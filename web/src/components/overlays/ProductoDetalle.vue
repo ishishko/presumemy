@@ -5,6 +5,8 @@ import { editorDirty } from '@/composables/useEditorMode'
 import { get, post, put, del } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FloatingField from '@/components/ui/FloatingField.vue'
+import FloatingSelect from '@/components/ui/FloatingSelect.vue'
 import type { Producto, CategoriaProducto, Insumo, PaginationResult } from '@/types'
 
 const props = defineProps<{
@@ -282,9 +284,9 @@ defineExpose({ loadProducto })
               </div>
 
               <div class="id-field">
-                <label>URL de imagen</label>
-                <input
-                  class="input"
+                <FloatingField
+                  id="pd-imagen"
+                  label="URL de imagen"
                   v-model="imagenUrl"
                   placeholder="https://..."
                 />
@@ -310,25 +312,23 @@ defineExpose({ loadProducto })
 
               <div class="pd-id-grid">
                 <div class="pd-field">
-                  <label>Categoría</label>
-                  <select class="select" v-model.number="categoriaId">
+                  <FloatingSelect id="pd-categoria" label="Categoría" v-model.number="categoriaId">
                     <option :value="0" disabled>Seleccionar</option>
                     <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                  </select>
+                  </FloatingSelect>
                 </div>
                 <div class="pd-field">
-                  <label>Medida</label>
-                  <input class="input" v-model="medida" placeholder="Ej. 15×15 cm" />
+                  <FloatingField id="pd-medida" label="Medida" v-model="medida" placeholder="Ej. 15×15 cm" />
                 </div>
               </div>
 
               <div class="pd-field">
-                <label>Descripción</label>
-                <textarea
-                  class="textarea"
+                <FloatingField
+                  id="pd-descripcion"
+                  label="Descripción"
+                  multiline
                   v-model="descripcion"
                   placeholder="Detalles, terminaciones, materiales destacados"
-                  rows="3"
                 />
               </div>
 

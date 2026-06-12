@@ -4,6 +4,8 @@ import { ArrowLeft, Check, Trash2, X, Plus, Lock } from '@lucide/vue'
 import { get, post, put, del } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FloatingField from '@/components/ui/FloatingField.vue'
+import FloatingSelect from '@/components/ui/FloatingSelect.vue'
 import type { Insumo, CategoriaInsumo, Proveedor } from '@/types'
 
 const props = defineProps<{
@@ -308,30 +310,26 @@ defineExpose({ loadInsumo })
 
               <div class="id-grid-2">
                 <div class="id-field">
-                  <label for="ins-categoria">Categoría</label>
-                  <select id="ins-categoria" class="select" v-model.number="categoriaId">
+                  <FloatingSelect id="ins-categoria" label="Categoría" v-model.number="categoriaId">
                     <option :value="0" disabled>Seleccionar</option>
                     <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                  </select>
+                  </FloatingSelect>
                 </div>
                 <div class="id-field">
-                  <label for="ins-unidad">Unidad de medida</label>
-                  <input id="ins-unidad" class="input" v-model="unidad" placeholder="Ej. pliego, m, rollo" />
+                  <FloatingField id="ins-unidad" label="Unidad de medida" v-model="unidad" placeholder="Ej. pliego, m, rollo" />
                 </div>
               </div>
 
               <div class="id-grid-2">
                 <div class="id-field">
-                  <label for="ins-stock-actual">Stock actual</label>
                   <div class="id-num-with-unit">
-                    <input id="ins-stock-actual" class="input" type="number" min="0" step="1" v-model.number="stockActual" />
+                    <FloatingField id="ins-stock-actual" label="Stock actual" type="number" v-model.number="stockActual" min="0" step="1" />
                     <span class="id-unit-pill">{{ unidad || 'u' }}</span>
                   </div>
                 </div>
                 <div class="id-field">
-                  <label for="ins-stock-minimo">Stock mínimo</label>
                   <div class="id-num-with-unit">
-                    <input id="ins-stock-minimo" class="input" type="number" min="0" step="1" v-model.number="stockMinimo" />
+                    <FloatingField id="ins-stock-minimo" label="Stock mínimo" type="number" v-model.number="stockMinimo" min="0" step="1" />
                     <span class="id-unit-pill">{{ unidad || 'u' }}</span>
                   </div>
                 </div>
@@ -387,28 +385,25 @@ defineExpose({ loadInsumo })
 
               <div class="id-grid-2">
                 <div class="id-field">
-                  <label for="ins-costo-paquete">Costo del paquete</label>
-                  <input
+                  <FloatingField
                     id="ins-costo-paquete"
-                    class="input"
+                    label="Costo del paquete"
                     type="number"
+                    prefix="$"
+                    v-model.number="costoPaquete"
                     min="0"
                     step="0.01"
-                    v-model.number="costoPaquete"
-                    style="text-align: right; font-variant-numeric: tabular-nums"
                   />
                 </div>
                 <div class="id-field">
-                  <label for="ins-cantidad-pack">Cantidad por pack</label>
                   <div class="id-num-with-unit">
-                    <input
+                    <FloatingField
                       id="ins-cantidad-pack"
-                      class="input"
+                      label="Cantidad por pack"
                       type="number"
+                      v-model.number="cantidadPack"
                       min="0"
                       step="0.01"
-                      v-model.number="cantidadPack"
-                      style="text-align: right; font-variant-numeric: tabular-nums"
                     />
                     <span class="id-unit-pill">{{ unidad || 'u' }}</span>
                   </div>
@@ -733,10 +728,11 @@ defineExpose({ loadInsumo })
 .id-num-with-unit {
   display: flex;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .id-num-with-unit .input { flex: 1; text-align: right; font-variant-numeric: tabular-nums; }
+.id-num-with-unit .ff-group { flex: 1; min-width: 0; }
 
 .id-unit-pill {
   display: inline-flex;

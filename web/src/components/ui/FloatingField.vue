@@ -6,7 +6,7 @@ defineOptions({ inheritAttrs: false })
 const props = withDefaults(defineProps<{
   id: string
   label: string
-  modelValue: string
+  modelValue: string | number
   placeholder?: string
   list?: string
   autocomplete?: string
@@ -20,6 +20,7 @@ const props = withDefaults(defineProps<{
   prefix?: string
   floatSize?: string
   alwaysFloat?: boolean
+  modelModifiers?: { number?: boolean }
 }>(), {
   placeholder: '',
   autocomplete: 'off',
@@ -32,10 +33,11 @@ const props = withDefaults(defineProps<{
   prefix: '',
   floatSize: '14px',
   alwaysFloat: false,
+  modelModifiers: () => ({}),
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
+  'update:modelValue': [value: string | number]
 }>()
 
 const isFocused = ref(false)
@@ -66,7 +68,8 @@ const placeholderShown = computed(() =>
 )
 
 function onInput(e: Event) {
-  emit('update:modelValue', (e.target as HTMLInputElement | HTMLTextAreaElement).value)
+  const raw = (e.target as HTMLInputElement | HTMLTextAreaElement).value
+  emit('update:modelValue', props.modelModifiers?.number ? (raw === '' ? '' : Number(raw)) : raw)
 }
 function onBlur() {
   isFocused.value = false

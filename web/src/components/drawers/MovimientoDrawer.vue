@@ -5,6 +5,8 @@ import { post, put, get } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import type { Transaccion, Presupuesto, PaginationResult } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FloatingField from '@/components/ui/FloatingField.vue'
+import FloatingSelect from '@/components/ui/FloatingSelect.vue'
 
 const props = defineProps<{
   open: boolean
@@ -193,23 +195,26 @@ defineExpose({ loadTransaccion })
           <div class="drawer-body">
             <div class="fd-row">
               <div class="field">
-                <label>Fecha</label>
-                <input class="input" type="date" v-model="fecha" />
+                <FloatingField
+                  id="fd-m-fecha"
+                  label="Fecha"
+                  type="date"
+                  always-float
+                  v-model="fecha"
+                />
               </div>
               <div class="field">
-                <label>Cuenta</label>
-                <select class="select" v-model="cuenta">
+                <FloatingSelect id="fd-m-cuenta" label="Cuenta" v-model="cuenta">
                   <option v-for="c in cuentas" :key="c.id" :value="c.id">{{ c.label }}</option>
-                </select>
+                </FloatingSelect>
               </div>
             </div>
 
             <div class="fd-row single">
               <div class="field">
-                <label>Tipo de movimiento</label>
-                <select class="select" v-model="tipo">
+                <FloatingSelect id="fd-m-tipo" label="Tipo de movimiento" v-model="tipo">
                   <option v-for="t in tipoMovs" :key="t.id" :value="t.id">{{ t.label }}</option>
-                </select>
+                </FloatingSelect>
               </div>
             </div>
 
@@ -244,25 +249,29 @@ defineExpose({ loadTransaccion })
 
             <div class="fd-row single">
               <div class="field">
-                <label>Detalle</label>
-                <textarea
-                  class="textarea"
+                <FloatingField
+                  id="fd-m-detalle"
+                  label="Detalle"
+                  multiline
                   v-model="detalle"
                   placeholder="Ej. cobro presupuesto P-1024 · Marisol Aguirre"
-                  rows="2"
                 />
               </div>
             </div>
 
             <div class="fd-row">
               <div class="field">
-                <label>Nro. de factura</label>
-                <input class="input" v-model="nroFactura" placeholder="Opcional" />
+                <FloatingField
+                  id="fd-m-nrofactura"
+                  label="Nro. de factura"
+                  v-model="nroFactura"
+                  placeholder="Opcional"
+                />
               </div>
               <div class="field">
-                <label>Presupuesto</label>
-                <input
-                  class="input"
+                <FloatingField
+                  id="fd-m-presupuesto"
+                  label="Presupuesto"
                   v-model="presupuestoId"
                   placeholder="P-1024 (opcional)"
                   list="fd-presupuestos"
@@ -394,6 +403,11 @@ defineExpose({ loadTransaccion })
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.fd-row > .field {
+  flex: 1;
+  min-width: 0;
 }
 
 .fd-row.single { grid-template-columns: 1fr; }

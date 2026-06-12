@@ -6,6 +6,7 @@ import { useToast } from '@/composables/useToast'
 import type { Cliente, ClienteContacto } from '@/types'
 import { clienteSchema } from '@/schemas/clientes'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FloatingField from '@/components/ui/FloatingField.vue'
 
 const props = defineProps<{
   open: boolean
@@ -200,39 +201,37 @@ defineExpose({ loadCliente })
           </div>
 
           <div class="drawer-body">
-            <div class="field" :class="{ 'field-error': errors.nombre }">
-              <label for="cl-nombre">Nombre</label>
-              <input
+            <div class="field">
+              <FloatingField
                 id="cl-nombre"
-                class="input"
+                label="Nombre"
+                required
                 v-model="nombre"
                 placeholder="Nombre del cliente"
+                :invalid="!!errors.nombre"
+                :describedby="errors.nombre ? 'cl-nombre-err' : undefined"
                 autofocus
               />
-              <span v-if="errors.nombre" class="field-error-msg">{{ errors.nombre }}</span>
+              <p v-if="errors.nombre" id="cl-nombre-err" class="err" role="alert">{{ errors.nombre }}</p>
             </div>
 
             <div class="fd-section-label" style="margin-top: 18px">Domicilio</div>
 
             <div class="fd-row">
               <div class="field" style="flex: 2">
-                <label for="cl-calle">Calle</label>
-                <input id="cl-calle" class="input" v-model="calle" placeholder="Calle" />
+                <FloatingField id="cl-calle" label="Calle" v-model="calle" />
               </div>
               <div class="field" style="flex: 1">
-                <label for="cl-numero">Número</label>
-                <input id="cl-numero" class="input" v-model="numero" placeholder="N°" />
+                <FloatingField id="cl-numero" label="Número" v-model="numero" />
               </div>
             </div>
 
             <div class="fd-row">
               <div class="field" style="flex: 1">
-                <label for="cl-localidad">Localidad</label>
-                <input id="cl-localidad" class="input" v-model="localidad" placeholder="Localidad" />
+                <FloatingField id="cl-localidad" label="Localidad" v-model="localidad" />
               </div>
               <div class="field" style="flex: 1">
-                <label for="cl-provincia">Provincia</label>
-                <input id="cl-provincia" class="input" v-model="provincia" placeholder="Provincia" />
+                <FloatingField id="cl-provincia" label="Provincia" v-model="provincia" />
               </div>
             </div>
 
@@ -278,13 +277,12 @@ defineExpose({ loadCliente })
             </button>
 
             <div class="field" style="margin-top: 18px">
-              <label for="cl-notas">Notas</label>
-              <textarea
+              <FloatingField
                 id="cl-notas"
-                class="textarea"
+                label="Notas"
+                multiline
                 v-model="notas"
                 placeholder="Información interna · solo visible para tu equipo"
-                rows="3"
               />
             </div>
           </div>

@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { get, put } from '@/services/api'
 import type { ConfiguracionNegocio, DistribucionGanancia } from '@/types'
+import FloatingField from '@/components/ui/FloatingField.vue'
+import FloatingSelect from '@/components/ui/FloatingSelect.vue'
 
 const config = ref<ConfiguracionNegocio | null>(null)
 const socios = ref<DistribucionGanancia[]>([])
@@ -15,24 +17,12 @@ const MONEDAS = [
   { id: 'OTRA', label: 'Otra moneda…' },
 ]
 
-const canalColors: Record<string, string> = {
-  instagram: '#D7548C',
-  whatsapp: '#1F8A5B',
-  mail: '#2E6F70',
-  otros: '#6B6270',
-}
-
 const canalLabels: Record<string, string> = {
   instagram: 'Instagram',
   whatsapp: 'WhatsApp',
   mail: 'Mail',
   otros: 'Otros',
 }
-
-const canalMeta = computed(() => {
-  const id = config.value?.contactoCanal || 'instagram'
-  return { color: canalColors[id] || '#6B6270', label: canalLabels[id] || id }
-})
 
 const domicilio = computed(() => config.value?.domicilio as Record<string, string> | undefined)
 
@@ -134,51 +124,55 @@ onMounted(async () => {
             <div class="aj-block-body">
               <div class="aj-grid-2">
                 <div class="aj-field">
-                  <label for="aj-nombre-negocio">Nombre del negocio</label>
-                  <input id="aj-nombre-negocio" class="input" :value="config.nombre" @input="updateConfig('nombre', ($event.target as HTMLInputElement).value)" />
+                  <FloatingField
+                    id="aj-nombre-negocio"
+                    label="Nombre del negocio"
+                    :model-value="config.nombre"
+                    @update:model-value="updateConfig('nombre', String($event))"
+                  />
                 </div>
                 <div class="aj-field">
-                  <label for="aj-moneda">Moneda</label>
-                  <select id="aj-moneda" class="select" :value="config.moneda" @change="updateConfig('moneda', ($event.target as HTMLSelectElement).value)">
+                  <FloatingSelect
+                    id="aj-moneda"
+                    label="Moneda"
+                    :model-value="config.moneda"
+                    @update:model-value="updateConfig('moneda', String($event))"
+                  >
                     <option v-for="m in MONEDAS" :key="m.id" :value="m.id">{{ m.label }}</option>
-                  </select>
+                  </FloatingSelect>
                 </div>
               </div>
 
               <h5 class="aj-subhead">Domicilio</h5>
               <div class="aj-dom-grid">
                 <div class="aj-field" style="grid-column: 1 / span 2">
-                  <label for="aj-calle">Calle</label>
-                  <input id="aj-calle" class="input" :value="domicilio?.calle || ''" @input="updateDomicilio('calle', ($event.target as HTMLInputElement).value)" />
+                  <FloatingField id="aj-calle" label="Calle" :model-value="domicilio?.calle || ''" @update:model-value="updateDomicilio('calle', String($event))" />
                 </div>
                 <div class="aj-field">
-                  <label for="aj-numero">Número</label>
-                  <input id="aj-numero" class="input" :value="domicilio?.numero || ''" @input="updateDomicilio('numero', ($event.target as HTMLInputElement).value)" />
+                  <FloatingField id="aj-numero" label="Número" :model-value="domicilio?.numero || ''" @update:model-value="updateDomicilio('numero', String($event))" />
                 </div>
                 <div class="aj-field">
-                  <label for="aj-ciudad">Ciudad</label>
-                  <input id="aj-ciudad" class="input" :value="domicilio?.ciudad || ''" @input="updateDomicilio('ciudad', ($event.target as HTMLInputElement).value)" />
+                  <FloatingField id="aj-ciudad" label="Ciudad" :model-value="domicilio?.ciudad || ''" @update:model-value="updateDomicilio('ciudad', String($event))" />
                 </div>
                 <div class="aj-field">
-                  <label for="aj-provincia">Provincia</label>
-                  <input id="aj-provincia" class="input" :value="domicilio?.provincia || ''" @input="updateDomicilio('provincia', ($event.target as HTMLInputElement).value)" />
+                  <FloatingField id="aj-provincia" label="Provincia" :model-value="domicilio?.provincia || ''" @update:model-value="updateDomicilio('provincia', String($event))" />
                 </div>
               </div>
 
               <h5 class="aj-subhead">Contacto del negocio</h5>
               <div class="aj-grid-2">
                 <div class="aj-field">
-                  <label for="aj-canal">Canal</label>
-                  <div class="aj-canal-select">
-                    <span class="canal-dot" :style="{ background: canalMeta.color }" />
-                    <select id="aj-canal" class="select" :value="config.contactoCanal || 'instagram'" @change="updateConfig('contactoCanal', ($event.target as HTMLSelectElement).value)">
-                      <option v-for="(label, id) in canalLabels" :key="id" :value="id">{{ label }}</option>
-                    </select>
-                  </div>
+                  <FloatingSelect
+                    id="aj-canal"
+                    label="Canal"
+                    :model-value="config.contactoCanal || 'instagram'"
+                    @update:model-value="updateConfig('contactoCanal', String($event))"
+                  >
+                    <option v-for="(label, id) in canalLabels" :key="id" :value="id">{{ label }}</option>
+                  </FloatingSelect>
                 </div>
                 <div class="aj-field">
-                  <label for="aj-contacto-valor">Valor</label>
-                  <input id="aj-contacto-valor" class="input" :value="config.contactoValor || ''" @input="updateConfig('contactoValor', ($event.target as HTMLInputElement).value)" />
+                  <FloatingField id="aj-contacto-valor" label="Valor" :model-value="config.contactoValor || ''" @update:model-value="updateConfig('contactoValor', String($event))" />
                 </div>
               </div>
             </div>
@@ -307,12 +301,10 @@ onMounted(async () => {
             <div class="aj-block-body">
               <div class="aj-grid-2">
                 <div class="aj-field">
-                  <label for="aj-nombre-cuenta">Nombre</label>
-                  <input id="aj-nombre-cuenta" class="input" :value="config.nombre" disabled />
+                  <FloatingField id="aj-nombre-cuenta" label="Nombre" :model-value="config.nombre" disabled />
                 </div>
                 <div class="aj-field">
-                  <label for="aj-email-cuenta">Email <span class="optional">(solo lectura)</span></label>
-                  <input id="aj-email-cuenta" class="input readonly" :value="config.contactoValor || '—'" readonly tabindex="-1" />
+                  <FloatingField id="aj-email-cuenta" label="Email (solo lectura)" :model-value="config.contactoValor || '—'" readonly always-float tabindex="-1" />
                 </div>
               </div>
             </div>
