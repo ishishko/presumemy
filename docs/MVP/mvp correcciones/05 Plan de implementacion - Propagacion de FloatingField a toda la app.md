@@ -57,26 +57,21 @@ Reemplazar `.input`/`.textarea` por `<FloatingField>` y `<select>` por `<Floatin
 
 ---
 
-## Fase 3 — Decisiones pendientes (NO tocar sin confirmar)
-
-- **Search del topbar**: no es campo de formulario; mantener su estilo propio.
-- **Nombres inline grandes** (Insumo/Producto): título editable, no floating-label. Dejar.
-
----
-
-## Tablas editables — Pase a detalle
+## Fase 3 — Tablas editables (pase a detalle)
 
 Las tablas con `cell-input` (patrón spreadsheet, no floating-label) se trabajan en una pasada propia, una tabla a la vez. No se les agrega floating-label; el objetivo es coherencia de foco/estado con el DS y estabilidad visual.
 
+> Nota: el **search del topbar** y los **nombres inline grandes** (Insumo/Producto) quedan fuera de este plan; se abordarán por separado más adelante.
+
 ### Parte 1 — Tabla de líneas del Presupuesto (hecha)
-- **Foco único**: el borde violeta de la fila activa es el único indicador; el foco de celda se alineó al mismo violeta (`.cell-input:focus → --violet-50`). Limpieza de `activeRow` vía `@focusout` (que burbujea).
+- **Foco y borde**: la fila activa conserva su borde violeta (`box-shadow` inset en los `<td>`); el fondo de foco de la celda se aplica al `<td>` (`td:focus-within → --violet-50`), no al `<input>`, para que el borde se siga viendo completo sobre la celda enfocada. Limpieza de `activeRow` vía `@focusout` (que burbujea).
 - **Botón "Agregar línea" siempre visible**: se eliminó el estado `editing` y el auto-append.
 - **Fuente única de CSS**: el bloque `.lines-spreadsheet` estaba duplicado (global + scoped, ya divergente). Se borró el scoped; `components.css` queda como único dueño.
 - **Hover estable**: la fila no cambia de fondo en hover; lo único que aparece es el ícono del grip (con la opacidad sobre el SVG, no sobre el `<td>`, para no borrar el borde activo). Papelera siempre visible. Chevron nativo del datalist oculto.
 
-#### Comportamiento de edición (planificado)
+#### Comportamiento de edición (hecho)
 
-Sobre la base ya estabilizada (foco único, fuente única de CSS, hover calmo), se planifica el comportamiento "vivo" de planilla. Todo vive en `web/src/components/editors/PresupuestoEditor.vue`; Tab (navegación por celda) y `onOverlayKeydown` (Escape/Tab) no se tocan.
+Sobre la base estabilizada (borde de fila, fuente única de CSS, hover calmo), se implementó el comportamiento "vivo" de planilla. Todo vive en `web/src/components/editors/PresupuestoEditor.vue`; Tab (navegación por celda) y `onOverlayKeydown` (Escape/Tab) no se tocaron.
 
 **Objetivos**
 1. **Cantidad automática**: al elegir un producto real del catálogo, además del precio se completa `cantidad = 1` si la celda de cantidad está vacía.
@@ -85,7 +80,8 @@ Sobre la base ya estabilizada (foco único, fuente única de CSS, hover calmo), 
    - Si no hay fila debajo y la actual **tiene datos** → crea una fila nueva y la enfoca (comportamiento actual de `handleAddLine`).
    - Si no hay fila debajo y la actual **está vacía** → el foco sale de la tabla, al siguiente focusable de la página.
    - Enter sobre una celda **recién editada** → solo confirma el cambio y se queda (hace falta un segundo Enter para avanzar).
-3. **Prune en blur**: al salir el foco de la tabla, las filas **sin datos** (sin producto) se eliminan; si no queda ninguna, se deja una fila limpia.
+3. **Prune en blur**: al salir el foco de la tabla, las filas **sin datos** (sin producto, cantidad ni precio) se eliminan; si no queda ninguna, se deja una fila limpia.
+4. **Feedback de error**: una fila con algún dato pero incompleta (sin producto, o sin cantidad > 0) se marca con borde rojo (`isRowInvalid`).
 
 **Consideración**: `@keydown.enter.prevent` en la celda Producto puede interferir con confirmar una sugerencia del `<datalist>` con teclado; como el Enter "sucio" solo confirma sin mover, el valor tipeado se conserva. Se valida en runtime.
 

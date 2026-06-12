@@ -202,3 +202,23 @@ Definimos dos helpers para distinguir estados de fila, ambos mirando los tres ca
 
 ### Archivos
 - [MODIFY] `web/src/components/editors/PresupuestoEditor.vue`
+
+---
+
+## Tablas — Pase a detalle (parte 1 · estética: foco sin perder el borde)
+
+Empezando el afinado estético de la tabla, el usuario observó que el borde violeta de la fila activa **se perdía justo en la celda enfocada**.
+
+### Causa
+El borde de la fila activa se dibuja con `box-shadow` inset sobre cada `<td>`. El fondo de foco (`--violet-50`) estaba aplicado al `<input>`, que se pinta **encima** del `<td>` y tapaba las líneas del `box-shadow` en esa celda. En las celdas no enfocadas el input es transparente, así que el borde se veía bien; solo fallaba la enfocada.
+
+### Solución
+- Se movió el fondo de foco del `<input>` al `<td>`: `.lines-spreadsheet td:focus-within { background: var(--violet-50) }`. Como el `box-shadow` inset se pinta sobre el fondo del propio `<td>` y el input queda transparente encima, el borde violeta de la fila ahora se ve completo también en la celda enfocada.
+- El borde de fila activa (`tr.active td` con sus variantes `:first-child`/`:last-child`) se mantiene como estaba.
+
+### Verificación
+- `npx vue-tsc -b` → cero errores.
+- Manual: al pararse en cualquier celda se ve el fondo violeta suave **y** el borde de la fila activa intacto en los 4 lados.
+
+### Archivos
+- [MODIFY] `web/src/assets/css/components.css` (foco en `td:focus-within`, borde de fila activa intacto)
