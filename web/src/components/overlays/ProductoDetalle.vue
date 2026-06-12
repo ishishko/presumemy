@@ -7,6 +7,8 @@ import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import FloatingField from '@/components/ui/FloatingField.vue'
 import FloatingSelect from '@/components/ui/FloatingSelect.vue'
+import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import type { Producto, CategoriaProducto, Insumo, PaginationResult } from '@/types'
 
 const props = defineProps<{
@@ -337,13 +339,7 @@ defineExpose({ loadProducto })
                   <span class="t">Producto activo</span>
                   <span class="h">Visible en el catálogo y en presupuestos</span>
                 </div>
-                <div
-                  role="switch"
-                  :aria-checked="activo"
-                  tabindex="0"
-                  :class="['pd-switch', { on: activo }]"
-                  @click="activo = !activo"
-                />
+                <ToggleSwitch v-model="activo" aria-label="Producto activo" />
               </div>
 
               <div class="pd-toggle-row">
@@ -353,13 +349,7 @@ defineExpose({ loadProducto })
                     {{ tieneBom ? 'El costo se calcula desde el BOM de insumos.' : 'Ingresá el costo directamente.' }}
                   </span>
                 </div>
-                <div
-                  role="switch"
-                  :aria-checked="tieneBom"
-                  tabindex="0"
-                  :class="['pd-switch', { on: tieneBom }]"
-                  @click="tieneBom = !tieneBom"
-                />
+                <ToggleSwitch v-model="tieneBom" aria-label="Costo por receta" />
               </div>
             </section>
 
@@ -370,19 +360,12 @@ defineExpose({ loadProducto })
 
               <div class="pd-price-grid">
                 <div class="pd-field pd-field-wide">
-                  <label>Tipo de ganancia</label>
-                  <div class="segmented">
-                    <button
-                      type="button"
-                      :class="['seg-btn', { active: tipoGanancia === 'porcentaje' }]"
-                      @click="tipoGanancia = 'porcentaje'"
-                    >Porcentaje</button>
-                    <button
-                      type="button"
-                      :class="['seg-btn', { active: tipoGanancia === 'fijo' }]"
-                      @click="tipoGanancia = 'fijo'"
-                    >Monto fijo</button>
-                  </div>
+                  <label id="pd-tipoganancia-label">Tipo de ganancia</label>
+                  <SegmentedControl
+                    v-model="tipoGanancia"
+                    :options="[{ value: 'porcentaje', label: 'Porcentaje' }, { value: 'fijo', label: 'Monto fijo' }]"
+                    aria-labelledby="pd-tipoganancia-label"
+                  />
                 </div>
                 <div class="pd-field pd-field-wide">
                   <label>{{ tipoGanancia === 'porcentaje' ? 'Margen (%)' : 'Monto sobre costo' }}</label>

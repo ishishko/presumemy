@@ -4,6 +4,7 @@ import { get, put } from '@/services/api'
 import type { ConfiguracionNegocio, DistribucionGanancia } from '@/types'
 import FloatingField from '@/components/ui/FloatingField.vue'
 import FloatingSelect from '@/components/ui/FloatingSelect.vue'
+import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
 const config = ref<ConfiguracionNegocio | null>(null)
 const socios = ref<DistribucionGanancia[]>([])
@@ -200,15 +201,10 @@ onMounted(async () => {
                   <span class="t">Cancelación automática por tiempo</span>
                   <span class="h">Los presupuestos en estado <strong>Enviado</strong> se cancelarán automáticamente luego de X días sin confirmación.</span>
                 </div>
-                <div
-                  class="aj-switch"
-                  :class="{ on: config.cancelacionAuto }"
-                  role="switch"
-                  :aria-checked="config.cancelacionAuto"
-                  tabindex="0"
-                  @click="updateConfig('cancelacionAuto', !config.cancelacionAuto)"
-                  @keydown.space.prevent="updateConfig('cancelacionAuto', !config.cancelacionAuto)"
-                  @keydown.enter.prevent="updateConfig('cancelacionAuto', !config.cancelacionAuto)"
+                <ToggleSwitch
+                  :model-value="config.cancelacionAuto"
+                  @update:model-value="updateConfig('cancelacionAuto', $event)"
+                  aria-label="Cancelación automática por tiempo"
                 />
               </div>
               <div v-if="config.cancelacionAuto" class="aj-conditional">

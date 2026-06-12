@@ -6,6 +6,7 @@ import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import FloatingField from '@/components/ui/FloatingField.vue'
 import FloatingSelect from '@/components/ui/FloatingSelect.vue'
+import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import type { Insumo, CategoriaInsumo, Proveedor } from '@/types'
 
 const props = defineProps<{
@@ -340,15 +341,7 @@ defineExpose({ loadInsumo })
                   <span class="t">Insumo activo</span>
                   <span class="h">Visible en autocompletados y reportes.</span>
                 </div>
-                <div
-                  role="switch"
-                  :aria-checked="activo"
-                  tabindex="0"
-                  :class="['id-switch', { on: activo }]"
-                  @click="activo = !activo"
-                  @keydown.space.prevent="activo = !activo"
-                  @keydown.enter.prevent="activo = !activo"
-                />
+                <ToggleSwitch v-model="activo" aria-label="Insumo activo" />
               </div>
 
               <div class="id-level-block">

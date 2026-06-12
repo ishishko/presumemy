@@ -8,6 +8,7 @@ import type { Presupuesto, Cliente, Producto, PaginationResult } from '@/types'
 import { presupuestoSchema } from '@/schemas/presupuestos'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import FloatingField from '@/components/ui/FloatingField.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 
 const props = defineProps<{
   open: boolean
@@ -492,18 +493,6 @@ async function handleSendToClient() {
   }
 }
 
-function onEnvioKeydown(e: KeyboardEvent) {
-  if (!isEditable.value) return
-  if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) {
-    e.preventDefault()
-    tipoEntrega.value = tipoEntrega.value === 'retira' ? 'envio' : 'retira'
-    nextTick(() => {
-      const group = (e.currentTarget as HTMLElement)
-      group?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus()
-    })
-  }
-}
-
 function triggerClose() {
   if (isDirty.value) {
     showConfirmExit.value = true
@@ -748,31 +737,12 @@ defineExpose({ loadPresupuesto })
                     <h4>Entrega</h4>
                     <span id="ed-envio-label" class="form-subhead">Método de envío</span>
                   </div>
-                  <div
-                    class="segmented"
-                    role="radiogroup"
+                  <SegmentedControl
+                    v-model="tipoEntrega"
+                    :options="[{ value: 'retira', label: 'Retira' }, { value: 'envio', label: 'Envío' }]"
+                    :disabled="!isEditable"
                     aria-labelledby="ed-envio-label"
-                    @keydown="onEnvioKeydown"
-                  >
-                    <button
-                      type="button"
-                      role="radio"
-                      :aria-checked="tipoEntrega === 'retira'"
-                      :tabindex="tipoEntrega === 'retira' ? 0 : -1"
-                      :class="['seg-btn', tipoEntrega === 'retira' && 'active']"
-                      @click="isEditable && (tipoEntrega = 'retira')"
-                      :disabled="!isEditable"
-                    >Retira</button>
-                    <button
-                      type="button"
-                      role="radio"
-                      :aria-checked="tipoEntrega === 'envio'"
-                      :tabindex="tipoEntrega === 'envio' ? 0 : -1"
-                      :class="['seg-btn', tipoEntrega === 'envio' && 'active']"
-                      @click="isEditable && (tipoEntrega = 'envio')"
-                      :disabled="!isEditable"
-                    >Envío</button>
-                  </div>
+                  />
                 </div>
                 <div v-if="tipoEntrega === 'envio'" class="field">
                   <FloatingField

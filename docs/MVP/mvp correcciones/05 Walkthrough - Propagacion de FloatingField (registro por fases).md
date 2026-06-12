@@ -90,3 +90,41 @@ Cableamos `required` / `invalid` en los campos clave para que las sombras de est
 - [MODIFY] `web/src/views/AjustesView.vue`
 - [MODIFY] `web/src/components/overlays/InsumoDetalle.vue`
 - [MODIFY] `web/src/components/overlays/ProductoDetalle.vue`
+
+---
+
+## Fase 3 — Controles secundarios compartidos (parte 1: switches y segmented)
+
+Unificamos los controles que estaban duplicados con clases distintas (`id-switch`, `aj-switch`, `pd-switch`, `segmented` inline) en componentes reutilizables, adoptando el foco violeta del DS. **Las tablas se trabajan aparte (a detalle)**, así que los controles que viven dentro de tablas se dejaron sin tocar.
+
+### Componentes nuevos
+- **`ToggleSwitch.vue`**: switch accesible (`<button role="switch">`, `aria-checked`, teclado Space/Enter, focus-visible violeta). Estilos globales `.toggle-switch` en `components.css` (track + thumb, on = teal).
+- **`SegmentedControl.vue`**: extracción del segmented accesible del editor de presupuestos (`radiogroup` + `seg-btn`, navegación con flechas, `disabled`, `aria-label`/`aria-labelledby`). Reutiliza las clases globales `.segmented`/`.seg-btn`.
+
+### Aplicación
+- **ToggleSwitch**: `AjustesView` (cancelación automática), `InsumoDetalle` (insumo activo), `ProductoDetalle` (producto activo, costo por receta). El switch de la **tabla de socios** (Ajustes) y los radios de proveedores quedan para el pase de tablas.
+- **SegmentedControl**: `ProductoDetalle` (tipo de ganancia) y `PresupuestoEditor` (método de envío Retira/Envío, reemplazo 1:1 conservando el layout afinado de Entrega y eliminando el `onEnvioKeydown` local).
+
+### Mejora de contraste del segmented
+A pedido del usuario (la opción elegida casi no se distinguía), se reforzó el estado seleccionado y el foco en `.seg-btn` (`components.css`):
+- **Seleccionado**: pill **violeta llena** (`--violet-700`) con texto blanco en negrita y `shadow-2` (antes era una pill blanca sobre track gris, muy sutil).
+- **Foco**: outline **teal sólido inset** (`outline: 2px solid var(--teal-500); outline-offset: -2px`), visible tanto sobre la pill violeta como sobre el track.
+- Aplica a ambos segmenteds (Producto y Entrega) sin tocar markup.
+
+### Pendiente de la Fase 3
+- Tablas editables (cell-input y sus controles: socios, BOM, proveedores, líneas) → pase a detalle aparte.
+- `CheckRow` (checkboxes de Imprenta/Presupuesto) y radios (`esPrincipal`) → opcional, a unificar más adelante.
+- Quedan reglas CSS muertas (`.id-switch`, `.pd-switch`) que se pueden limpiar en una pasada posterior.
+
+### Verificación
+- `npx vue-tsc -b` → cero errores.
+- Manual: los switches togglean con click y teclado (Space/Enter) y muestran foco violeta; el segmented de Producto y el de Entrega funcionan igual que antes (flechas incluidas).
+
+### Archivos
+- [NEW] `web/src/components/ui/ToggleSwitch.vue`
+- [NEW] `web/src/components/ui/SegmentedControl.vue`
+- [MODIFY] `web/src/assets/css/components.css` (estilos `.toggle-switch`)
+- [MODIFY] `web/src/views/AjustesView.vue`
+- [MODIFY] `web/src/components/overlays/InsumoDetalle.vue`
+- [MODIFY] `web/src/components/overlays/ProductoDetalle.vue`
+- [MODIFY] `web/src/components/editors/PresupuestoEditor.vue`
