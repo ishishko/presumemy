@@ -59,9 +59,25 @@ Reemplazar `.input`/`.textarea` por `<FloatingField>` y `<select>` por `<Floatin
 
 ## Fase 3 — Decisiones pendientes (NO tocar sin confirmar)
 
-- **Tablas editables** (`cell-input` en Presupuesto/Producto/Ajustes): patrón spreadsheet, no floating-label. Propuesta: dejarlas; a lo sumo sumarles el ring de estado.
 - **Search del topbar**: no es campo de formulario; mantener su estilo propio.
 - **Nombres inline grandes** (Insumo/Producto): título editable, no floating-label. Dejar.
+
+---
+
+## Tablas editables — Pase a detalle
+
+Las tablas con `cell-input` (patrón spreadsheet, no floating-label) se trabajan en una pasada propia, una tabla a la vez. No se les agrega floating-label; el objetivo es coherencia de foco/estado con el DS y estabilidad visual.
+
+### Parte 1 — Tabla de líneas del Presupuesto (hecha)
+- **Foco único**: el borde violeta de la fila activa es el único indicador; el foco de celda se alineó al mismo violeta (`.cell-input:focus → --violet-50`). Limpieza de `activeRow` vía `@focusout` (que burbujea).
+- **Botón "Agregar línea" siempre visible**: se eliminó el estado `editing` y el auto-append.
+- **Fuente única de CSS**: el bloque `.lines-spreadsheet` estaba duplicado (global + scoped, ya divergente). Se borró el scoped; `components.css` queda como único dueño.
+- **Hover estable**: la fila no cambia de fondo en hover; lo único que aparece es el ícono del grip (con la opacidad sobre el SVG, no sobre el `<td>`, para no borrar el borde activo). Papelera siempre visible. Chevron nativo del datalist oculto.
+
+### Pendiente (próximas partes)
+- **Tabla de socios** (`AjustesView`): switch + radios dentro de la tabla.
+- **BOM de Producto** (`ProductoDetalle`): celdas de receta.
+- **Proveedores de Insumo** (`InsumoDetalle`): radios `esPrincipal`.
 
 ---
 

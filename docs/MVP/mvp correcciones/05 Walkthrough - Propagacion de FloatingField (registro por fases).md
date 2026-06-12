@@ -128,3 +128,45 @@ A pedido del usuario (la opción elegida casi no se distinguía), se reforzó el
 - [MODIFY] `web/src/components/overlays/InsumoDetalle.vue`
 - [MODIFY] `web/src/components/overlays/ProductoDetalle.vue`
 - [MODIFY] `web/src/components/editors/PresupuestoEditor.vue`
+
+---
+
+## Tablas — Pase a detalle (parte 1: tabla de líneas de Presupuesto)
+
+Arrancamos el pase de tablas por la grilla de productos del editor de presupuestos, que tenía dos problemas detectados por el usuario.
+
+### Foco doble
+La fila activa mostraba su remarco violeta **y** la celda enfocada un fondo teal al mismo tiempo, dando la sensación de "dos focos". Además, al salir de la tabla con el mouse el resaltado de fila quedaba pegado, porque el `@blur` del contenedor no burbujea y nunca limpiaba `activeRow`.
+
+- Dejamos el **borde violeta de la fila activa como único indicador** y alineamos el fondo de la celda enfocada al mismo violeta (`.cell-input:focus` pasó de `--teal-100` a `--violet-50`), para que lea como un solo foco cohesivo.
+- Reemplazamos el manejo por `@focus`/`@blur` (que no burbujean) por un único `@focusout="onTableFocusout"` en el contenedor (`focusout` sí burbujea): limpia `activeRow` solo cuando el foco sale realmente de la tabla (`relatedTarget` fuera del contenedor). Se quitó el `tabindex="-1"` y los handlers `handleTableFocus`/`handleTableBlur`.
+
+### Botón "Agregar línea"
+Antes el botón dependía del estado `editing` (aparecía/desaparecía y se auto-agregaba una fila al entrar a la tabla), lo que lo hacía inestable.
+
+- Eliminamos el estado `editing` y el auto-append. El botón **"Agregar línea" queda siempre visible** mientras la orden es editable (`v-if="isEditable"`).
+- `handleAddLine` solo agrega la fila y enfoca su primer campo. Se quitó el hint inferior (`lines-hint`) y su CSS muerto.
+
+### CSS duplicado y hover inconsistente
+Al revisar a fondo por qué la fila "cambiaba de vista" al pasar el mouse, encontramos que **todo el bloque `.lines-spreadsheet` estaba duplicado**: idéntico en el global `components.css` y en el `<style scoped>` del editor. Las copias ya divergían (el foco de celda estaba en `--violet-50` en el scoped y en `--teal-100` en el global), y ganaba el scoped por el `[data-v-hash]` de Vue: editar un solo lugar daba resultados impredecibles.
+
+- **Fuente única**: borramos el bloque `.lines-spreadsheet` del scoped y dejamos `components.css` como único dueño. En el editor solo quedan los estilos exclusivos (`.add-line-btn`, `.ed-totals`, etc.).
+- Consolidamos el foco de celda en `--violet-50` en el global (coherente con el borde violeta de la fila activa).
+- **Hover estable**: el `tbody tr:hover { background }` teñía toda la fila y, sumado al foco opaco de la celda, dejaba tonos disparejos. Lo eliminamos: la fila ya no cambia de fondo al pasar el mouse.
+- **Único cambio en hover = el grip**: el ícono de arrastre pasa a estar oculto en reposo y aparece solo al hacer hover en la fila. La papelera dejó de ser reveal-on-hover y queda siempre visible (atenuada, coral al hover del propio botón).
+
+### Fix del borde violeta que se borraba (opacity sobre el `<td>`)
+El reveal del grip se hacía poniendo `opacity` sobre el `<td class="grip">` completo. Pero `opacity` afecta **todo** lo que renderiza ese td, incluido el `box-shadow` inset que dibuja el borde violeta de la fila activa en la primera celda (`tr.active td:first-child`). Resultado: con la fila activa pero sin hover, el grip td quedaba en `opacity: 0` y se borraba el segmento izquierdo del borde → se rompía la estética.
+
+- Movimos la opacidad del `<td>` al **ícono SVG** del grip (`td.grip svg { opacity: 0 }` / `tr:hover td.grip svg { opacity: 0.85 }`). Así el td queda siempre opaco y su `box-shadow`/borde nunca se borra; solo el icono aparece/desaparece en hover.
+
+### Detalle adicional
+- Se ocultó el **chevron nativo del `<datalist>`** (`::-webkit-calendar-picker-indicator` / `::-webkit-list-button`) en los `cell-input`, que el navegador mostraba en hover/focus en la celda Producto. El autocompletado sigue funcionando.
+
+### Verificación
+- `npx vue-tsc -b` → cero errores.
+- Manual: un solo foco visible al editar celdas; el resaltado de fila se limpia al hacer click fuera; el botón "Agregar línea" se mantiene estable; con la fila activa sin hover el borde violeta se ve completo en los 4 lados; al pasar el mouse por una fila solo asoma el ícono del grip, sin cambios de fondo ni chevron.
+
+### Archivos
+- [MODIFY] `web/src/components/editors/PresupuestoEditor.vue` (lógica + se quita el bloque `.lines-spreadsheet` duplicado del scoped)
+- [MODIFY] `web/src/assets/css/components.css` (foco `--violet-50`, sin hover de fila, grip solo en hover, papelera siempre visible)

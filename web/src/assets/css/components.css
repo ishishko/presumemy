@@ -1522,10 +1522,6 @@ button {
   box-shadow: inset -1.5px 0 0 var(--coral-500), inset 0 1.5px 0 var(--coral-500), inset 0 -1.5px 0 var(--coral-500);
 }
 
-.lines-spreadsheet tbody tr:hover {
-  background: rgba(139, 37, 112, 0.025);
-}
-
 .lines-spreadsheet tbody tr.dragging {
   opacity: 0.35;
 }
@@ -1548,8 +1544,6 @@ button {
   padding: 8px 4px 8px 8px;
   color: var(--ink-muted);
   cursor: grab;
-  opacity: 0.28;
-  transition: opacity 120ms ease;
   user-select: none;
 }
 
@@ -1557,13 +1551,15 @@ button {
   cursor: grabbing;
 }
 
-.lines-spreadsheet tbody tr:hover td.grip {
-  opacity: 0.85;
-}
-
 .lines-spreadsheet td.grip svg {
   width: 14px;
   height: 14px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.lines-spreadsheet tbody tr:hover td.grip svg {
+  opacity: 0.85;
 }
 
 .lines-spreadsheet .cell-input {
@@ -1582,8 +1578,16 @@ button {
   color: var(--ink-muted);
 }
 
+/* Oculta el chevron nativo del datalist (aparece en hover/focus) */
+.lines-spreadsheet .cell-input::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+.lines-spreadsheet .cell-input::-webkit-list-button {
+  display: none !important;
+}
+
 .lines-spreadsheet .cell-input:focus {
-  background: var(--teal-100);
+  background: var(--violet-50);
 }
 
 .lines-spreadsheet .num-input {
@@ -1605,17 +1609,12 @@ button {
   cursor: pointer;
   color: var(--ink-muted);
   padding: 8px;
-  opacity: 0;
-  transition: opacity 120ms ease, color 120ms ease;
+  transition: color 120ms ease;
 }
 
 .lines-spreadsheet .del-btn svg {
   width: 14px;
   height: 14px;
-}
-
-.lines-spreadsheet tbody tr:hover .del-btn {
-  opacity: 1;
 }
 
 .lines-spreadsheet .del-btn:hover {

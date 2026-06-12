@@ -95,7 +95,6 @@ const mainContacto = computed(() => {
 
 const lineas = ref<Array<{ id: number; producto: string; productoId: number; qty: string; price: string }>>([])
 const activeRow = ref<number | null>(null)
-const editing = ref(false)
 const dragId = ref<number | null>(null)
 const dragOverId = ref<number | null>(null)
 const idRef = ref(1)
@@ -227,7 +226,6 @@ function reset() {
   includeNotes.value = true
   lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
   activeRow.value = null
-  editing.value = false
   dragId.value = null
   dragOverId.value = null
   snapshot.value = null
@@ -275,13 +273,6 @@ async function loadPresupuesto() {
 
 function updateLine(id: number, patch: Partial<{ producto: string; productoId: number; qty: string; price: string }>) {
   lineas.value = lineas.value.map(l => l.id === id ? { ...l, ...patch } : l)
-  if (editing.value) {
-    const last = lineas.value[lineas.value.length - 1]
-    const lastEmpty = !last.producto && !last.qty && !last.price
-    if (!lastEmpty) {
-      lineas.value.push({ id: mkId(), producto: '', productoId: 0, qty: '', price: '' })
-    }
-  }
 }
 
 function removeLine(id: number) {
@@ -303,30 +294,12 @@ function handleProductChange(id: number, val: string) {
   updateLine(id, patch)
 }
 
-function handleTableFocus() {
-  if (!editing.value) {
-    editing.value = true
-    const last = lineas.value[lineas.value.length - 1]
-    const lastEmpty = !last.producto && !last.qty && !last.price
-    if (!lastEmpty) {
-      lineas.value.push({ id: mkId(), producto: '', productoId: 0, qty: '', price: '' })
-    }
-  }
-}
-
-function handleTableBlur(e: FocusEvent) {
-  const target = e.relatedTarget as HTMLElement | null
-  const table = document.querySelector('.lines-spreadsheet')
-  if (table && target && table.contains(target)) return
-  editing.value = false
+// limpia el resaltado de fila activa cuando el foco sale de la tabla
+function onTableFocusout(e: FocusEvent) {
+  const next = e.relatedTarget as HTMLElement | null
+  const table = e.currentTarget as HTMLElement
+  if (next && table.contains(next)) return
   activeRow.value = null
-  if (lineas.value.length > 1) {
-    const last = lineas.value[lineas.value.length - 1]
-    const lastEmpty = !last.producto && !last.qty && !last.price
-    if (lastEmpty) {
-      lineas.value = lineas.value.slice(0, -1)
-    }
-  }
 }
 
 function onDrop(id: number) {
@@ -348,7 +321,6 @@ function onDrop(id: number) {
 
 function handleAddLine() {
   lineas.value.push({ id: mkId(), producto: '', productoId: 0, qty: '', price: '' })
-  editing.value = true
   nextTick(() => {
     const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
     const inputs = table?.querySelectorAll('tbody tr:last-child .cell-input') as NodeListOf<HTMLInputElement> | undefined
@@ -761,9 +733,7 @@ defineExpose({ loadPresupuesto })
             <div class="form-section-body">
               <div
                 class="lines-spreadsheet"
-                tabindex="-1"
-                @focus="isEditable && handleTableFocus()"
-                @blur="handleTableBlur"
+                @focusout="onTableFocusout"
               >
                 <table>
                   <colgroup>
@@ -863,17 +833,13 @@ defineExpose({ loadPresupuesto })
                 </datalist>
 
                 <button
-                  v-if="!editing && isEditable"
+                  v-if="isEditable"
                   type="button"
                   class="add-line-btn"
-                  @mousedown.prevent
                   @click="handleAddLine"
                 >
                   <Plus :size="14" /> Agregar línea
                 </button>
-                <div v-else-if="isEditable" class="lines-hint text-hint">
-                  <GripVertical :size="12" /> arrastrá para reordenar &nbsp;·&nbsp; Tab para avanzar &nbsp;·&nbsp; click fuera para cerrar
-                </div>
               </div>
 
               <p v-if="errors.detalles" class="err" role="alert">{{ errors.detalles }}</p>
@@ -1260,125 +1226,6 @@ defineExpose({ loadPresupuesto })
   font-variant-numeric: tabular-nums;
 }
 
-.lines-spreadsheet {
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  background: var(--surface);
-  outline: none;
-  overflow: hidden;
-}
-
-.lines-spreadsheet table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.lines-spreadsheet th {
-  text-align: left;
-  padding: 10px 8px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ink-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: var(--page-bg);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.lines-spreadsheet th:first-child { padding-left: 4px; padding-right: 4px; }
-.lines-spreadsheet th:nth-child(2) { white-space: normal; }
-.lines-spreadsheet th.num { text-align: right; }
-
-.lines-spreadsheet tbody tr.ln-row {
-  position: relative;
-  border-bottom: 1px solid var(--border);
-  transition: background 120ms ease;
-}
-
-.lines-spreadsheet tbody tr.active td {
-  box-shadow: inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
-}
-.lines-spreadsheet tbody tr.active td:first-child {
-  box-shadow: inset 1.5px 0 0 var(--violet-700), inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
-}
-.lines-spreadsheet tbody tr.active td:last-child {
-  box-shadow: inset -1.5px 0 0 var(--violet-700), inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
-}
-
-.lines-spreadsheet tbody tr.error td {
-  box-shadow: inset 0 1.5px 0 var(--coral-500), inset 0 -1.5px 0 var(--coral-500);
-}
-.lines-spreadsheet tbody tr.error td:first-child {
-  box-shadow: inset 1.5px 0 0 var(--coral-500), inset 0 1.5px 0 var(--coral-500), inset 0 -1.5px 0 var(--coral-500);
-}
-.lines-spreadsheet tbody tr.error td:last-child {
-  box-shadow: inset -1.5px 0 0 var(--coral-500), inset 0 1.5px 0 var(--coral-500), inset 0 -1.5px 0 var(--coral-500);
-}
-
-.lines-spreadsheet tbody tr:hover { background: rgba(139, 37, 112, 0.025); }
-.lines-spreadsheet tbody tr.dragging { opacity: 0.35; }
-.lines-spreadsheet tbody tr.drag-over td { box-shadow: inset 0 2px 0 var(--violet-700); }
-.lines-spreadsheet tbody tr:last-child { border-bottom: 0; }
-
-.lines-spreadsheet td { padding: 0; vertical-align: middle; }
-
-.lines-spreadsheet td.grip {
-  width: 28px;
-  padding: 8px 4px 8px 8px;
-  color: var(--ink-muted);
-  cursor: grab;
-  opacity: 0.28;
-  transition: opacity 120ms ease;
-  user-select: none;
-}
-.lines-spreadsheet td.grip:active { cursor: grabbing; }
-.lines-spreadsheet tbody tr:hover td.grip { opacity: 0.85; }
-.lines-spreadsheet td.grip svg { width: 14px; height: 14px; }
-
-.lines-spreadsheet .cell-input {
-  border: 0;
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--ink);
-  width: 100%;
-  padding: 11px 8px;
-  outline: none;
-  min-width: 0;
-}
-.lines-spreadsheet .cell-input::placeholder { color: var(--ink-muted); }
-.lines-spreadsheet .cell-input:focus { background: var(--teal-100); }
-.lines-spreadsheet .num-input { text-align: right; font-variant-numeric: tabular-nums; }
-.lines-spreadsheet .cell-subtotal {
-  padding: 11px 8px;
-  font-size: 13px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.lines-spreadsheet .del-btn {
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  color: var(--ink-muted);
-  padding: 8px;
-  opacity: 0;
-  transition: opacity 120ms ease, color 120ms ease;
-}
-.lines-spreadsheet .del-btn svg { width: 14px; height: 14px; }
-.lines-spreadsheet tbody tr:hover .del-btn { opacity: 1; }
-.lines-spreadsheet .del-btn:hover { color: var(--coral-500); }
-
-.lines-spreadsheet .cell-input[type="number"]::-webkit-outer-spin-button,
-.lines-spreadsheet .cell-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.lines-spreadsheet .cell-input[type="number"] { -moz-appearance: textfield; }
-
 .add-line-btn {
   display: flex;
   align-items: center;
@@ -1397,19 +1244,6 @@ defineExpose({ loadPresupuesto })
 }
 .add-line-btn:hover { background: var(--violet-50); }
 .add-line-btn svg { width: 14px; height: 14px; }
-
-.lines-hint {
-  padding: 9px 16px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-  background: var(--page-bg);
-  color: var(--ink-muted);
-}
-.lines-hint svg { width: 12px; height: 12px; opacity: 0.75; }
 
 .ed-totals {
   margin-top: 14px;
