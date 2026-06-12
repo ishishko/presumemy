@@ -115,6 +115,7 @@ npm run preview      # preview del build
 - Validación con Zod en frontend
 - Confirmación de cambios y undo
 - Genera campo Medidas en productos.
+- Propagación de FloatingField — extension del componente floating-label a todos los formularios de la app.
 
 ### Funcionalidades
 - **Búsqueda** — barra del header aún no filtra resultados
@@ -124,6 +125,7 @@ npm run preview      # preview del build
 - **FSM de presupuestos** — Definicion de estados:
   - Borrador → Enviado → En curso → Cerrado → Facturado (+ cancelado) 
   - Logica de edicion por estados
+- **Tablas** — reestructuración de la tabla de líneas del presupuesto para mejorar la experiencia de usuario
 
 ### Dashboard V2
 - **Widgets del dashboard** — personalizar qué tarjetas aparecen en Inicio y en qué orden:
@@ -139,6 +141,8 @@ npm run preview      # preview del build
 - **Tipado** — tipos TypeScript compartidos entre frontend y backend
 - **Tests** — Vitest configurado pero sin tests escritos
 - **Modo oscuro** — toggle entre modo claro y modo oscuro en Ajustes > Apariencia
+- **Creacion de pdf de los presupuestos** — Agregar soporte a la vista de presupuestos para la creacion de pdf. Debe descargar el pdf a la maquina del usuario y generar link.
+
 ---
 
 ## Bugs corregidos (sesión actual)
