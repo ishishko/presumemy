@@ -127,6 +127,7 @@ onMounted(async () => {
                   <FloatingField
                     id="aj-nombre-negocio"
                     label="Nombre del negocio"
+                    required
                     :model-value="config.nombre"
                     @update:model-value="updateConfig('nombre', String($event))"
                   />

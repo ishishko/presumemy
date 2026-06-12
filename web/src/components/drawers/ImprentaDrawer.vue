@@ -76,7 +76,21 @@ function loadOrden() {
   }
 }
 
+function validate(): boolean {
+  if (!tematica.value.trim()) {
+    toast('Indicá una temática o cliente', 'error')
+    return false
+  }
+  if (Number(hojas.value) < 0 || Number(valorNuestro.value) < 0 || Number(valorPatri.value) < 0) {
+    toast('Los valores no pueden ser negativos', 'error')
+    return false
+  }
+  return true
+}
+
 async function handleSave() {
+  if (!validate()) return
+
   const payload: any = {
     fecha: fecha.value,
     tematica: tematica.value,
@@ -213,6 +227,7 @@ defineExpose({ loadOrden })
                 <FloatingField
                   id="fd-i-tematica"
                   label="Temática / cliente"
+                  required
                   v-model="tematica"
                   placeholder="Ej. Cumple Mila · unicornios pastel"
                 />
@@ -250,6 +265,7 @@ defineExpose({ loadOrden })
                   type="number"
                   prefix="$"
                   v-model.number="valorNuestro"
+                  :invalid="Number(valorNuestro) < 0"
                   min="0"
                   step="0.01"
                 />
@@ -261,6 +277,7 @@ defineExpose({ loadOrden })
                   type="number"
                   prefix="$"
                   v-model.number="valorPatri"
+                  :invalid="Number(valorPatri) < 0"
                   min="0"
                   step="0.01"
                 />

@@ -126,7 +126,17 @@ function loadTransaccion() {
   }
 }
 
+function validate(): boolean {
+  if (!(Number(valor.value) > 0)) {
+    toast('El valor debe ser mayor a 0', 'error')
+    return false
+  }
+  return true
+}
+
 async function handleSave() {
+  if (!validate()) return
+
   const payload: any = {
     fecha: fecha.value,
     tipo: tipo.value,

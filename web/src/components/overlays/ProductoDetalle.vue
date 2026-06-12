@@ -312,7 +312,7 @@ defineExpose({ loadProducto })
 
               <div class="pd-id-grid">
                 <div class="pd-field">
-                  <FloatingSelect id="pd-categoria" label="Categoría" v-model.number="categoriaId">
+                  <FloatingSelect id="pd-categoria" label="Categoría" required v-model.number="categoriaId">
                     <option :value="0" disabled>Seleccionar</option>
                     <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                   </FloatingSelect>

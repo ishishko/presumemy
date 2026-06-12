@@ -310,13 +310,13 @@ defineExpose({ loadInsumo })
 
               <div class="id-grid-2">
                 <div class="id-field">
-                  <FloatingSelect id="ins-categoria" label="Categoría" v-model.number="categoriaId">
+                  <FloatingSelect id="ins-categoria" label="Categoría" required v-model.number="categoriaId">
                     <option :value="0" disabled>Seleccionar</option>
                     <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                   </FloatingSelect>
                 </div>
                 <div class="id-field">
-                  <FloatingField id="ins-unidad" label="Unidad de medida" v-model="unidad" placeholder="Ej. pliego, m, rollo" />
+                  <FloatingField id="ins-unidad" label="Unidad de medida" required v-model="unidad" placeholder="Ej. pliego, m, rollo" />
                 </div>
               </div>
 

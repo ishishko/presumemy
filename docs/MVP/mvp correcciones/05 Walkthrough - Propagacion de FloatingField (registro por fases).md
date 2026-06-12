@@ -65,3 +65,28 @@ Migramos los formularios a `FloatingField` / `FloatingSelect`, archivo por archi
 - [MODIFY] `web/src/views/AjustesView.vue`
 - [MODIFY] `web/src/components/overlays/InsumoDetalle.vue`
 - [MODIFY] `web/src/components/overlays/ProductoDetalle.vue`
+
+---
+
+## Fase 2 — Validación coherente
+
+Cableamos `required` / `invalid` en los campos clave para que las sombras de estado (verde/rojo) reflejen la validez real, y agregamos reglas mínimas de guardado donde no había schema.
+
+### Cambios por archivo
+- **ImprentaDrawer**: `temática / cliente` ahora es `required`; los valores monetarios marcan `invalid` si son negativos. Se agregó un `validate()` que bloquea el guardado si falta la temática o hay valores negativos (con toast).
+- **MovimientoDrawer**: `validate()` que exige que el valor sea mayor a 0 antes de guardar (con toast).
+- **AjustesView**: `nombre del negocio` marcado como `required`.
+- **InsumoDetalle**: `categoría` y `unidad de medida` marcadas como `required` (la categoría en `0` queda en rojo tras interactuar).
+- **ProductoDetalle**: `categoría` marcada como `required`.
+- **ClienteDrawer / PresupuestoEditor**: ya tenían la validación zod cableada a `invalid`/`required` desde fases anteriores (sin cambios).
+
+### Verificación
+- `npx vue-tsc -b` → cero errores.
+- Manual: intentar guardar una orden de imprenta sin temática o un movimiento con valor 0 → se bloquea con toast; los campos requeridos vacíos se ponen en rojo al perder foco.
+
+### Archivos
+- [MODIFY] `web/src/components/drawers/ImprentaDrawer.vue`
+- [MODIFY] `web/src/components/drawers/MovimientoDrawer.vue`
+- [MODIFY] `web/src/views/AjustesView.vue`
+- [MODIFY] `web/src/components/overlays/InsumoDetalle.vue`
+- [MODIFY] `web/src/components/overlays/ProductoDetalle.vue`
