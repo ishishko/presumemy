@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: presumemi-api
+    env: node
+    rootDir: api
+    buildCommand: npm install && npx puppeteer browsers install chrome && npm run build
+    startCommand: node dist/index.js
+    envVars:
+      # Puppeteer: el cache debe estar en /opt/render/project/ para sobrevivir del build al runtime
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/project/.puppeteer
+      - key: SUPABASE_STORAGE_BUCKET
+        value: presupuestos-pdf
+      - key: NODE_ENV
+        value: production
+      # Configurar en el dashboard de Render (valores secretos o específicos del entorno):
+      - key: FRONTEND_URL
+        sync: false   # ej. https://presumemi.netlify.app (sin barra final)
+      - key: NETLIFY_URL
+        sync: false   # misma URL que FRONTEND_URL — se usa en la lista de orígenes CORS
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
