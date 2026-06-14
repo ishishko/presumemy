@@ -161,5 +161,6 @@ El MVP está funcionalmente completo para el uso diario de MemyDeni. Todos los m
 | **Sanitizar JSONB de domicilio (Ajustes)** | Baja | Al guardar domicilio, los campos vacíos se envían como "" en el JSON. Se sugiere sanitizar el objeto antes del PUT hacia la API para optimizar el almacenamiento en Supabase. |
 | **Error de signo en Movimiento (Egresos)** | Alta | En MovimientoDrawer.vue, la variable monto se envía con signo negativo para Egresos (signo = 'out'), lo cual causa que la API devuelva un error 400 ya que Zod requiere monto >= 0.01. La API ya calcula la utilidad basándose en el tipo de transacción, por lo que el frontend debería enviar siempre el valor absoluto (positivo). |
 | **Dashboard V2** | Baja | Widgets personalizables, agenda de entregas, top clientes. El dashboard actual es suficiente para MVP. |
+| **Consolidacion de Categorias** | Alta | Las categoria no estan pudiendo ser editadas.La ideas es poder editar directamente las pils/tags de cada seccion del sistema Independientemente. |
 
 

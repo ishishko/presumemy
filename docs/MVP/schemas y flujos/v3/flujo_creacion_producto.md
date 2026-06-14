@@ -20,7 +20,7 @@ El usuario gestiona el catálogo desde la sección `/productos`:
 ## El Listado de Productos
 El catálogo se presenta en un grid de tarjetas visuales densas que resumen la ficha técnica del producto.
 
-![Listado de Productos](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/productos_list_v3.png)
+![Listado de Productos](media/productos_list_v3.png)
 
 ### Elementos de la Tarjeta de Producto
 * **Miniatura (Thumb):** Imagen del producto si posee `imagenUrl`; de lo contrario, muestra un placeholder vectorial neutro.
@@ -33,7 +33,7 @@ El catálogo se presenta en un grid de tarjetas visuales densas que resumen la f
 ## Formulario de Creación y Edición (Overlay)
 Al abrir el formulario, se desliza un panel lateral que organiza la carga de datos en tres columnas de diseño denso a nivel superior (`pd-top`) y una sección inferior expandible para la receta BOM.
 
-![Formulario de Producto](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/formulario_producto_overlay_v3.png)
+![Formulario de Producto](media/formulario_producto_overlay_v3.png)
 
 ### Paso 1 — Datos básicos (Identidad y Fotos)
 Esta sección define la ficha identitaria y visibilidad del producto:
@@ -124,9 +124,9 @@ $$\text{Precio calculado} = \$ 593.00 + \$ 500.00 = \$ 1,093.00$$
 ### Listado con Nuevo Producto Guardado
 Una vez completado el flujo de creación y guardados los cambios, el grid se refresca de inmediato mostrando la tarjeta del nuevo producto:
 
-![Listado de Productos con Registro Nuevo](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/productos_list_saved_v3.png)
+![Listado de Productos con Registro Nuevo](media/productos_list_saved_v3.png)
 
 ### Video del Recorrido Completo (Walkthrough)
 Se ha grabado un video interactivo que reproduce paso a paso todo el flujo de creación del producto, desde la apertura del panel, la configuración de datos básicos, la activación del costo por receta BOM asociando un insumo de catálogo, la configuración del margen de ganancia, hasta su guardado exitoso y verificación en la cuadrícula:
 
-🎥 **Ver Video del Recorrido:** [flujo_creacion_producto.mp4](file:///d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/flujo_creacion_producto.mp4)
+🎥 **Ver Video del Recorrido:** [flujo_creacion_producto.mp4](media/flujo_creacion_producto.mp4)

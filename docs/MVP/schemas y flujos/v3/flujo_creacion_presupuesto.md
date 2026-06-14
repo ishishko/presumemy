@@ -127,9 +127,9 @@ Diseñada como una planilla densa e interactiva con comportamiento de hoja de c�
 ### Listado con Nuevo Presupuesto Guardado
 Una vez completado el flujo y guardado el borrador, el listado actualiza la tabla mostrando el folio nuevo y el estado correspondiente:
 
-![Listado de Presupuestos con Registro Nuevo](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/presupuestos_list_saved_v3.png)
+![Listado de Presupuestos con Registro Nuevo](media/presupuestos_list_saved_v3.png)
 
 ### Video del Recorrido Completo (Walkthrough)
 Se ha grabado un video interactivo que reproduce paso a paso todo el flujo de creación del presupuesto desde el inicio hasta su guardado final y retorno al listado:
 
-🎥 **Ver Video del Recorrido:** [flujo_creacion_presupuesto.mp4](file:///d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/flujo_creacion_presupuesto.mp4)
+🎥 **Ver Video del Recorrido:** [flujo_creacion_presupuesto.mp4](media/flujo_creacion_presupuesto.mp4)

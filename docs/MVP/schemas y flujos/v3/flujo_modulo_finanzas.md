@@ -22,7 +22,7 @@ El usuario gestiona las finanzas accediendo a la ruta `/finanzas` desde la barra
 ## Pestaña 1 — Movimientos (El Libro Diario)
 Presenta el listado cronológico de transacciones financieras. Cuenta con filtros interactivos por tipo de transacción y cuenta para facilitar las conciliaciones.
 
-![Listado de Movimientos](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/finanzas_movimientos_list_v3.png)
+![Listado de Movimientos](media/finanzas_movimientos_list_v3.png)
 
 ### Estructura de Campos en MovimientoDrawer
 
@@ -46,7 +46,7 @@ Presenta el listado cronológico de transacciones financieras. Cuenta con filtro
 ## Formulario de Nuevo Movimiento (Drawer)
 Al pulsar en "+ Movimiento", se despliega el panel lateral de transacciones que resume en su pie de página el **Impacto Neto** de la operación antes de guardar.
 
-![Drawer de Movimiento](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/finanzas_movimiento_drawer_v3.png)
+![Drawer de Movimiento](media/finanzas_movimiento_drawer_v3.png)
 
 
 ---
@@ -54,7 +54,7 @@ Al pulsar en "+ Movimiento", se despliega el panel lateral de transacciones que 
 ## Pestaña 2 — Imprenta (Control de Patri)
 Gestiona y audita las piezas gráficas enviadas a la imprenta tercerizada. Compara la estimación de costos interna contra el precio facturado real.
 
-![Listado de Imprenta](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/finanzas_imprenta_list_v3.png)
+![Listado de Imprenta](media/finanzas_imprenta_list_v3.png)
 
 ### Estructura de Campos en ImprentaDrawer
 
@@ -75,7 +75,7 @@ Gestiona y audita las piezas gráficas enviadas a la imprenta tercerizada. Compa
 ## Formulario de Nueva Orden de Imprenta (Drawer)
 El drawer presenta una sección centralizadora de totales que calcula en tiempo real la diferencia financiera:
 
-![Drawer de Imprenta](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/finanzas_imprenta_drawer_v3.png)
+![Drawer de Imprenta](media/finanzas_imprenta_drawer_v3.png)
 
 > [!NOTE]
 > **Auditoría de Desviación de Imprenta (Diferencia):**
@@ -106,7 +106,7 @@ El drawer presenta una sección centralizadora de totales que calcula en tiempo 
 ### Listado de Movimientos con Transacción Guardada
 Una vez guardado el movimiento de ingreso, la tabla central de transacciones se actualiza de inmediato ordenándose de forma cronológica, y los totalizadores superiores recalculan la Utilidad neta del período:
 
-![Listado de Movimientos Guardado](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/finanzas_movimientos_list_saved_v3.png)
+![Listado de Movimientos Guardado](media/finanzas_movimientos_list_saved_v3.png)
 
 ### Video del Recorrido Completo (Walkthrough)
 Se ha grabado un video interactivo que reproduce el flujo financiero completo:
@@ -116,5 +116,5 @@ Se ha grabado un video interactivo que reproduce el flujo financiero completo:
 4. Apertura del drawer de Imprenta, registro de una orden de impresión a *Patri* de `15` pliegos con cálculo automático de diferencia a favor, y guardado.
 5. Retorno al listado de movimientos contables y verificación de saldos recalculados.
 
-🎥 **Ver Video del Recorrido:** [flujo_modulo_finanzas.mp4](file:///d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/flujo_modulo_finanzas.mp4)
+🎥 **Ver Video del Recorrido:** [flujo_modulo_finanzas.mp4](media/flujo_modulo_finanzas.mp4)
 

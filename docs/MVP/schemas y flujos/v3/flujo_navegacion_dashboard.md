@@ -18,7 +18,7 @@ El Dashboard es el panel central de MemyDeni:
 ## Interfaz General y KPIs
 La cabecera del Dashboard muestra tres tarjetas totalizadoras que computan las métricas agregadas del mes corriente de forma automática:
 
-![Panel de Inicio](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/dashboard_v3.png)
+![Panel de Inicio](media/dashboard_v3.png)
 
 ### Estructura de Tarjetas de Indicadores (KPIs)
 
@@ -53,7 +53,7 @@ router.push({ name: 'presupuestos', query: { edit: p.folio } })
 
 Esto traslada al usuario a `/presupuestos?edit=P-XXXX`. El módulo comercial procesa la URL y despliega el panel de edición:
 
-![Edición de Presupuesto desde Dashboard](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/dashboard_presupuesto_v3.png)
+![Edición de Presupuesto desde Dashboard](media/dashboard_presupuesto_v3.png)
 
 > [!NOTE]
 > **Carga Dinámica de Detalles (Lazy Fetching):**
@@ -82,7 +82,7 @@ router.push({ name: 'insumos', query: { edit: i.codigo } })
 
 El usuario es redirigido a `/insumos?edit=I-XXXX`. La vista de Insumos detecta el parámetro y abre automáticamente el overlay de edición con los catálogos y proveedores precargados:
 
-![Edición de Insumo desde Dashboard](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/dashboard_insumo_v3.png)
+![Edición de Insumo desde Dashboard](media/dashboard_insumo_v3.png)
 
 > [!IMPORTANT]
 > **Consistencia Relacional y Auditoría:**
@@ -100,4 +100,4 @@ Se ha grabado un video interactivo que reproduce el flujo de navegación del Das
 4. Navegación al módulo de Insumos mediante clic en una fila de la lista de insumos bajos, validando la apertura del overlay de edición y el indicador visual de stock.
 5. Retorno final al Dashboard.
 
-🎥 **Ver Video del Recorrido:** [flujo_navegacion_dashboard.mp4](file:///d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/flujo_navegacion_dashboard.mp4)
+🎥 **Ver Video del Recorrido:** [flujo_navegacion_dashboard.mp4](media/flujo_navegacion_dashboard.mp4)

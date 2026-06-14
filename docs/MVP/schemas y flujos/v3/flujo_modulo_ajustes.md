@@ -19,7 +19,7 @@ El acceso al módulo de Ajustes está integrado directamente en la barra lateral
 ## Interfaz General y Diseño Bilateral
 La pantalla de Ajustes está organizada en un diseño bilateral de dos columnas (`aj-stack`) que divide las responsabilidades operativas en bloques densos independientes. Cada bloque cuenta con su propio pie de página con control de guardado autónomo (`saveConfig` y `saveSocios`), lo que permite realizar modificaciones específicas sin interferir con las otras áreas.
 
-![Interfaz General de Ajustes](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/ajustes_v3.png)
+![Interfaz General de Ajustes](media/ajustes_v3.png)
 
 ---
 
@@ -53,7 +53,7 @@ Gestionado mediante un switch accesible (`ToggleSwitch`):
 * **Estado Inactivo (`false`):** Los presupuestos enviados no tienen caducidad automática y permanecen válidos de forma indefinida en la base de datos.
 * **Estado Activo (`true`):** Despliega dinámicamente un campo condicional para ingresar los **Días de espera**.
 
-![Ajustes con Cancelación Activa](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/ajustes_condicional_v3.png)
+![Ajustes con Cancelación Activa](media/ajustes_condicional_v3.png)
 
 ### Lógica Condicional del Vencimiento:
 
@@ -101,7 +101,7 @@ Muestra la información de sesión de la propietaria en la instancia activa del 
 ### Ajustes con Cambios Guardados
 Una vez confirmados los cambios en la base de datos, los indicadores de "Sin guardar" desaparecen y la moneda base se actualiza de inmediato para formatear todos los montos monetarios en la sesión actual:
 
-![Ajustes Guardados con Éxito](d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/ajustes_saved_v3.png)
+![Ajustes Guardados con Éxito](media/ajustes_saved_v3.png)
 
 ### Video del Recorrido Completo (Walkthrough)
 Se ha grabado un video interactivo que reproduce el caso de uso completo de administración:
@@ -111,4 +111,4 @@ Se ha grabado un video interactivo que reproduce el caso de uso completo de admi
 4. Modificación de porcentajes de socios desactivando y reactivando la cuenta para comprobar las alertas de Suma de Control (70% inválido, 100% válido).
 5. Guardado exitoso de los cambios de configuración y finanzas.
 
-🎥 **Ver Video del Recorrido:** [flujo_modulo_ajustes.mp4](file:///d:/Desarrollando/presumemy/docs/MVP/mvp%20correcciones/v3/media/flujo_modulo_ajustes.mp4)
+🎥 **Ver Video del Recorrido:** [flujo_modulo_ajustes.mp4](media/flujo_modulo_ajustes.mp4)
