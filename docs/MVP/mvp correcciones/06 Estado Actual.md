@@ -152,8 +152,14 @@ El MVP está funcionalmente completo para el uso diario de MemyDeni. Todos los m
 | **Auditoría de flujos Insumos, Productos y Presupuestos** | Alta | Primera auditoría end-to-end de los flujos principales tras 6 fases de cambios. Detectar regressions, gaps de UX y comportamientos inesperados. |
 | **Búsqueda global (topbar)** | Alta | UI existe (placeholder en AppHeader), lógica no conectada. Requiere endpoint multi-entidad en backend + composable con debounce + dropdown de resultados en frontend. |
 | **Paginación en UI** | Media | Stores cargan con `limit: 100`. Suficiente para el volumen actual de MemyDeni, pero es deuda técnica. |
+| **Tokenizar colores de canales (Clientes)** | Media | En ClientesView.vue, los colores hexadecimales de los canales (Instagram, WhatsApp, etc.) están hardcodeados en JavaScript en lugar de usar variables CSS custom o clases semánticas del Design System. |
 | **Tests (Vitest)** | Media | 0 tests escritos. No bloquea el lanzamiento pero aumenta el riesgo de regresiones. |
 | **Export CSV de tablas** | Baja | No bloqueante para MVP. |
 | **Modo oscuro** | Baja | Nice-to-have. Toggle en Ajustes > Apariencia. |
 | **Campo Medidas en productos** | Baja | Mencionado desde v2, nunca priorizado. |
+| **Inicializar fila BOM vacía (Productos)** | Baja | Al activar "Costo por receta", la tabla de receta BOM se despliega vacía. Debería inicializar automáticamente con 1 fila en blanco para ahorrar un clic al usuario (igual que en Presupuestos). |
+| **Sanitizar JSONB de domicilio (Ajustes)** | Baja | Al guardar domicilio, los campos vacíos se envían como "" en el JSON. Se sugiere sanitizar el objeto antes del PUT hacia la API para optimizar el almacenamiento en Supabase. |
+| **Error de signo en Movimiento (Egresos)** | Alta | En MovimientoDrawer.vue, la variable monto se envía con signo negativo para Egresos (signo = 'out'), lo cual causa que la API devuelva un error 400 ya que Zod requiere monto >= 0.01. La API ya calcula la utilidad basándose en el tipo de transacción, por lo que el frontend debería enviar siempre el valor absoluto (positivo). |
 | **Dashboard V2** | Baja | Widgets personalizables, agenda de entregas, top clientes. El dashboard actual es suficiente para MVP. |
+
+
