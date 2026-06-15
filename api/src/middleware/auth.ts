@@ -1,4 +1,5 @@
 import { createMiddleware } from 'hono/factory'
+import { HTTPException } from 'hono/http-exception'
 import { unauthorized } from '../utils/errors.js'
 
 export interface UserPayload {
@@ -49,9 +50,10 @@ export const authMiddleware = createMiddleware(async (c, next) => {
 
     await next()
   } catch (error) {
-    if (error instanceof Error && error.name === 'HTTPException') {
+    if (error instanceof HTTPException) {
       throw error
     }
+    console.error('❌ Error no controlado en authMiddleware:', error)
     throw unauthorized('Error de autenticación')
   }
 })

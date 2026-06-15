@@ -58,12 +58,14 @@ app.onError((err, c) => {
 // Start server
 const port = parseInt(process.env.PORT || '3000', 10)
 
-serve({
-  fetch: app.fetch,
-  port,
-  hostname: '0.0.0.0',
-}, (info) => {
-  console.log(`🚀 Servidor corriendo en http://0.0.0.0:${info.port}`)
-})
+if (process.env.NODE_ENV !== 'test') {
+  serve({
+    fetch: app.fetch,
+    port,
+    hostname: '0.0.0.0',
+  }, (info) => {
+    console.log(`🚀 Servidor corriendo en http://0.0.0.0:${info.port}`)
+  })
+}
 
 export default app
