@@ -12,7 +12,9 @@
       "Bash(git -C 'D:\\\\Desarrollando\\\\presumemy' status --short -- api/prisma/schema.prisma)",
       "Bash(git -C 'D:\\\\Desarrollando\\\\presumemy' status --short -- api/)",
       "Bash(Get-ChildItem -Path \"D:\\\\Desarrollando\\\\presumemy\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(cd /d \"D:\\\\Desarrollando\\\\presumemy\")",
+      "Bash(dir /s /b /a:d)"
     ]
   }
 }
