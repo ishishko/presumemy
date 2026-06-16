@@ -2,8 +2,8 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
-import { notFound } from '../utils/errors.js'
-import { productoSchema, productoUpdateSchema, paginationSchema } from '../types/productos.js'
+import { notFound, conflict } from '../utils/errors.js'
+import { productoSchema, productoUpdateSchema, paginationSchema, categoriaSchema } from '../types/productos.js'
 
 const route = new Hono()
 
@@ -56,8 +56,116 @@ route.get('/categorias', async (c) => {
   const categorias = await prisma.categoriaProducto.findMany({
     where: { activo: true },
     orderBy: { nombre: 'asc' },
+    select: {
+      id: true,
+      nombre: true,
+      activo: true,
+      _count: {
+        select: {
+          productos: {
+            where: { activo: true },
+          },
+        },
+      },
+    },
   })
   return c.json({ data: categorias })
+})
+
+// =========================================================
+// POST /api/productos/categorias — Crear categoria producto
+// =========================================================
+route.post('/categorias', zValidator('json', categoriaSchema), async (c) => {
+  const data = c.req.valid('json')
+
+  const existing = await prisma.categoriaProducto.findFirst({
+    where: {
+      nombre: { equals: data.nombre, mode: 'insensitive' },
+      activo: true,
+    },
+  })
+
+  if (existing) {
+    throw conflict('Ya existe una categoría con ese nombre')
+  }
+
+  const categoria = await prisma.categoriaProducto.create({
+    data: {
+      nombre: data.nombre,
+    },
+  })
+
+  return c.json({ data: categoria }, 201)
+})
+
+// =========================================================
+// PUT /api/productos/categorias/:id — Actualizar categoria producto
+// =========================================================
+route.put('/categorias/:id', zValidator('json', categoriaSchema), async (c) => {
+  const id = parseInt(c.req.param('id'))
+  const data = c.req.valid('json')
+
+  const existing = await prisma.categoriaProducto.findUnique({
+    where: { id, activo: true },
+  })
+
+  if (!existing) {
+    throw notFound('Categoría no encontrada')
+  }
+
+  const duplicate = await prisma.categoriaProducto.findFirst({
+    where: {
+      id: { not: id },
+      nombre: { equals: data.nombre, mode: 'insensitive' },
+      activo: true,
+    },
+  })
+
+  if (duplicate) {
+    throw conflict('Ya existe otra categoría con ese nombre')
+  }
+
+  const categoria = await prisma.categoriaProducto.update({
+    where: { id },
+    data: {
+      nombre: data.nombre,
+    },
+  })
+
+  return c.json({ data: categoria })
+})
+
+// =========================================================
+// DELETE /api/productos/categorias/:id — Eliminar categoria producto
+// =========================================================
+route.delete('/categorias/:id', async (c) => {
+  const id = parseInt(c.req.param('id'))
+
+  const existing = await prisma.categoriaProducto.findUnique({
+    where: { id, activo: true },
+  })
+
+  if (!existing) {
+    throw notFound('Categoría no encontrada')
+  }
+
+  const count = await prisma.producto.count({
+    where: {
+      categoriaId: id,
+      activo: true,
+    },
+  })
+
+  if (count > 0) {
+    throw conflict(`No se puede eliminar: tiene ${count} elementos asociados`)
+  }
+
+  await prisma.categoriaProducto.update({
+    where: { id },
+    data: { activo: false },
+  })
+
+  return c.json({ message: 'Categoría eliminada' })
 })
 
 // =========================================================

@@ -25,6 +25,7 @@ export interface CategoriaInsumo {
   id: number
   nombre: string
   activo: boolean
+  _count?: { insumos: number }
 }
 
 export interface InsumoProveedor {
@@ -63,6 +64,7 @@ export interface CategoriaProducto {
   id: number
   nombre: string
   activo: boolean
+  _count?: { productos: number }
 }
 
 export interface CostoProductoInsumo {

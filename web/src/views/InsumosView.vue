@@ -7,6 +7,7 @@ import { createTrigger } from '@/composables/useCreateTrigger'
 import { useInsumosStore } from '@/stores/insumos'
 import InsumoDetalle from '@/components/overlays/InsumoDetalle.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import CategoriaPills from '@/components/ui/CategoriaPills.vue'
 import { useToast } from '@/composables/useToast'
 import type { Insumo } from '@/types'
 
@@ -19,11 +20,14 @@ const emit = defineEmits<{
 }>()
 
 const stateFilter = ref('todos')
-const catFilter = ref('todas')
+const catFilter = ref<number | 'todas'>('todas')
 const showOverlay = ref(false)
 const editingInsumo = ref<Insumo | null>(null)
 const showConfirmDelete = ref(false)
 const deletingInsumo = ref<Insumo | null>(null)
+
+const showConfirmDeleteCat = ref(false)
+const deletingCat = ref<any | null>(null)
 
 const showLoading = computed(() => !store.hasFetched)
 
@@ -46,7 +50,7 @@ const counts = computed(() => {
 const filtered = computed(() => {
   return store.data.filter((i) => {
     if (stateFilter.value !== 'todos' && getNivel(i) !== stateFilter.value) return false
-    if (catFilter.value !== 'todas' && i.categoria?.nombre !== catFilter.value) return false
+    if (catFilter.value !== 'todas' && i.categoriaId !== catFilter.value) return false
     return true
   })
 })
@@ -111,6 +115,44 @@ async function handleDeleteConfirm() {
   deletingInsumo.value = null
 }
 
+async function handleCreateCat(nombre: string) {
+  try {
+    await store.createCategoria(nombre)
+    toast('Categoría creada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al crear categoría', 'error')
+  }
+}
+
+async function handleRenameCat(payload: { id: number; nombre: string }) {
+  try {
+    await store.updateCategoria(payload.id, payload.nombre)
+    toast('Categoría actualizada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al actualizar categoría', 'error')
+  }
+}
+
+function handleRemoveCatClick(cat: any) {
+  deletingCat.value = cat
+  showConfirmDeleteCat.value = true
+}
+
+async function handleDeleteCatConfirm() {
+  if (!deletingCat.value) return
+  try {
+    await store.removeCategoria(deletingCat.value.id)
+    toast('Categoría eliminada', 'info')
+    if (catFilter.value === deletingCat.value.id) {
+      catFilter.value = 'todas'
+    }
+  } catch (e: any) {
+    toast(e.message || 'Error al eliminar categoría', 'error')
+  }
+  showConfirmDeleteCat.value = false
+  deletingCat.value = null
+}
+
 function proveedorPrincipal(i: Insumo): string {
   const principal = i.proveedores?.find((p) => p.esPrincipal)
   return principal?.proveedor?.nombre || ''
@@ -169,18 +211,14 @@ watch(createTrigger, (val) => {
       </button>
     </div>
 
-    <div class="insumos-cat-row">
-      <button
-        :class="['insumos-cat-pill', catFilter === 'todas' && 'active']"
-        @click="catFilter = 'todas'"
-      >Todas</button>
-      <button
-        v-for="c in store.categorias"
-        :key="c.id"
-        :class="['insumos-cat-pill', catFilter === c.nombre && 'active']"
-        @click="catFilter = c.nombre"
-      >{{ c.nombre }}</button>
-    </div>
+    <CategoriaPills
+      v-model="catFilter"
+      variant="insumos"
+      :categorias="store.categorias"
+      @create="handleCreateCat"
+      @rename="handleRenameCat"
+      @remove="handleRemoveCatClick"
+    />
 
     <div class="table-wrap">
       <table class="data-table insumos-table">
@@ -269,6 +307,18 @@ watch(createTrigger, (val) => {
     variant="danger"
     @confirm="handleDeleteConfirm"
     @cancel="showConfirmDelete = false; deletingInsumo = null"
+  />
+
+  <ConfirmDialog
+    :open="showConfirmDeleteCat"
+    title="Eliminar categoría"
+    :message="deletingCat && (deletingCat._count?.insumos ?? 0) > 0
+      ? `La categoría ${deletingCat.nombre} tiene ${deletingCat._count.insumos} insumos asociados. No se puede eliminar.`
+      : `Vas a eliminar la categoría ${deletingCat?.nombre}. Esta acción no se puede deshacer.`"
+    :confirm-label="(deletingCat && (deletingCat._count?.insumos ?? 0) > 0) ? '' : 'Eliminar'"
+    variant="danger"
+    @confirm="handleDeleteCatConfirm"
+    @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />
 </template>
 

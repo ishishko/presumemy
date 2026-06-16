@@ -33,3 +33,8 @@ export const paginationSchema = z.object({
 
 export type InsumoCreate = z.infer<typeof insumoSchema>
 export type InsumoUpdate = z.infer<typeof insumoUpdateSchema>
+
+export const categoriaSchema = z.object({
+  nombre: z.string().trim().min(1, 'El nombre es requerido').max(40),
+})
+

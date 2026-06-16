@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get } from '@/services/api'
+import { get, post, put, del } from '@/services/api'
 import type { Insumo, CategoriaInsumo, PaginationResult } from '@/types'
 
 export const useInsumosStore = defineStore('insumos', () => {
@@ -40,5 +40,32 @@ export const useInsumosStore = defineStore('insumos', () => {
     }
   }
 
-  return { data, categorias, loading, hasFetched, lastFetched, fetch, remove, upsert }
+  async function createCategoria(nombre: string) {
+    await post<CategoriaInsumo>('/insumos/categorias', { nombre })
+    await fetch()
+  }
+
+  async function updateCategoria(id: number, nombre: string) {
+    await put<CategoriaInsumo>('/insumos/categorias', id, { nombre })
+    await fetch()
+  }
+
+  async function removeCategoria(id: number) {
+    await del('/insumos/categorias', id)
+    await fetch()
+  }
+
+  return {
+    data,
+    categorias,
+    loading,
+    hasFetched,
+    lastFetched,
+    fetch,
+    remove,
+    upsert,
+    createCategoria,
+    updateCategoria,
+    removeCategoria,
+  }
 })

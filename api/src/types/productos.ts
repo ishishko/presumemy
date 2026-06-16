@@ -28,3 +28,8 @@ export const paginationSchema = z.object({
 
 export type ProductoCreate = z.infer<typeof productoSchema>
 export type ProductoUpdate = z.infer<typeof productoUpdateSchema>
+
+export const categoriaSchema = z.object({
+  nombre: z.string().trim().min(1, 'El nombre es requerido').max(40),
+})
+

@@ -6,6 +6,7 @@ import { createTrigger } from '@/composables/useCreateTrigger'
 import { useProductosStore } from '@/stores/productos'
 import ProductoDetalle from '@/components/overlays/ProductoDetalle.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import CategoriaPills from '@/components/ui/CategoriaPills.vue'
 import { useToast } from '@/composables/useToast'
 import type { Producto } from '@/types'
 
@@ -16,17 +17,20 @@ const emit = defineEmits<{
 const store = useProductosStore()
 const { toast } = useToast()
 
-const catFilter = ref('todas')
+const catFilter = ref<number | 'todas'>('todas')
 const showOverlay = ref(false)
 const editingProducto = ref<Producto | null>(null)
 const showConfirmDelete = ref(false)
 const deletingProducto = ref<Producto | null>(null)
 
+const showConfirmDeleteCat = ref(false)
+const deletingCat = ref<any | null>(null)
+
 const showLoading = computed(() => !store.hasFetched)
 
 const filtered = computed(() => {
   if (catFilter.value === 'todas') return store.data
-  return store.data.filter((p) => p.categoria?.nombre === catFilter.value)
+  return store.data.filter((p) => p.categoriaId === catFilter.value)
 })
 
 function money(v: number): string {
@@ -84,6 +88,44 @@ async function handleDeleteConfirm() {
   deletingProducto.value = null
 }
 
+async function handleCreateCat(nombre: string) {
+  try {
+    await store.createCategoria(nombre)
+    toast('Categoría creada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al crear categoría', 'error')
+  }
+}
+
+async function handleRenameCat(payload: { id: number; nombre: string }) {
+  try {
+    await store.updateCategoria(payload.id, payload.nombre)
+    toast('Categoría actualizada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al actualizar categoría', 'error')
+  }
+}
+
+function handleRemoveCatClick(cat: any) {
+  deletingCat.value = cat
+  showConfirmDeleteCat.value = true
+}
+
+async function handleDeleteCatConfirm() {
+  if (!deletingCat.value) return
+  try {
+    await store.removeCategoria(deletingCat.value.id)
+    toast('Categoría eliminada', 'info')
+    if (catFilter.value === deletingCat.value.id) {
+      catFilter.value = 'todas'
+    }
+  } catch (e: any) {
+    toast(e.message || 'Error al eliminar categoría', 'error')
+  }
+  showConfirmDeleteCat.value = false
+  deletingCat.value = null
+}
+
 onMounted(loadProductos)
 
 watch(createTrigger, (val) => {
@@ -98,18 +140,14 @@ watch(createTrigger, (val) => {
   <div class="content" style="position: relative">
     <div v-if="showLoading" class="card"><p>Cargando productos...</p></div>
     <template v-else>
-    <div class="pill-row">
-      <button
-        :class="['pill', catFilter === 'todas' && 'active']"
-        @click="catFilter = 'todas'"
-      >Todos</button>
-      <button
-        v-for="c in store.categorias"
-        :key="c.id"
-        :class="['pill', catFilter === c.nombre && 'active']"
-        @click="catFilter = c.nombre"
-      >{{ c.nombre }}</button>
-    </div>
+    <CategoriaPills
+      v-model="catFilter"
+      variant="productos"
+      :categorias="store.categorias"
+      @create="handleCreateCat"
+      @rename="handleRenameCat"
+      @remove="handleRemoveCatClick"
+    />
 
     <div v-if="filtered.length === 0" class="prod-empty">
       <p>No hay productos en esta categoría</p>
@@ -169,6 +207,18 @@ watch(createTrigger, (val) => {
     variant="danger"
     @confirm="handleDeleteConfirm"
     @cancel="showConfirmDelete = false; deletingProducto = null"
+  />
+
+  <ConfirmDialog
+    :open="showConfirmDeleteCat"
+    title="Eliminar categoría"
+    :message="deletingCat && (deletingCat._count?.productos ?? 0) > 0
+      ? `La categoría ${deletingCat.nombre} tiene ${deletingCat._count.productos} productos asociados. No se puede eliminar.`
+      : `Vas a eliminar la categoría ${deletingCat?.nombre}. Esta acción no se puede deshacer.`"
+    :confirm-label="(deletingCat && (deletingCat._count?.productos ?? 0) > 0) ? '' : 'Eliminar'"
+    variant="danger"
+    @confirm="handleDeleteCatConfirm"
+    @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />
 </template>
 
