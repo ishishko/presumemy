@@ -41,6 +41,11 @@
   --green-500:    #34A56C;   /* acento / sombra de estado válido */
   --green-700:    #1B7A4B;   /* verde fuerte (texto label) */
 
+  /* -------- Orange (warning / low stock) — no existía en el DS -------- */
+  --orange-50:    #FFF7ED;   /* fill suave */
+  --orange-500:   #F97316;   /* acento / estado bajo stock */
+  --orange-ink:   #C24F00;   /* naranja fuerte (legible para texto) */
+
   /* -------- State helpers -------- */
   --focus-ring:   0 0 0 3px rgba(117, 204, 206, 0.45);  /* teal */
   --danger-ring:  0 0 0 3px rgba(234, 95, 60, 0.35);

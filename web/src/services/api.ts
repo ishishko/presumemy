@@ -51,6 +51,14 @@ export function del(url: string, id: number) {
   })
 }
 
+export function delWithBody<T>(url: string, id: number, body: any) {
+  return api<T>(`${url}/${id}`, {
+    method: 'DELETE',
+    body,
+    headers: createHeaders(),
+  })
+}
+
 export function patch<T>(url: string, id: number | string, body: any): Promise<T> {
   return api<{ data: T }>(`${url}/${id}`, {
     method: 'PATCH',
@@ -65,6 +73,7 @@ export default {
   post,
   put,
   del,
+  delWithBody,
   patch,
 }
 

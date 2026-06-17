@@ -2,8 +2,8 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
-import { notFound, conflict } from '../utils/errors.js'
-import { productoSchema, productoUpdateSchema, paginationSchema, categoriaSchema } from '../types/productos.js'
+import { notFound, badRequest, conflict } from '../utils/errors.js'
+import { productoSchema, productoUpdateSchema, paginationSchema, categoriaSchema, categoriaDeleteSchema } from '../types/productos.js'
 
 const route = new Hono()
 
@@ -78,6 +78,11 @@ route.get('/categorias', async (c) => {
 route.post('/categorias', zValidator('json', categoriaSchema), async (c) => {
   const data = c.req.valid('json')
 
+  const total = await prisma.categoriaProducto.count({ where: { activo: true } })
+  if (total >= 12) {
+    throw conflict('Máximo 12 categorías por sección')
+  }
+
   const existing = await prisma.categoriaProducto.findFirst({
     where: {
       nombre: { equals: data.nombre, mode: 'insensitive' },
@@ -138,8 +143,9 @@ route.put('/categorias/:id', zValidator('json', categoriaSchema), async (c) => {
 // =========================================================
 // DELETE /api/productos/categorias/:id — Eliminar categoria producto
 // =========================================================
-route.delete('/categorias/:id', async (c) => {
+route.delete('/categorias/:id', zValidator('json', categoriaDeleteSchema), async (c) => {
   const id = parseInt(c.req.param('id'))
+  const body = c.req.valid('json')
 
   const existing = await prisma.categoriaProducto.findUnique({
     where: { id, activo: true },
@@ -157,13 +163,36 @@ route.delete('/categorias/:id', async (c) => {
   })
 
   if (count > 0) {
-    throw conflict(`No se puede eliminar: tiene ${count} elementos asociados`)
-  }
+    if (!body.reasignarA) {
+      throw badRequest('Indicá una categoría destino')
+    }
+    const targetCat = await prisma.categoriaProducto.findUnique({
+      where: { id: body.reasignarA, activo: true },
+    })
+    if (!targetCat) {
+      throw notFound('Categoría destino no encontrada')
+    }
+    if (body.reasignarA === id) {
+      throw badRequest('No podés reasignar a la misma categoría que estás eliminando')
+    }
 
-  await prisma.categoriaProducto.update({
-    where: { id },
-    data: { activo: false },
-  })
+    // Reasignar e inactivar en transacción
+    await prisma.$transaction([
+      prisma.producto.updateMany({
+        where: { categoriaId: id, activo: true },
+        data: { categoriaId: body.reasignarA },
+      }),
+      prisma.categoriaProducto.update({
+        where: { id },
+        data: { activo: false },
+      }),
+    ])
+  } else {
+    await prisma.categoriaProducto.update({
+      where: { id },
+      data: { activo: false },
+    })
+  }
 
   return c.json({ message: 'Categoría eliminada' })
 })

@@ -7,6 +7,7 @@ import { useProductosStore } from '@/stores/productos'
 import ProductoDetalle from '@/components/overlays/ProductoDetalle.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import CategoriaPills from '@/components/ui/CategoriaPills.vue'
+import CategoriaDeleteDialog from '@/components/ui/CategoriaDeleteDialog.vue'
 import { useToast } from '@/composables/useToast'
 import type { Producto } from '@/types'
 
@@ -111,10 +112,10 @@ function handleRemoveCatClick(cat: any) {
   showConfirmDeleteCat.value = true
 }
 
-async function handleDeleteCatConfirm() {
+async function handleDeleteCatConfirm(reasignarA?: number) {
   if (!deletingCat.value) return
   try {
-    await store.removeCategoria(deletingCat.value.id)
+    await store.removeCategoria(deletingCat.value.id, reasignarA)
     toast('Categoría eliminada', 'info')
     if (catFilter.value === deletingCat.value.id) {
       catFilter.value = 'todas'
@@ -209,14 +210,10 @@ watch(createTrigger, (val) => {
     @cancel="showConfirmDelete = false; deletingProducto = null"
   />
 
-  <ConfirmDialog
+  <CategoriaDeleteDialog
     :open="showConfirmDeleteCat"
-    title="Eliminar categoría"
-    :message="deletingCat && (deletingCat._count?.productos ?? 0) > 0
-      ? `La categoría ${deletingCat.nombre} tiene ${deletingCat._count.productos} productos asociados. No se puede eliminar.`
-      : `Vas a eliminar la categoría ${deletingCat?.nombre}. Esta acción no se puede deshacer.`"
-    :confirm-label="(deletingCat && (deletingCat._count?.productos ?? 0) > 0) ? '' : 'Eliminar'"
-    variant="danger"
+    :categoria="deletingCat"
+    :categorias="store.categorias"
     @confirm="handleDeleteCatConfirm"
     @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />

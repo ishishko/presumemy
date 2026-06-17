@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { ArrowLeft, Check, Trash2, X, Plus, Lock } from '@lucide/vue'
 import { get, post, put, del } from '@/services/api'
 import { useToast } from '@/composables/useToast'
@@ -44,26 +44,27 @@ const showConfirmDelete = ref(false)
 const showConfirmExit = ref(false)
 const errors = ref<Record<string, string>>({})
 
+const overlayRef = ref<HTMLElement | null>(null)
+
 const nivel = computed(() => {
   const s = parseFloat(String(stockActual.value)) || 0
   const m = parseFloat(String(stockMinimo.value)) || 0
-  if (m <= 0) return s > 0 ? 'ok' : 'critico'
-  if (s < m * 0.5) return 'critico'
+  if (s === 0) return 'critico'
   if (s < m) return 'bajo'
   return 'ok'
 })
 
 const nivelMeta: Record<string, { label: string; color: string; bg: string }> = {
-  critico: { label: 'Crítico', color: '#EA5F3C', bg: '#FCEAE4' },
-  bajo: { label: 'Bajo', color: '#8A6A00', bg: '#FFF6D6' },
-  ok: { label: 'OK', color: '#1F5A3E', bg: '#D0EADD' },
+  critico: { label: 'Crítico', color: 'var(--coral-500)', bg: 'var(--coral-50)' },
+  bajo: { label: 'Bajo', color: 'var(--orange-ink)', bg: 'var(--orange-50)' },
+  ok: { label: 'OK', color: 'var(--green-700)', bg: 'var(--green-50)' },
 }
 
 const fillPct = computed(() => {
   const s = parseFloat(String(stockActual.value)) || 0
   const m = parseFloat(String(stockMinimo.value)) || 0
   if (m <= 0) return s > 0 ? 100 : 0
-  return Math.max(2, Math.min(100, (s / (m * 1.5)) * 100))
+  return Math.max(2, Math.min(100, (s / m) * 100))
 })
 
 const costoUnitario = computed(() => {
@@ -154,7 +155,63 @@ function setPrincipal(idx: number) {
   proveedores.value.forEach((p, i) => p.esPrincipal = i === idx)
 }
 
+function validate(): boolean {
+  errors.value = {}
+  if (!nombre.value.trim()) {
+    errors.value.nombre = 'El nombre es requerido'
+  }
+  if (categoriaId.value <= 0) {
+    errors.value.categoriaId = 'La categoría es requerida'
+  }
+  if (!unidad.value.trim()) {
+    errors.value.unidad = 'La unidad de medida es requerida'
+  }
+  if (costoPaquete.value < 0) {
+    errors.value.costoPaquete = 'El costo de la presentación no puede ser negativo'
+  }
+  if (cantidadPack.value <= 0) {
+    errors.value.cantidadPack = 'La cantidad por presentación debe ser mayor a 0'
+  }
+  if (stockActual.value < 0) {
+    errors.value.stockActual = 'El stock actual no puede ser negativo'
+  }
+  if (stockMinimo.value < 0) {
+    errors.value.stockMinimo = 'El stock mínimo no puede ser negativo'
+  }
+
+  // Validar proveedores
+  const selectedProvs = proveedores.value.filter(p => p.proveedorId > 0)
+  if (selectedProvs.length > 0) {
+    const ids = selectedProvs.map(p => p.proveedorId)
+    const hasDuplicates = ids.some((val, i) => ids.indexOf(val) !== i)
+    if (hasDuplicates) {
+      errors.value.proveedores = 'No podés seleccionar el mismo proveedor más de una vez'
+    }
+  }
+
+  const valid = Object.keys(errors.value).length === 0
+  if (!valid) {
+    // Foco en el primer campo inválido
+    const firstErrKey = Object.keys(errors.value)[0]
+    let targetId = ''
+    if (firstErrKey === 'nombre') targetId = 'ins-nombre'
+    else if (firstErrKey === 'categoriaId') targetId = 'ins-categoria'
+    else if (firstErrKey === 'unidad') targetId = 'ins-unidad'
+    else if (firstErrKey === 'costoPaquete') targetId = 'ins-costo-paquete'
+    else if (firstErrKey === 'cantidadPack') targetId = 'ins-cantidad-pack'
+    else if (firstErrKey === 'stockActual') targetId = 'ins-stock-actual'
+    else if (firstErrKey === 'stockMinimo') targetId = 'ins-stock-minimo'
+
+    if (targetId) {
+      document.getElementById(targetId)?.focus()
+    }
+  }
+  return valid
+}
+
 async function handleSave() {
+  if (!validate()) return
+
   const payload: any = {
     nombre: nombre.value,
     categoriaId: categoriaId.value,
@@ -230,17 +287,57 @@ function handleBack() {
   }
 }
 
+// Trap de foco para teclado (A11y)
+function handleTabKey(e: KeyboardEvent) {
+  if (!props.open) return
+  if (e.key !== 'Tab') return
+
+  const container = overlayRef.value
+  if (!container) return
+
+  const focusables = container.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )
+  if (focusables.length === 0) return
+
+  const first = focusables[0]
+  const last = focusables[focusables.length - 1]
+
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      last.focus()
+      e.preventDefault()
+    }
+  } else {
+    if (document.activeElement === last) {
+      first.focus()
+      e.preventDefault()
+    }
+  }
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (!props.open) return
+  if (e.key === 'Escape') {
+    handleBack()
+  } else if (e.key === 'Tab') {
+    handleTabKey(e)
+  }
+}
+
 watch(dirty, (val) => {
   editorDirty.value = val
 })
 
 watch(
   [() => props.open, () => props.insumo],
-  ([open]) => {
+  async ([open]) => {
     if (open) {
       loadInsumo()
       openOverlay()
       editorDirty.value = dirty.value
+      await nextTick()
+      document.getElementById('ins-nombre')?.focus()
     } else {
       closeOverlay()
       editorDirty.value = false
@@ -264,6 +361,7 @@ watch(() => props.open, async (open) => {
 })
 
 onMounted(async () => {
+  document.addEventListener('keydown', onKeydown)
   if (props.open) {
     if (categorias.value.length === 0 || proveedoresList.value.length === 0) {
       try {
@@ -280,68 +378,182 @@ onMounted(async () => {
     loadInsumo()
     openOverlay()
     editorDirty.value = dirty.value
+    await nextTick()
+    document.getElementById('ins-nombre')?.focus()
   }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown)
 })
 
 defineExpose({ loadInsumo })
 </script>
 
 <template>
-    <Transition name="overlay">
-      <div v-if="open" class="id-overlay">
-        <div class="id-body">
-          <div class="id-top">
-            <section class="id-card">
-              <div class="id-card-head">
-                <h4>Identidad &amp; stock</h4>
-                <span v-if="isEdit" class="id-code-badge" title="Código autogenerado">
-                  <Lock :size="10" /> {{ insumo!.codigo }}
-                </span>
-              </div>
+  <Transition name="overlay">
+    <div v-if="open" ref="overlayRef" class="id-overlay">
+      <div class="id-body">
+        <div class="id-body-grid">
+          <!-- SECCIÓN 1: INICIO (Columna izquierda) -->
+          <fieldset class="id-card" aria-label="Datos del insumo">
+            <div v-if="isEdit" class="id-card-head" style="justify-content: flex-end; margin-bottom: -6px;">
+              <span class="id-code-badge" title="Código autogenerado">
+                <Lock :size="10" /> {{ insumo!.codigo }}
+              </span>
+            </div>
 
+            <!-- Identidad / Nombre -->
+            <div class="id-field">
+              <FloatingField
+                id="ins-nombre"
+                label="Nombre"
+                required
+                v-model="nombre"
+                placeholder="Nombre del insumo"
+                class="id-inline-name-ff"
+                :invalid="!!errors.nombre"
+                :describedby="errors.nombre ? 'err-nombre' : undefined"
+              />
+              <div v-if="errors.nombre" id="err-nombre" class="field-error" role="alert">
+                {{ errors.nombre }}
+              </div>
+            </div>
+
+            <div class="id-grid-2">
               <div class="id-field">
-                <label for="ins-nombre">Nombre</label>
-                <input
-                  id="ins-nombre"
-                  class="id-inline-name"
-                  v-model="nombre"
-                  placeholder="Nombre del insumo"
+                <FloatingSelect
+                  id="ins-categoria"
+                  label="Categoría"
+                  required
+                  v-model.number="categoriaId"
+                  :invalid="!!errors.categoriaId"
+                  :describedby="errors.categoriaId ? 'err-categoriaId' : undefined"
+                >
+                  <option :value="0" disabled>Seleccionar</option>
+                  <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                </FloatingSelect>
+                <div v-if="errors.categoriaId" id="err-categoriaId" class="field-error" role="alert">
+                  {{ errors.categoriaId }}
+                </div>
+              </div>
+              <div class="id-field">
+                <FloatingField
+                  id="ins-unidad"
+                  label="Unidad de medida"
+                  required
+                  v-model="unidad"
+                  placeholder="Ej. pliego, m, rollo"
+                  :invalid="!!errors.unidad"
+                  :describedby="errors.unidad ? 'err-unidad' : undefined"
                 />
+                <div v-if="errors.unidad" id="err-unidad" class="field-error" role="alert">
+                  {{ errors.unidad }}
+                </div>
               </div>
+            </div>
 
-              <div class="id-grid-2">
-                <div class="id-field">
-                  <FloatingSelect id="ins-categoria" label="Categoría" required v-model.number="categoriaId">
-                    <option :value="0" disabled>Seleccionar</option>
-                    <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                  </FloatingSelect>
+            <!-- Presentación -->
+            <div class="id-grid-2">
+              <div class="id-field">
+                <FloatingField
+                  id="ins-costo-paquete"
+                  label="Costo de la presentación"
+                  type="number"
+                  prefix="$"
+                  v-model.number="costoPaquete"
+                  min="0"
+                  step="0.01"
+                  :invalid="!!errors.costoPaquete"
+                  :describedby="errors.costoPaquete ? 'err-costo-paquete' : undefined"
+                />
+                <div v-if="errors.costoPaquete" id="err-costo-paquete" class="field-error" role="alert">
+                  {{ errors.costoPaquete }}
                 </div>
-                <div class="id-field">
-                  <FloatingField id="ins-unidad" label="Unidad de medida" required v-model="unidad" placeholder="Ej. pliego, m, rollo" />
+              </div>
+              <div class="id-field">
+                <div class="id-num-with-unit">
+                  <FloatingField
+                    id="ins-cantidad-pack"
+                    label="Cantidad de unidades por presentación"
+                    type="number"
+                    v-model.number="cantidadPack"
+                    min="0"
+                    step="0.01"
+                    :invalid="!!errors.cantidadPack"
+                    :describedby="'cantidad-pack-unit' + (errors.cantidadPack ? ' err-cantidad-pack' : '')"
+                  />
+                  <span id="cantidad-pack-unit" class="id-unit-pill">{{ unidad || 'u' }}</span>
                 </div>
+                <div v-if="errors.cantidadPack" id="err-cantidad-pack" class="field-error" role="alert">
+                  {{ errors.cantidadPack }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Costo unitario unificado -->
+            <div class="id-cost-row grand">
+              <span class="id-cost-label">Costo unitario</span>
+              <span class="id-cost-value text-mono">
+                {{ money(costoUnitario) }} <span class="unit-ref">/ {{ unidad || 'u' }}</span>
+              </span>
+            </div>
+
+            <!-- Toggle activo -->
+            <div class="id-toggle-row">
+              <div class="lbl">
+                <span class="t">Insumo activo</span>
+                <span class="h">Visible en autocompletados y reportes.</span>
+              </div>
+              <ToggleSwitch v-model="activo" aria-label="Insumo activo" />
+            </div>
+          </fieldset>
+
+          <!-- Columna Derecha (Stock + Proveedores) -->
+          <div class="id-col-right-stack">
+            <!-- SECCIÓN 2: CONTROL DE STOCK -->
+            <fieldset class="id-card" aria-labelledby="title-stock">
+              <div class="id-card-head">
+                <h4 id="title-stock">Control de stock</h4>
               </div>
 
               <div class="id-grid-2">
                 <div class="id-field">
                   <div class="id-num-with-unit">
-                    <FloatingField id="ins-stock-actual" label="Stock actual" type="number" v-model.number="stockActual" min="0" step="1" />
-                    <span class="id-unit-pill">{{ unidad || 'u' }}</span>
+                    <FloatingField
+                      id="ins-stock-actual"
+                      label="Stock actual"
+                      type="number"
+                      v-model.number="stockActual"
+                      min="0"
+                      step="1"
+                      :invalid="!!errors.stockActual"
+                      :describedby="'stock-actual-unit' + (errors.stockActual ? ' err-stock-actual' : '')"
+                    />
+                    <span id="stock-actual-unit" class="id-unit-pill">{{ unidad || 'u' }}</span>
+                  </div>
+                  <div v-if="errors.stockActual" id="err-stock-actual" class="field-error" role="alert">
+                    {{ errors.stockActual }}
                   </div>
                 </div>
                 <div class="id-field">
                   <div class="id-num-with-unit">
-                    <FloatingField id="ins-stock-minimo" label="Stock mínimo" type="number" v-model.number="stockMinimo" min="0" step="1" />
-                    <span class="id-unit-pill">{{ unidad || 'u' }}</span>
+                    <FloatingField
+                      id="ins-stock-minimo"
+                      label="Stock mínimo"
+                      type="number"
+                      v-model.number="stockMinimo"
+                      min="0"
+                      step="1"
+                      :invalid="!!errors.stockMinimo"
+                      :describedby="'stock-minimo-unit' + (errors.stockMinimo ? ' err-stock-minimo' : '')"
+                    />
+                    <span id="stock-minimo-unit" class="id-unit-pill">{{ unidad || 'u' }}</span>
+                  </div>
+                  <div v-if="errors.stockMinimo" id="err-stock-minimo" class="field-error" role="alert">
+                    {{ errors.stockMinimo }}
                   </div>
                 </div>
-              </div>
-
-              <div class="id-toggle-row">
-                <div class="lbl">
-                  <span class="t">Insumo activo</span>
-                  <span class="h">Visible en autocompletados y reportes.</span>
-                </div>
-                <ToggleSwitch v-model="activo" aria-label="Insumo activo" />
               </div>
 
               <div class="id-level-block">
@@ -369,188 +581,149 @@ defineExpose({ loadInsumo })
                   </span>
                 </div>
               </div>
-            </section>
+            </fieldset>
 
-            <section class="id-card">
-              <div class="id-card-head">
-                <h4>Compra &amp; costos</h4>
+            <!-- SECCIÓN 3: PROVEEDORES -->
+            <fieldset class="id-prov-card" aria-labelledby="title-prov">
+              <div class="head">
+                <h4 id="title-prov">Proveedores</h4>
+                <span class="hint">Hasta 3 · marcá uno como principal</span>
               </div>
 
-              <div class="id-grid-2">
-                <div class="id-field">
-                  <FloatingField
-                    id="ins-costo-paquete"
-                    label="Costo del paquete"
-                    type="number"
-                    prefix="$"
-                    v-model.number="costoPaquete"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div class="id-field">
-                  <div class="id-num-with-unit">
-                    <FloatingField
-                      id="ins-cantidad-pack"
-                      label="Cantidad por pack"
-                      type="number"
-                      v-model.number="cantidadPack"
-                      min="0"
-                      step="0.01"
-                    />
-                    <span class="id-unit-pill">{{ unidad || 'u' }}</span>
-                  </div>
-                </div>
+              <div class="id-prov-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Proveedor</th>
+                      <th class="num">Precio referencia</th>
+                      <th class="center">Principal</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(p, idx) in proveedores" :key="idx">
+                      <td>
+                        <select
+                          id="prov-select"
+                          class="prov-input"
+                          v-model.number="p.proveedorId"
+                          :aria-label="'Proveedor ' + (idx + 1)"
+                        >
+                          <option :value="0">Seleccionar</option>
+                          <option v-for="pr in proveedoresList" :key="pr.id" :value="pr.id">{{ pr.nombre }}</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          class="prov-input num"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          v-model.number="p.precio"
+                          :aria-label="'Precio de referencia ' + (idx + 1)"
+                        />
+                      </td>
+                      <td class="center">
+                        <button
+                          type="button"
+                          :class="['id-radio', { checked: p.esPrincipal }]"
+                          @click="setPrincipal(idx)"
+                          :title="p.esPrincipal ? 'Proveedor principal' : 'Marcar como principal'"
+                          role="radio"
+                          :aria-checked="p.esPrincipal"
+                        />
+                      </td>
+                      <td>
+                        <button
+                          class="id-prov-del"
+                          @click="removeProveedor(idx)"
+                          :disabled="proveedores.length <= 1"
+                          title="Eliminar proveedor"
+                        >
+                          <X :size="14" />
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
-              <div class="id-cost-row grand">
-                <span class="id-cost-label">Costo unitario</span>
-                <input
-                  class="id-cost-input readonly"
-                  :value="money(costoUnitario)"
-                  readonly
-                  tabindex="-1"
-                />
+              <div v-if="errors.proveedores" class="field-error" role="alert" style="margin-bottom: 6px;">
+                {{ errors.proveedores }}
               </div>
 
-              <div class="id-cost-row">
-                <span class="id-cost-label">Costo de referencia / unidad</span>
-                <span class="id-cost-fecha" style="color: var(--ink); font-weight: 500">
-                  {{ money(costoUnitario) }} <span style="color: var(--ink-muted); font-weight: 400">/ {{ unidad }}</span>
-                </span>
-              </div>
-            </section>
+              <button
+                class="id-prov-add"
+                @click="addProveedor"
+                :disabled="proveedores.length >= 3"
+              >
+                <Plus :size="14" /> Agregar proveedor
+              </button>
+            </fieldset>
           </div>
-
-          <section class="id-prov-card">
-            <div class="head">
-              <h4>Proveedores</h4>
-              <span class="hint">Hasta 3 · marcá uno como principal</span>
-            </div>
-
-            <div class="id-prov-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Proveedor</th>
-                    <th class="num">Precio referencia</th>
-                    <th class="center">Principal</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(p, idx) in proveedores" :key="idx">
-                    <td>
-                      <select
-                        class="prov-input"
-                        v-model.number="p.proveedorId"
-                      >
-                        <option :value="0">Seleccionar</option>
-                        <option v-for="pr in proveedoresList" :key="pr.id" :value="pr.id">{{ pr.nombre }}</option>
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        class="prov-input num"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        v-model.number="p.precio"
-                      />
-                    </td>
-                    <td class="center">
-                      <button
-                        type="button"
-                        :class="['id-radio', { checked: p.esPrincipal }]"
-                        @click="setPrincipal(idx)"
-                        :title="p.esPrincipal ? 'Proveedor principal' : 'Marcar como principal'"
-                      />
-                    </td>
-                    <td>
-                      <button
-                        class="id-prov-del"
-                        @click="removeProveedor(idx)"
-                        :disabled="proveedores.length <= 1"
-                        title="Eliminar proveedor"
-                      >
-                        <X :size="14" />
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <button
-              class="id-prov-add"
-              @click="addProveedor"
-              :disabled="proveedores.length >= 3"
-            >
-              <Plus :size="14" /> Agregar proveedor
-            </button>
-          </section>
-
-          <section class="id-prov-card id-notes">
-            <div class="head">
-              <label for="ins-notas" style="display: block; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;">
-                <h4 style="margin: 0; display: inline">Notas</h4>
-              </label>
-              <span class="hint">Información interna · solo visible para tu equipo</span>
-            </div>
-            <textarea
-              id="ins-notas"
-              class="textarea"
-              v-model="notas"
-              placeholder="Anotá variaciones de proveedor, tiempos de entrega, observaciones de calidad"
-              rows="3"
-            />
-          </section>
         </div>
 
-        <div class="id-foot">
-          <button class="id-back-btn" @click="handleBack">
-            <ArrowLeft :size="16" /> Volver a insumos
-          </button>
-          <div class="spacer" />
-          <button
-            v-if="isEdit"
-            class="btn btn-danger"
-            @click="showConfirmDelete = true"
-          >
-            <Trash2 :size="16" /> Eliminar
-          </button>
-          <button
-            class="btn btn-primary"
-            @click="handleSave"
-            :disabled="!dirty"
-            :style="{ opacity: dirty ? 1 : 0.5, pointerEvents: dirty ? 'auto' : 'none' }"
-          >
-            <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear insumo' }}
-          </button>
-        </div>
-
-        <ConfirmDialog
-          :open="showConfirmExit"
-          title="¿Salir sin guardar?"
-          :message="`Tenés cambios pendientes en ${nombre}. Si salís ahora, vas a perderlos.`"
-          confirm-label="Salir sin guardar"
-          cancel-label="Seguir editando"
-          variant="danger"
-          @confirm="emit('close'); showConfirmExit = false"
-          @cancel="showConfirmExit = false"
-        />
-
-        <ConfirmDialog
-          :open="showConfirmDelete"
-          title="Eliminar insumo"
-          :message="`Vas a eliminar ${insumo?.codigo} · ${nombre}. Esta acción no se puede deshacer.`"
-          confirm-label="Eliminar"
-          variant="danger"
-          @confirm="handleDelete"
-          @cancel="showConfirmDelete = false"
-        />
+        <!-- SECCIÓN 4: NOTAS -->
+        <fieldset class="id-card id-notes-full" aria-labelledby="title-notes">
+          <div class="head" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <h4 id="title-notes" style="margin: 0;">Notas</h4>
+            <span id="notes-hint" class="hint" style="font-size: 12px; color: var(--ink-muted);">Información interna · solo visible para tu equipo</span>
+          </div>
+          <textarea
+            id="ins-notes"
+            class="textarea"
+            v-model="notas"
+            placeholder="Anotá variaciones de proveedor, tiempos de entrega, observaciones de calidad"
+            rows="3"
+            aria-describedby="notes-hint"
+          />
+        </fieldset>
       </div>
-    </Transition>
+
+      <div class="id-foot">
+        <button class="id-back-btn" @click="handleBack">
+          <ArrowLeft :size="16" /> Volver a insumos
+        </button>
+        <div class="spacer" />
+        <button
+          v-if="isEdit"
+          class="btn btn-danger"
+          @click="showConfirmDelete = true"
+        >
+          <Trash2 :size="16" /> Eliminar
+        </button>
+        <button
+          class="btn btn-primary"
+          @click="handleSave"
+          :disabled="!dirty"
+          :style="{ opacity: dirty ? 1 : 0.5, pointerEvents: dirty ? 'auto' : 'none' }"
+        >
+          <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear insumo' }}
+        </button>
+      </div>
+
+      <ConfirmDialog
+        :open="showConfirmExit"
+        title="¿Salir sin guardar?"
+        :message="`Tenés cambios pendientes en ${nombre}. Si salís ahora, vas a perderlos.`"
+        confirm-label="Salir sin guardar"
+        cancel-label="Seguir editando"
+        variant="danger"
+        @confirm="emit('close'); showConfirmExit = false"
+        @cancel="showConfirmExit = false"
+      />
+
+      <ConfirmDialog
+        :open="showConfirmDelete"
+        title="Eliminar insumo"
+        :message="`Vas a eliminar ${insumo?.codigo} · ${nombre}. Esta acción no se puede deshacer.`"
+        confirm-label="Eliminar"
+        variant="danger"
+        @confirm="handleDelete"
+        @cancel="showConfirmDelete = false"
+      />
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -578,23 +751,6 @@ defineExpose({ loadInsumo })
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-}
-
-.id-title .eyebrow {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-muted);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.id-title .eyebrow .code {
-  color: var(--violet-700);
-  font-variant-numeric: tabular-nums;
-  font-family: var(--font-mono);
 }
 
 .id-title h2 {
@@ -629,11 +785,17 @@ defineExpose({ loadInsumo })
   gap: 24px;
 }
 
-.id-top {
+.id-body-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
   align-items: start;
+}
+
+.id-col-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .id-card {
@@ -645,6 +807,7 @@ defineExpose({ loadInsumo })
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin: 0; /* Resetea márgenes de fieldsets */
 }
 
 .id-card-head {
@@ -679,37 +842,7 @@ defineExpose({ loadInsumo })
 .id-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.id-field > label {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-muted);
-}
-
-.id-inline-name {
-  font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--violet-700);
-  letter-spacing: -0.015em;
-  background: transparent;
-  border: 0;
-  padding: 4px 6px;
-  margin: -4px -6px;
-  border-radius: 6px;
-  transition: background 120ms ease, box-shadow 120ms ease;
-  width: 100%;
-}
-
-.id-inline-name:hover { background: var(--violet-50); }
-.id-inline-name:focus {
-  outline: none;
-  background: var(--surface);
-  box-shadow: var(--focus-ring);
+  gap: 2px;
 }
 
 .id-grid-2 {
@@ -721,10 +854,10 @@ defineExpose({ loadInsumo })
 .id-num-with-unit {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: flex-end;
+  width: 100%;
 }
 
-.id-num-with-unit .input { flex: 1; text-align: right; font-variant-numeric: tabular-nums; }
 .id-num-with-unit .ff-group { flex: 1; min-width: 0; }
 
 .id-unit-pill {
@@ -734,9 +867,11 @@ defineExpose({ loadInsumo })
   font-size: 12px;
   color: var(--ink-muted);
   background: var(--page-bg);
-  border: 1px solid var(--border-strong);
+  border: 1.5px solid var(--border-strong);
   border-radius: var(--r-md);
   min-width: 64px;
+  height: 43px; /* Mismo alto del input de FloatingField */
+  box-sizing: border-box;
   justify-content: center;
   white-space: nowrap;
 }
@@ -753,33 +888,6 @@ defineExpose({ loadInsumo })
 .id-toggle-row .lbl { display: flex; flex-direction: column; gap: 2px; }
 .id-toggle-row .lbl .t { font-size: 13px; font-weight: 500; color: var(--ink); }
 .id-toggle-row .lbl .h { font-size: 12px; color: var(--ink-muted); }
-
-.id-switch {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: 999px;
-  background: var(--border-strong);
-  cursor: pointer;
-  transition: background 120ms ease;
-  flex-shrink: 0;
-}
-
-.id-switch::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  background: var(--surface);
-  border-radius: 50%;
-  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-}
-
-.id-switch.on { background: var(--teal-500); }
-.id-switch.on::after { transform: translateX(16px); }
 
 .id-level-block {
   display: flex;
@@ -860,43 +968,25 @@ defineExpose({ loadInsumo })
 }
 
 .id-cost-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-weight: 500;
 }
 
-.id-cost-input {
-  width: 140px;
+.id-cost-value {
   font-family: var(--font-sans);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  padding: 8px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.id-cost-input.readonly {
-  background: var(--page-bg);
-  color: var(--ink-muted);
-  border-color: var(--border);
-}
-
-.id-cost-row.grand .id-cost-input {
   font-size: 18px;
   font-weight: 500;
   color: var(--violet-700);
-  width: 160px;
+  font-variant-numeric: tabular-nums;
 }
 
-.id-cost-fecha {
-  font-family: var(--font-sans);
-  font-size: 13px;
+.id-cost-value .unit-ref {
   color: var(--ink-muted);
-  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  font-size: 13px;
 }
 
 .id-prov-card {
@@ -908,6 +998,7 @@ defineExpose({ loadInsumo })
   display: flex;
   flex-direction: column;
   gap: 14px;
+  margin: 0;
 }
 
 .id-prov-card .head {
@@ -917,7 +1008,7 @@ defineExpose({ loadInsumo })
   gap: 12px;
 }
 
-.id-prov-card .head h4 { font-size: 16px; color: var(--ink); font-weight: 500; }
+.id-prov-card .head h4 { font-size: 16px; color: var(--ink); font-weight: 500; margin: 0; }
 .id-prov-card .head .hint { font-size: 12px; color: var(--ink-muted); }
 
 .id-prov-table {
@@ -961,6 +1052,7 @@ defineExpose({ loadInsumo })
   color: var(--ink);
   padding: 11px 12px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .prov-input.num {
@@ -968,7 +1060,7 @@ defineExpose({ loadInsumo })
   font-variant-numeric: tabular-nums;
 }
 
-.prov-input:focus { background: var(--teal-100); }
+.prov-input:focus { background: var(--teal-50); }
 
 .id-radio {
   width: 18px;
@@ -980,6 +1072,7 @@ defineExpose({ loadInsumo })
   display: inline-grid;
   place-items: center;
   transition: border-color 120ms ease;
+  padding: 0;
 }
 
 .id-radio:hover { border-color: var(--violet-700); }
@@ -1004,6 +1097,7 @@ defineExpose({ loadInsumo })
   color: var(--ink-muted);
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
+  padding: 0;
 }
 
 .id-prov-del:hover { color: var(--coral-500); background: var(--coral-50); }
@@ -1027,6 +1121,33 @@ defineExpose({ loadInsumo })
 
 .id-prov-add:hover { background: var(--violet-50); border-color: var(--violet-700); }
 .id-prov-add:disabled { opacity: 0.5; pointer-events: none; }
+
+.id-notes-full {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.id-notes-full .head h4 { font-size: 16px; color: var(--ink); font-weight: 500; }
+.id-notes-full .head .hint { font-size: 12px; color: var(--ink-muted); }
+
+.textarea {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 12px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.textarea:focus {
+  border-color: var(--teal-500);
+  box-shadow: var(--focus-ring);
+}
 
 .id-foot {
   display: flex;
@@ -1055,6 +1176,26 @@ defineExpose({ loadInsumo })
 
 .id-back-btn:hover { background: var(--violet-50); }
 
+.field-error {
+  font-size: 11px;
+  color: var(--coral-700);
+  margin-top: 4px;
+  padding-left: 4px;
+}
+
+/* Nombre unificado estéticamente pero con fuente grande */
+.id-inline-name-ff {
+  --ff-rest-y: 26px;
+}
+:deep(.id-inline-name-ff .ff-control) {
+  font-size: 18px;
+  font-weight: 500;
+  padding: 18px 14px 10px 14px;
+}
+:deep(.id-inline-name-ff .ff-label) {
+  top: 14px;
+}
+
 /* Transitions */
 .overlay-enter-active {
   animation: overlay-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -1073,6 +1214,7 @@ defineExpose({ loadInsumo })
   from { transform: translateY(0); opacity: 1; }
   to { transform: translateY(4px); opacity: 0.6; }
 }
+
 .id-switch:focus-visible {
   outline: 2px solid var(--violet-700);
   outline-offset: 2px;

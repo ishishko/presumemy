@@ -33,3 +33,7 @@ export const categoriaSchema = z.object({
   nombre: z.string().trim().min(1, 'El nombre es requerido').max(40),
 })
 
+export const categoriaDeleteSchema = z.object({
+  reasignarA: z.coerce.number().int().positive().optional(),
+})
+

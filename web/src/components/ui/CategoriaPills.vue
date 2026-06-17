@@ -123,6 +123,7 @@ function cancelRename() {
 
 // Iniciar creación
 async function startCreate() {
+  if (props.categorias.length >= 12) return
   isCreating.value = true
   createName.value = ''
   await nextTick()
@@ -240,8 +241,9 @@ onUnmounted(() => {
     <button
       v-else
       :class="[pillClass, 'add-pill']"
+      :disabled="categorias.length >= 12"
+      :title="categorias.length >= 12 ? 'Máximo 12 categorías' : 'Agregar categoría'"
       @click="startCreate"
-      title="Agregar categoría"
     >
       <Plus :size="14" />
     </button>
@@ -338,5 +340,11 @@ onUnmounted(() => {
   min-width: 32px;
   padding-left: 0;
   padding-right: 0;
+}
+
+.add-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 </style>

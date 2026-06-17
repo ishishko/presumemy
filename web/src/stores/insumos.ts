@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get, post, put, del } from '@/services/api'
+import { get, post, put, delWithBody } from '@/services/api'
 import type { Insumo, CategoriaInsumo, PaginationResult } from '@/types'
 
 export const useInsumosStore = defineStore('insumos', () => {
@@ -50,8 +50,8 @@ export const useInsumosStore = defineStore('insumos', () => {
     await fetch()
   }
 
-  async function removeCategoria(id: number) {
-    await del('/insumos/categorias', id)
+  async function removeCategoria(id: number, reasignarA?: number) {
+    await delWithBody('/insumos/categorias', id, { reasignarA })
     await fetch()
   }
 

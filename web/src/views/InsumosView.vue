@@ -8,6 +8,7 @@ import { useInsumosStore } from '@/stores/insumos'
 import InsumoDetalle from '@/components/overlays/InsumoDetalle.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import CategoriaPills from '@/components/ui/CategoriaPills.vue'
+import CategoriaDeleteDialog from '@/components/ui/CategoriaDeleteDialog.vue'
 import { useToast } from '@/composables/useToast'
 import type { Insumo } from '@/types'
 
@@ -41,6 +42,14 @@ function getNivel(i: Insumo): Nivel {
   return 'ok'
 }
 
+function barTone(i: Insumo): 'low' | 'warn' | 'ok' {
+  const stock = Number(i.stock)
+  const min = Number(i.stockMinimo)
+  if (stock === 0) return 'low'
+  if (stock < min) return 'warn'
+  return 'ok'
+}
+
 const counts = computed(() => {
   const c = { critico: 0, bajo: 0, ok: 0 }
   store.data.forEach((i) => { c[getNivel(i)]++ })
@@ -65,12 +74,6 @@ const stateChips = computed(() => [
   { id: 'bajo', label: 'Bajo', count: counts.value.bajo, dot: '#F8D132' },
   { id: 'ok', label: 'OK', count: counts.value.ok, dot: '#75CCCE' },
 ])
-
-const nivelMeta: Record<Nivel, { label: string; color: string; bg: string; barClass: string }> = {
-  critico: { label: 'Crítico', color: '#EA5F3C', bg: 'var(--coral-50)', barClass: 'low' },
-  bajo: { label: 'Bajo', color: '#7A5D00', bg: 'var(--yellow)', barClass: 'warn' },
-  ok: { label: 'OK', color: '#2E6F70', bg: 'var(--teal-100)', barClass: 'ok' },
-}
 
 async function loadInsumos() {
   try {
@@ -138,10 +141,10 @@ function handleRemoveCatClick(cat: any) {
   showConfirmDeleteCat.value = true
 }
 
-async function handleDeleteCatConfirm() {
+async function handleDeleteCatConfirm(reasignarA?: number) {
   if (!deletingCat.value) return
   try {
-    await store.removeCategoria(deletingCat.value.id)
+    await store.removeCategoria(deletingCat.value.id, reasignarA)
     toast('Categoría eliminada', 'info')
     if (catFilter.value === deletingCat.value.id) {
       catFilter.value = 'todas'
@@ -231,7 +234,6 @@ watch(createTrigger, (val) => {
             <th class="num">Costo unitario</th>
             <th>Proveedor principal</th>
             <th style="width: 160px">Nivel</th>
-            <th>Estado</th>
             <th style="width: 80px"></th>
           </tr>
         </thead>
@@ -257,17 +259,9 @@ watch(createTrigger, (val) => {
               {{ proveedorPrincipal(i) || '—' }}
             </td>
             <td>
-              <div :class="['stock-bar', nivelMeta[getNivel(i)].barClass]">
+              <div :class="['stock-bar', barTone(i)]">
                 <div :style="{ width: Math.min(100, (Number(i.stock) / Math.max(Number(i.stockMinimo), 1)) * 100) + '%' }"></div>
               </div>
-            </td>
-            <td>
-              <span
-                class="insumos-state-badge"
-                :style="{ background: nivelMeta[getNivel(i)].bg, color: nivelMeta[getNivel(i)].color }"
-              >
-                <span class="d" /> {{ nivelMeta[getNivel(i)].label }}
-              </span>
             </td>
             <td>
               <div class="row-actions">
@@ -281,7 +275,7 @@ watch(createTrigger, (val) => {
             </td>
           </tr>
           <tr v-if="filtered.length === 0">
-            <td colspan="9" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
+            <td colspan="8" style="text-align: center; color: var(--ink-muted); padding: 24px 0">
               Sin resultados con los filtros actuales.
             </td>
           </tr>
@@ -309,14 +303,10 @@ watch(createTrigger, (val) => {
     @cancel="showConfirmDelete = false; deletingInsumo = null"
   />
 
-  <ConfirmDialog
+  <CategoriaDeleteDialog
     :open="showConfirmDeleteCat"
-    title="Eliminar categoría"
-    :message="deletingCat && (deletingCat._count?.insumos ?? 0) > 0
-      ? `La categoría ${deletingCat.nombre} tiene ${deletingCat._count.insumos} insumos asociados. No se puede eliminar.`
-      : `Vas a eliminar la categoría ${deletingCat?.nombre}. Esta acción no se puede deshacer.`"
-    :confirm-label="(deletingCat && (deletingCat._count?.insumos ?? 0) > 0) ? '' : 'Eliminar'"
-    variant="danger"
+    :categoria="deletingCat"
+    :categorias="store.categorias"
     @confirm="handleDeleteCatConfirm"
     @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />

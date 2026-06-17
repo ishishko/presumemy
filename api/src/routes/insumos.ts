@@ -9,6 +9,7 @@ import {
   insumoProveedorSchema,
   paginationSchema,
   categoriaSchema,
+  categoriaDeleteSchema,
 } from '../types/insumos.js'
 
 const route = new Hono()
@@ -118,6 +119,11 @@ route.get('/categorias', async (c) => {
 route.post('/categorias', zValidator('json', categoriaSchema), async (c) => {
   const data = c.req.valid('json')
 
+  const total = await prisma.categoriaInsumo.count({ where: { activo: true } })
+  if (total >= 12) {
+    throw conflict('Máximo 12 categorías por sección')
+  }
+
   const existing = await prisma.categoriaInsumo.findFirst({
     where: {
       nombre: { equals: data.nombre, mode: 'insensitive' },
@@ -178,8 +184,9 @@ route.put('/categorias/:id', zValidator('json', categoriaSchema), async (c) => {
 // =========================================================
 // DELETE /api/insumos/categorias/:id — Eliminar categoria insumo
 // =========================================================
-route.delete('/categorias/:id', async (c) => {
+route.delete('/categorias/:id', zValidator('json', categoriaDeleteSchema), async (c) => {
   const id = parseInt(c.req.param('id'))
+  const body = c.req.valid('json')
 
   const existing = await prisma.categoriaInsumo.findUnique({
     where: { id, activo: true },
@@ -197,13 +204,36 @@ route.delete('/categorias/:id', async (c) => {
   })
 
   if (count > 0) {
-    throw conflict(`No se puede eliminar: tiene ${count} elementos asociados`)
-  }
+    if (!body.reasignarA) {
+      throw badRequest('Indicá una categoría destino')
+    }
+    const targetCat = await prisma.categoriaInsumo.findUnique({
+      where: { id: body.reasignarA, activo: true },
+    })
+    if (!targetCat) {
+      throw notFound('Categoría destino no encontrada')
+    }
+    if (body.reasignarA === id) {
+      throw badRequest('No podés reasignar a la misma categoría que estás eliminando')
+    }
 
-  await prisma.categoriaInsumo.update({
-    where: { id },
-    data: { activo: false },
-  })
+    // Reasignar e inactivar en transacción
+    await prisma.$transaction([
+      prisma.insumo.updateMany({
+        where: { categoriaId: id, activo: true },
+        data: { categoriaId: body.reasignarA },
+      }),
+      prisma.categoriaInsumo.update({
+        where: { id },
+        data: { activo: false },
+      }),
+    ])
+  } else {
+    await prisma.categoriaInsumo.update({
+      where: { id },
+      data: { activo: false },
+    })
+  }
 
   return c.json({ message: 'Categoría eliminada' })
 })

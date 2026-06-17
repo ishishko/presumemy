@@ -1009,7 +1009,7 @@
 }
 
 .stock-bar.warn>div {
-  background: var(--yellow);
+  background: var(--orange-500);
 }
 
 .stock-bar.low>div {

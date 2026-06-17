@@ -21,6 +21,17 @@ const mockPrisma = new Proxy({} as any, {
   get(target, prop) {
     if (typeof prop === 'symbol') return undefined
     if (prop === 'then') return undefined
+    if (prop === '$transaction') {
+      if (!target[prop]) {
+        target[prop] = vi.fn().mockImplementation((args) => {
+          if (typeof args === 'function') {
+            return args(mockPrisma)
+          }
+          return Promise.all(args)
+        })
+      }
+      return target[prop]
+    }
     if (!target[prop]) {
       target[prop] = createMockModel()
     }
