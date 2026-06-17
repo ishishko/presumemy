@@ -1,0 +1,56 @@
+# Walkthrough - Epic A: Insumos (fix v4)
+
+Se completó con éxito la Epic A (Insumos y Categorías) del fix v4, incluyendo la refactorización avanzada de layout, el flip switch interactivo y el semáforo de stock de 4 niveles.
+
+## Cambios Realizados
+
+### 1. Cierre de Gaps de Categorías (Parte 0)
+* **Tope de 12 categorías**:
+  * Modificados los controladores `POST /categorias` de la API para impedir la creación de más de 12 categorías activas.
+  * Se deshabilitó el botón `+` en el frontend y se le agregó un tooltip informativo.
+* **Borrado con Reasignación**:
+  * Implementado en el backend el parámetro `reasignarA` en la ruta `DELETE /categorias/:id` mediante transacciones.
+  * Creado el componente reutilizable `CategoriaDeleteDialog.vue` que permite reasignar elementos asociados a otra categoría o bloquea el borrado si es la última disponible.
+
+### 2. Limpieza de Tabla y Semáforo (Parte 1)
+* **Columna Estado**: Removida la columna de la tabla en la vista de insumos para descongestionar el layout.
+* **Semáforo**: La barra de nivel de stock colorea en base al stock real utilizando 4 niveles de forma coherente:
+  * `stock === 0` -> **Sin unidades** (Rojo, barra vacía con sombreado de borde coral y fondo translúcido).
+  * `stock <= stockMinimo * 0.2` -> **Crítico** (Naranja, barra naranja de stock).
+  * `stock < stockMinimo` (>20%) -> **Bajo** (Amarillo, barra amarilla de stock).
+  * `stock >= stockMinimo` -> **OK** (Verde, barra verde de stock).
+
+### 3. Rediseño del Formulario de Insumos (Parte 3)
+* **Reorganización en 2 columnas principales**:
+  * **Columna Izquierda (Identidad, Costeo y Stock):**
+    * **Fila 1:** Nombre del Insumo + Badge del código alineado a la derecha en la base.
+    * **Fila 2:** Categoría (Dropdown) + Insumo Activo (ToggleSwitch en un contenedor inline del mismo alto).
+    * **Fila 3:** Selector de modalidad de costo mediante un flip switch reducido (**Pack / Simple**).
+      * **Pack:** Campos `Costo pack`, `Unidades por pack`, `Unidad de medida` + `Costo unitario calculado` readonly.
+      * **Simple:** Campos `Costo unitario` directo y `Unidad de medida`.
+    * **Fila 4:** Título "Control de stock" con línea divisoria superior.
+    * **Fila 5:** `Stock actual` + `Stock mínimo` + bloque de `Nivel` inline (badge, barra y porcentaje en 3 columnas alineadas).
+  * **Columna Derecha (Proveedores y Notas):**
+    * **Arriba:** Proveedores (hasta 3 con referencias).
+    * **Abajo:** Notas (textarea interno).
+* **Mejoras de UX**:
+  * Implementación de pills de filtro deseleccionables de estado en la parte superior: al hacer click en la pill de estado activa, se deselecciona y vuelve al estado `'todos'`.
+
+---
+
+## Verificación de Calidad
+
+### 1. Pruebas Unitarias de Backend
+Se corrieron las pruebas en [/api](file:///d:/Desarrollando/presumemy/api):
+```bash
+ ✓ src/test/categorias.test.ts (8 tests) 120ms
+ Test Files  4 passed (4)
+      Tests  16 passed (16)
+```
+
+### 2. Compilación del Frontend
+Se ejecutó la verificación de tipado en [/web](file:///d:/Desarrollando/presumemy/web):
+```bash
+npx vue-tsc -b
+# Concluido exitosamente sin advertencias ni errores
+```

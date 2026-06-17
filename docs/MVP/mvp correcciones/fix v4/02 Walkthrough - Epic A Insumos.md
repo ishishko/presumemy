@@ -1,6 +1,6 @@
 # 02 Walkthrough - Epic A: Insumos (fix v4)
 
-Implementación y cierre de gaps del módulo de Insumos y Categorías (Epic A) según las especificaciones del plan detallado.
+Implementación y cierre de gaps del módulo de Insumos y Categorías (Epic A) según las especificaciones del plan detallado y refinamientos de diseño posteriores.
 
 ## Cambios Realizados
 
@@ -25,21 +25,28 @@ Implementación y cierre de gaps del módulo de Insumos y Categorías (Epic A) s
 * **Componente de Pills**:
   * Modificado [CategoriaPills.vue](file:///d:/Desarrollando/presumemy/web/src/components/ui/CategoriaPills.vue) para deshabilitar el botón `+` cuando existen 12 o más categorías activas.
 * **Nuevo Diálogo de Borrado**:
-  * Creado [CategoriaDeleteDialog.vue](file:///d:/Desarrollando/presumemy/web/src/components/ui/CategoriaDeleteDialog.vue) para gestionar de forma adaptativa la eliminación:
-    * Si no hay asociados, confirmación simple.
-    * Si hay asociados y existen otras categorías, despliega un select para elegir destino.
-    * Si hay asociados pero es la única categoría, bloquea el borrado indicando que se debe crear otra primero.
-  * Integrado en [InsumosView.vue](file:///d:/Desarrollando/presumemy/web/src/views/InsumosView.vue) y [ProductosView.vue](file:///d:/Desarrollando/presumemy/web/src/views/ProductosView.vue).
-* **Limpieza de Tabla y Semáforo de Stock**:
+  * Creado [CategoriaDeleteDialog.vue](file:///d:/Desarrollando/presumemy/web/src/components/ui/CategoriaDeleteDialog.vue) para gestionar de forma adaptativa la eliminación.
+* **Limpieza de Tabla y Semáforo de Stock de 4 Niveles**:
   * Removida la columna "Estado" (encabezados, celdas y metadata asociada) en [InsumosView.vue](file:///d:/Desarrollando/presumemy/web/src/views/InsumosView.vue).
-  * Implementado el helper `barTone` y actualizada la barra de stock en la tabla de insumos para pintar de rojo (`--coral-500`) cuando el stock es 0, y de naranja (`--orange-500`) cuando el stock es inferior al mínimo.
-* **Rediseño Completo de Ficha de Insumo**:
-  * Reestructurado [InsumoDetalle.vue](file:///d:/Desarrollando/presumemy/web/src/components/overlays/InsumoDetalle.vue) en un layout grid balanceado en **3 secciones** principales más una de notas:
-    1. **Inicio** (Izquierda): Nombre (usando FloatingField adaptado), Categoría, Unidad, Costo de presentación, Cantidad de unidades por presentación, Costo unitario calculado unificado (sola fila texto-readonly) y Toggle Activo.
-    2. **Control de stock** (Derecha, arriba): Stock actual, Stock mínimo y Nivel con semáforo de color adaptado (rojo/naranja/verde).
-    3. **Proveedores** (Derecha, abajo): Tabla compacta.
-    4. **Notas** (Fondo): Fila de ancho completo.
-  * Reemplazada toda la terminología de "paquete/pack" por "presentación".
+  * Implementada la lógica de 4 niveles de stock (`sin_unidades`, `critico`, `bajo`, `ok`) coloreando de forma consistente en la tabla (barra `.stock-bar`) y en la ficha del detalle (badge `.id-level-badge` y barra de progreso):
+    * **OK (Verde):** `stock >= stockMinimo` (color: `var(--green-700)`, bg: `var(--green-50)`).
+    * **Bajo (Amarillo):** `stock < stockMinimo` y `stock > stockMinimo * 0.2` (color: `var(--yellow-ink)`, bg: `var(--yellow)`).
+    * **Crítico (Naranja):** `stock > 0` y `stock <= stockMinimo * 0.2` (color: `var(--orange-ink)`, bg: `var(--orange-50)`, barra naranja `var(--orange-500)`).
+    * **Sin unidades (Rojo):** `stock === 0` (color: `var(--coral-500)`, bg: `var(--coral-50)`, barra vacía con fondo rojo translúcido y borde coral).
+  * Modificadas las pills de estado en la parte superior de [InsumosView.vue](file:///d:/Desarrollando/presumemy/web/src/views/InsumosView.vue) para permitir la deselección (si se vuelve a hacer click en una pill activa, regresa a la opción default `'todos'`).
+* **Rediseño Completo de Ficha de Insumo (InsumoDetalle.vue)**:
+  * Reestructurado [InsumoDetalle.vue](file:///d:/Desarrollando/presumemy/web/src/components/overlays/InsumoDetalle.vue) en un layout grid balanceado en **2 columnas**:
+    * **Columna Izquierda (Identidad, Costeo y Stock):**
+      * **Fila 1:** Nombre del Insumo + Badge del código alineado a la derecha en la base.
+      * **Fila 2:** Categoría (Dropdown) + Insumo Activo (ToggleSwitch en un contenedor inline del mismo alto).
+      * **Fila 3:** Selector de modalidad de costo mediante un flip switch reducido (**Pack / Simple**).
+        * **Pack:** Campos `Costo pack`, `Unidades por pack`, `Unidad de medida` + `Costo unitario calculado` readonly.
+        * **Simple:** Campos `Costo unitario` directo y `Unidad de medida`.
+      * **Fila 4:** Título "Control de stock" con línea divisoria superior.
+      * **Fila 5:** `Stock actual` + `Stock mínimo` + bloque de `Nivel` inline (badge, barra y porcentaje en 3 columnas alineadas).
+    * **Columna Derecha (Proveedores y Notas):**
+      * **Arriba:** Proveedores (hasta 3 con referencias).
+      * **Abajo:** Notas (textarea interno).
   * **Accesibilidad (A11y)**: Añadidos fieldsets y legends, vinculación de etiquetas, trap de foco al tabular e inicialización de foco en Nombre al abrir. Mensajes de error en campos inválidos con aria-invalid.
 
 ---
@@ -47,9 +54,9 @@ Implementación y cierre de gaps del módulo de Insumos y Categorías (Epic A) s
 ## Verificación de Calidad
 
 ### 1. Pruebas Unitarias de Backend
-Se corrió la suite de pruebas en el backend, pasando todos los tests (incluyendo los nuevos de límite de 12 y reasignación):
+Se corrió la suite de pruebas en el backend, pasando todos los tests (incluyendo los de límite de 12 y reasignación):
 ```bash
- ✓ src/test/categorias.test.ts (8 tests) 159ms
+ ✓ src/test/categorias.test.ts (8 tests) 120ms
  Test Files  4 passed (4)
       Tests  16 passed (16)
 ```

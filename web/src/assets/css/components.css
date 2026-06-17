@@ -997,6 +997,7 @@
   background: var(--page-bg);
   border-radius: 999px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .stock-bar>div {
@@ -1005,15 +1006,149 @@
 }
 
 .stock-bar.ok>div {
-  background: #1F8A5B;
+  background: var(--green-700);
 }
 
-.stock-bar.warn>div {
+.stock-bar.bajo>div {
+  background: var(--yellow);
+}
+
+.stock-bar.critico>div {
   background: var(--orange-500);
 }
 
-.stock-bar.low>div {
-  background: var(--coral-500);
+.stock-bar.sin_unidades {
+  background: var(--coral-50);
+  border: 1px solid var(--coral-500);
+  height: 8px;
+}
+
+.stock-bar.sin_unidades>div {
+  background: transparent;
+}
+
+/* --- Flip Switch para InsumoDetalle (Pack / Simple) --- */
+.checkbox-wrapper-10 {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.checkbox-wrapper-10 .tgl {
+  display: none;
+}
+
+.checkbox-wrapper-10 .tgl,
+.checkbox-wrapper-10 .tgl:after,
+.checkbox-wrapper-10 .tgl:before,
+.checkbox-wrapper-10 .tgl *,
+.checkbox-wrapper-10 .tgl *:after,
+.checkbox-wrapper-10 .tgl *:before,
+.checkbox-wrapper-10 .tgl + .tgl-btn {
+  box-sizing: border-box;
+}
+
+.checkbox-wrapper-10 .tgl + .tgl-btn {
+  outline: 0;
+  display: block;
+  width: 90px;
+  height: 32px;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-wrapper-10 .tgl + .tgl-btn:after,
+.checkbox-wrapper-10 .tgl + .tgl-btn:before {
+  position: relative;
+  display: block;
+  content: "";
+  width: 100%;
+  height: 100%;
+}
+
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn {
+  padding: 2px;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+  perspective: 100px;
+}
+
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:after,
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:before {
+  display: inline-block;
+  transition: all 0.4s ease;
+  width: 100%;
+  text-align: center;
+  position: absolute;
+  line-height: 28px;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  top: 0;
+  left: 0;
+  backface-visibility: hidden;
+  border-radius: 6px;
+}
+
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:after {
+  content: attr(data-tg-on);
+  background: var(--teal-600);
+  transform: rotateY(-180deg);
+}
+
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:before {
+  background: var(--violet-700);
+  content: attr(data-tg-off);
+}
+
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:active:before {
+  transform: rotateY(-20deg);
+}
+
+.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:before {
+  transform: rotateY(180deg);
+}
+
+.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:after {
+  transform: rotateY(0);
+  left: 0;
+  background: var(--teal-600);
+}
+
+.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:active:after {
+  transform: rotateY(20deg);
+}
+
+/* --- Toggles and fields inline layouts --- */
+.id-toggle-row-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-md);
+  height: 43px;
+  box-sizing: border-box;
+}
+
+.id-toggle-row-inline .lbl {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.id-toggle-row-inline .lbl .t {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.id-toggle-row-inline .lbl .h {
+  font-size: 10px;
+  color: var(--ink-muted);
 }
 
 /* --- Drawer (presupuesto editor) --- */

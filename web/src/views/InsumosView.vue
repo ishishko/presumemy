@@ -32,26 +32,21 @@ const deletingCat = ref<any | null>(null)
 
 const showLoading = computed(() => !store.hasFetched)
 
-type Nivel = 'critico' | 'bajo' | 'ok'
+type Nivel = 'sin_unidades' | 'critico' | 'bajo' | 'ok'
 
 function getNivel(i: Insumo): Nivel {
   const stock = Number(i.stock)
   const min = Number(i.stockMinimo)
-  if (stock < min * 0.5) return 'critico'
-  if (stock < min) return 'bajo'
-  return 'ok'
-}
-
-function barTone(i: Insumo): 'low' | 'warn' | 'ok' {
-  const stock = Number(i.stock)
-  const min = Number(i.stockMinimo)
-  if (stock === 0) return 'low'
-  if (stock < min) return 'warn'
+  if (stock === 0) return 'sin_unidades'
+  if (min > 0) {
+    if (stock <= min * 0.2) return 'critico'
+    if (stock < min) return 'bajo'
+  }
   return 'ok'
 }
 
 const counts = computed(() => {
-  const c = { critico: 0, bajo: 0, ok: 0 }
+  const c = { sin_unidades: 0, critico: 0, bajo: 0, ok: 0 }
   store.data.forEach((i) => { c[getNivel(i)]++ })
   return c
 })
@@ -70,9 +65,10 @@ function money(v: number): string {
 
 const stateChips = computed(() => [
   { id: 'todos', label: 'Todos', count: store.data.length },
-  { id: 'critico', label: 'Crítico', count: counts.value.critico, dot: '#EA5F3C' },
-  { id: 'bajo', label: 'Bajo', count: counts.value.bajo, dot: '#F8D132' },
-  { id: 'ok', label: 'OK', count: counts.value.ok, dot: '#75CCCE' },
+  { id: 'ok', label: 'OK', count: counts.value.ok, dot: 'var(--green-500)' },
+  { id: 'bajo', label: 'Bajo', count: counts.value.bajo, dot: 'var(--yellow)' },
+  { id: 'critico', label: 'Crítico', count: counts.value.critico, dot: 'var(--orange-500)' },
+  { id: 'sin_unidades', label: 'Sin unidades', count: counts.value.sin_unidades, dot: 'var(--coral-500)' },
 ])
 
 async function loadInsumos() {
@@ -206,7 +202,7 @@ watch(createTrigger, (val) => {
         v-for="s in stateChips"
         :key="s.id"
         :class="['insumos-state-pill', stateFilter === s.id && 'active']"
-        @click="stateFilter = s.id"
+        @click="stateFilter = stateFilter === s.id ? 'todos' : s.id"
       >
         <span v-if="s.dot" class="d" :style="{ background: s.dot }" />
         {{ s.label }}
@@ -259,7 +255,7 @@ watch(createTrigger, (val) => {
               {{ proveedorPrincipal(i) || '—' }}
             </td>
             <td>
-              <div :class="['stock-bar', barTone(i)]">
+              <div :class="['stock-bar', getNivel(i)]">
                 <div :style="{ width: Math.min(100, (Number(i.stock) / Math.max(Number(i.stockMinimo), 1)) * 100) + '%' }"></div>
               </div>
             </td>
