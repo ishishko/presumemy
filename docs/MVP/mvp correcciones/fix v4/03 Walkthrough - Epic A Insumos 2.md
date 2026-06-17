@@ -36,6 +36,20 @@ Se completó con éxito la Epic A (Insumos y Categorías) del fix v4, incluyendo
 * **Mejoras de UX**:
   * Implementación de pills de filtro deseleccionables de estado en la parte superior: al hacer click en la pill de estado activa, se deselecciona y vuelve al estado `'todos'`.
 
+### 4. Refinamientos de Maquetado y UI (Feedback de Iteración)
+* **Independencia y Modularización de Secciones:** 
+  * Separación de la primera fila (Nombre) y la segunda fila (Categorización) en secciones `<section class="form-section">` independientes. 
+  * Remoción de los bordes superiores inline en los elementos `<section class="form-section">` para permitir que el gap vertical del contenedor `.id-card` (`gap: 26px`) maneje la separación de forma idéntica a `.editor-form` en presupuestos.
+* **Homologación de Espaciado Interno:** Aplicación de la regla `.form-section-body { gap: 18px; }` en el CSS scoped del detalle de insumos para replicar con exactitud el espaciado vertical entre campos que posee el editor de presupuestos.
+* **Rediseño del Nivel de Stock (Control de Stock):**
+  * Eliminación de las cajas grises de unidades de medida (`stock-actual-unit` y `stock-minimo-unit`) al lado de los inputs de stock para evitar el colapso horizontal.
+  * Reubicación de las estadísticas de nivel `.id-level-stats-inline` (porcentaje) para que se muestren en la primera línea alineadas a la izquierda y a la misma altura del badge de estado (`justify-content: space-between`).
+  * Eliminación de la limitación de altura fija (`height: 43px`) en el contenedor `.id-level-block-inline` para evitar que la barra de nivel sea aplastada a 0px de alto.
+  * Distribución asimétrica de la grilla de stock con la nueva clase `.id-grid-stock` (columnas `1fr 1fr 2fr`), otorgándole un 50% de ancho del grid al bloque de nivel de stock para una correcta visualización de la barra de estado.
+  * Preservación de la grilla simétrica de modalidad de costo (`1fr 1fr 1fr` en `.id-grid-3`).
+* **Corrección de Estado Activo (Simple) en Flip Switch:**
+  * Corrección en `components.css` del color de fondo del switch activo, reemplazando la variable inexistente `var(--teal-600)` por la variable estándar del sistema de diseño `var(--teal-500)`. Esto soluciona la visibilidad del botón en modo Simple.
+
 ---
 
 ## Verificación de Calidad

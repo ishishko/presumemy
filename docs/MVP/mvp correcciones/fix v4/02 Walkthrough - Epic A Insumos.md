@@ -37,16 +37,20 @@ Implementación y cierre de gaps del módulo de Insumos y Categorías (Epic A) s
 * **Rediseño Completo de Ficha de Insumo (InsumoDetalle.vue)**:
   * Reestructurado [InsumoDetalle.vue](file:///d:/Desarrollando/presumemy/web/src/components/overlays/InsumoDetalle.vue) en un layout grid balanceado en **2 columnas**:
     * **Columna Izquierda (Identidad, Costeo y Stock):**
-      * **Fila 1:** Nombre del Insumo + Badge del código alineado a la derecha en la base.
+      * **Fila 1:** Nombre del Insumo + Badge del código alineado a la derecha en la base. Nombre y error agrupados en `.id-name-container` para no alterar el espaciado vertical.
       * **Fila 2:** Categoría (Dropdown) + Insumo Activo (ToggleSwitch en un contenedor inline del mismo alto).
       * **Fila 3:** Selector de modalidad de costo mediante un flip switch reducido (**Pack / Simple**).
-        * **Pack:** Campos `Costo pack`, `Unidades por pack`, `Unidad de medida` + `Costo unitario calculado` readonly.
-        * **Simple:** Campos `Costo unitario` directo y `Unidad de medida`.
+        * **Unificación de variables:** Se unificó el campo físico bajo la propiedad `costoPaquete` (ID `ins-costo-paquete`), quitando variables duplicadas.
+        * **Modo Pack:** Muestra campos `Costo pack`, `Unidades por pack` y `Unidad de medida` + Costo Unitario calculado (readonly).
+        * **Modo Simple:** El input de costo cambia dinámicamente su label a **"Costo unitario"** y se ocultan el input de unidades por pack (forzando `cantidadPack = 1` por detrás) y el costo calculado de lectura. El grid de costo pasa de 3 a 2 columnas.
       * **Fila 4:** Título "Control de stock" con línea divisoria superior.
       * **Fila 5:** `Stock actual` + `Stock mínimo` + bloque de `Nivel` inline (badge, barra y porcentaje en 3 columnas alineadas).
     * **Columna Derecha (Proveedores y Notas):**
       * **Arriba:** Proveedores (hasta 3 con referencias).
       * **Abajo:** Notas (textarea interno).
+  * **Homologación de Espaciados (Gaps):**
+    * Se incrementó el gap vertical de la tarjeta principal (`.id-card`) a **18px** (consistente con el de `.form-section-body` en presupuestos).
+    * Se actualizaron los gaps horizontales en grids (`.id-grid-2` y `.id-grid-3`) a **16px** (consistente con el de `.form-row` en presupuestos).
   * **Accesibilidad (A11y)**: Añadidos fieldsets y legends, vinculación de etiquetas, trap de foco al tabular e inicialización de foco en Nombre al abrir. Mensajes de error en campos inválidos con aria-invalid.
 
 ---

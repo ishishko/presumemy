@@ -36,7 +36,6 @@ const stockMinimo = ref(0)
 const activo = ref(true)
 const costoPaquete = ref(0)
 const cantidadPack = ref(1)
-const costoUnitarioSimple = ref(0)
 const esSimple = ref(false)
 const notas = ref('')
 
@@ -75,7 +74,7 @@ const fillPct = computed(() => {
 
 const costoUnitario = computed(() => {
   if (esSimple.value) {
-    return parseFloat(String(costoUnitarioSimple.value)) || 0
+    return parseFloat(String(costoPaquete.value)) || 0
   }
   const c = parseFloat(String(costoPaquete.value)) || 0
   const q = parseFloat(String(cantidadPack.value)) || 0
@@ -95,7 +94,7 @@ const dirty = computed(() => {
   
   let matchesCosteo = false
   if (esSimple.value) {
-    matchesCosteo = Number(i.cantidadPack) === 1 && Number(costoUnitarioSimple.value) === Number(i.costoPaquete)
+    matchesCosteo = Number(i.cantidadPack) === 1 && Number(costoPaquete.value) === Number(i.costoPaquete)
   } else {
     matchesCosteo = Number(costoPaquete.value) === Number(i.costoPaquete) && Number(cantidadPack.value) === Number(i.cantidadPack)
   }
@@ -122,7 +121,6 @@ const dirty = computed(() => {
 function money(n: number): string {
   return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
-
 function reset() {
   nombre.value = ''
   categoriaId.value = 0
@@ -132,7 +130,6 @@ function reset() {
   activo.value = true
   costoPaquete.value = 0
   cantidadPack.value = 1
-  costoUnitarioSimple.value = 0
   esSimple.value = false
   notas.value = ''
   proveedores.value = []
@@ -156,22 +153,20 @@ function loadInsumo() {
       esPrincipal: p.esPrincipal,
     }))
 
-    if (Number(i.cantidadPack) === 1) {
-      esSimple.value = true
-      costoUnitarioSimple.value = Number(i.costoPaquete)
-      costoPaquete.value = 0
-      cantidadPack.value = 1
-    } else {
-      esSimple.value = false
-      costoPaquete.value = Number(i.costoPaquete)
-      cantidadPack.value = Number(i.cantidadPack)
-      costoUnitarioSimple.value = 0
-    }
+    costoPaquete.value = Number(i.costoPaquete)
+    cantidadPack.value = Number(i.cantidadPack)
+    esSimple.value = Number(i.cantidadPack) === 1
   }
   if (proveedores.value.length === 0) {
     proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: true })
   }
 }
+
+watch(esSimple, (simpleVal) => {
+  if (simpleVal) {
+    cantidadPack.value = 1
+  }
+})
 
 function addProveedor() {
   if (proveedores.value.length >= 3) return
@@ -203,17 +198,11 @@ function validate(): boolean {
   if (!unidad.value.trim()) {
     errors.value.unidad = 'La unidad de medida es requerida'
   }
-  if (esSimple.value) {
-    if (costoUnitarioSimple.value < 0) {
-      errors.value.costoUnitarioSimple = 'El costo unitario no puede ser negativo'
-    }
-  } else {
-    if (costoPaquete.value < 0) {
-      errors.value.costoPaquete = 'El costo de la presentación no puede ser negativo'
-    }
-    if (cantidadPack.value <= 0) {
-      errors.value.cantidadPack = 'La cantidad por presentación debe ser mayor a 0'
-    }
+  if (costoPaquete.value < 0) {
+    errors.value.costoPaquete = esSimple.value ? 'El costo unitario no puede ser negativo' : 'El costo de la presentación no puede ser negativo'
+  }
+  if (!esSimple.value && cantidadPack.value <= 0) {
+    errors.value.cantidadPack = 'La cantidad por presentación debe ser mayor a 0'
   }
   if (stockActual.value < 0) {
     errors.value.stockActual = 'El stock actual no puede ser negativo'
@@ -241,7 +230,6 @@ function validate(): boolean {
     else if (firstErrKey === 'unidad') targetId = 'ins-unidad'
     else if (firstErrKey === 'costoPaquete') targetId = 'ins-costo-paquete'
     else if (firstErrKey === 'cantidadPack') targetId = 'ins-cantidad-pack'
-    else if (firstErrKey === 'costoUnitarioSimple') targetId = 'ins-costo-unitario-simple'
     else if (firstErrKey === 'stockActual') targetId = 'ins-stock-actual'
     else if (firstErrKey === 'stockMinimo') targetId = 'ins-stock-minimo'
 
@@ -261,7 +249,7 @@ async function handleSave() {
     unidad: unidad.value,
     stock: parseFloat(String(stockActual.value)) || 0,
     stockMinimo: parseFloat(String(stockMinimo.value)) || 0,
-    costoPaquete: esSimple.value ? (parseFloat(String(costoUnitarioSimple.value)) || 0) : (parseFloat(String(costoPaquete.value)) || 0),
+    costoPaquete: parseFloat(String(costoPaquete.value)) || 0,
     cantidadPack: esSimple.value ? 1 : (parseFloat(String(cantidadPack.value)) || 1),
     notas: notas.value || undefined,
     proveedores: proveedores.value
@@ -439,231 +427,207 @@ defineExpose({ loadInsumo })
       <div class="id-body">
         <div class="id-body-grid">
           <!-- COLUMNA IZQUIERDA: Identidad, Costeo, y Control de Stock -->
-          <fieldset class="id-card" aria-label="Datos del insumo">
+          <fieldset class="id-card" aria-label="Datos del insumo" style="gap: 26px;">
             
-            <!-- FILA 1: Nombre y Código del insumo -->
-            <div class="id-name-row" style="display: flex; gap: 12px; align-items: flex-end;">
-              <div class="id-field" style="flex: 1;">
-                <FloatingField
-                  id="ins-nombre"
-                  label="Nombre"
-                  required
-                  v-model="nombre"
-                  placeholder="Nombre del insumo"
-                  class="id-inline-name-ff"
-                  :invalid="!!errors.nombre"
-                  :describedby="errors.nombre ? 'err-nombre' : undefined"
-                />
-              </div>
-              <div v-if="isEdit" style="padding-bottom: 8px;">
-                <span class="id-code-badge" title="Código autogenerado">
-                  <Lock :size="10" /> {{ insumo!.codigo }}
-                </span>
-              </div>
-            </div>
-            <div v-if="errors.nombre" id="err-nombre" class="field-error" role="alert" style="margin-top: -10px;">
-              {{ errors.nombre }}
-            </div>
-
-            <!-- FILA 2: Categoría e Insumo Activo -->
-            <div class="id-grid-2" style="align-items: center;">
-              <div class="id-field">
-                <FloatingSelect
-                  id="ins-categoria"
-                  label="Categoría"
-                  required
-                  v-model.number="categoriaId"
-                  :invalid="!!errors.categoriaId"
-                  :describedby="errors.categoriaId ? 'err-categoriaId' : undefined"
-                >
-                  <option :value="0" disabled>Seleccionar</option>
-                  <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                </FloatingSelect>
-                <div v-if="errors.categoriaId" id="err-categoriaId" class="field-error" role="alert">
-                  {{ errors.categoriaId }}
-                </div>
-              </div>
-              
-              <div class="id-toggle-row-inline">
-                <div class="lbl">
-                  <span class="t">Insumo activo</span>
-                  <span class="h">Visible en autocompletados y reportes</span>
-                </div>
-                <ToggleSwitch v-model="activo" aria-label="Insumo activo" />
-              </div>
-            </div>
-
-            <!-- FILA 3: Selector Tipo de Costo (Flip Switch) y sus campos -->
-            <div class="id-cost-section" style="display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--border); padding-top: 14px;">
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span class="id-cost-label" style="font-size: 11px; font-weight: 500; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em;">Modalidad de costo</span>
-                <div class="checkbox-wrapper-10">
-                  <input type="checkbox" id="cb-cost-type" class="tgl tgl-flip" v-model="esSimple">
-                  <label for="cb-cost-type" data-tg-on="Simple" data-tg-off="Pack" class="tgl-btn"></label>
-                </div>
-              </div>
-
-              <!-- Si es Pack -->
-              <div v-if="!esSimple" class="id-grid-3">
-                <div class="id-field">
-                  <FloatingField
-                    id="ins-costo-paquete"
-                    label="Costo pack"
-                    type="number"
-                    prefix="$"
-                    v-model.number="costoPaquete"
-                    min="0"
-                    step="0.01"
-                    :invalid="!!errors.costoPaquete"
-                    :describedby="errors.costoPaquete ? 'err-costo-paquete' : undefined"
-                  />
-                  <div v-if="errors.costoPaquete" id="err-costo-paquete" class="field-error" role="alert">
-                    {{ errors.costoPaquete }}
+            <!-- SECCIÓN 1: Nombre -->
+            <section class="form-section">
+              <div class="form-section-body">
+                <!-- Fila 1: Nombre y Código -->
+                <div class="id-name-container" style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+                  <div class="id-name-row" style="display: flex; gap: 12px; align-items: flex-end;">
+                    <div class="id-field" style="flex: 1;">
+                      <FloatingField
+                        id="ins-nombre"
+                        label="Nombre"
+                        required
+                        v-model="nombre"
+                        placeholder="Nombre del insumo"
+                        class="id-inline-name-ff"
+                        :invalid="!!errors.nombre"
+                        :describedby="errors.nombre ? 'err-nombre' : undefined"
+                      />
+                    </div>
+                    <div v-if="isEdit" style="padding-bottom: 8px;">
+                      <span class="id-code-badge" title="Código autogenerado">
+                        <Lock :size="10" /> {{ insumo!.codigo }}
+                      </span>
+                    </div>
                   </div>
-                </div>
-
-                <div class="id-field">
-                  <FloatingField
-                    id="ins-cantidad-pack"
-                    label="Unidades por pack"
-                    type="number"
-                    v-model.number="cantidadPack"
-                    min="0.01"
-                    step="0.01"
-                    :invalid="!!errors.cantidadPack"
-                    :describedby="errors.cantidadPack ? 'err-cantidad-pack' : undefined"
-                  />
-                  <div v-if="errors.cantidadPack" id="err-cantidad-pack" class="field-error" role="alert">
-                    {{ errors.cantidadPack }}
-                  </div>
-                </div>
-
-                <div class="id-field">
-                  <FloatingField
-                    id="ins-unidad"
-                    label="Unidad de medida"
-                    required
-                    v-model="unidad"
-                    placeholder="Ej. pliego, m, rollo"
-                    :invalid="!!errors.unidad"
-                    :describedby="errors.unidad ? 'err-unidad' : undefined"
-                  />
-                  <div v-if="errors.unidad" id="err-unidad" class="field-error" role="alert">
-                    {{ errors.unidad }}
+                  <div v-if="errors.nombre" id="err-nombre" class="field-error" role="alert">
+                    {{ errors.nombre }}
                   </div>
                 </div>
               </div>
+            </section>
 
-              <!-- Si es Simple -->
-              <div v-else class="id-grid-2">
-                <div class="id-field">
-                  <FloatingField
-                    id="ins-costo-unitario-simple"
-                    label="Costo unitario"
-                    type="number"
-                    prefix="$"
-                    v-model.number="costoUnitarioSimple"
-                    min="0"
-                    step="0.01"
-                    :invalid="!!errors.costoUnitarioSimple"
-                    :describedby="errors.costoUnitarioSimple ? 'err-costo-unitario-simple' : undefined"
-                  />
-                  <div v-if="errors.costoUnitarioSimple" id="err-costo-unitario-simple" class="field-error" role="alert">
-                    {{ errors.costoUnitarioSimple }}
+            <!-- SECCIÓN 1b: Categorización -->
+            <section class="form-section">
+              <div class="form-section-body">
+                <!-- Fila 2: Categoría e Insumo Activo -->
+                <div class="form-row" style="align-items: center;">
+                  <div class="field">
+                    <FloatingSelect
+                      id="ins-categoria"
+                      label="Categoría"
+                      required
+                      v-model.number="categoriaId"
+                      :invalid="!!errors.categoriaId"
+                      :describedby="errors.categoriaId ? 'err-categoriaId' : undefined"
+                    >
+                      <option :value="0" disabled>Seleccionar</option>
+                      <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                    </FloatingSelect>
+                    <div v-if="errors.categoriaId" id="err-categoriaId" class="field-error" role="alert">
+                      {{ errors.categoriaId }}
+                    </div>
+                  </div>
+                  
+                  <div class="id-toggle-row-inline">
+                    <div class="lbl">
+                      <span class="t">Insumo activo</span>
+                      <span class="h">Visible en autocompletados y reportes</span>
+                    </div>
+                    <ToggleSwitch v-model="activo" aria-label="Insumo activo" />
+                  </div>
+                </div>
+              </div>
+            </section>
+            <hr class="id-section-divider">
+            <!-- SECCIÓN 2: Costeo -->
+            <section class="form-section">
+              <div class="form-section-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                  <span class="id-cost-label" style="font-size: 11px; font-weight: 500; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em;">Modalidad de costo</span>
+                  <div class="checkbox-wrapper-10">
+                    <input type="checkbox" id="cb-cost-type" class="tgl tgl-flip" v-model="esSimple">
+                    <label for="cb-cost-type" data-tg-on="Simple" data-tg-off="Pack" class="tgl-btn"></label>
                   </div>
                 </div>
 
-                <div class="id-field">
-                  <FloatingField
-                    id="ins-unidad"
-                    label="Unidad de medida"
-                    required
-                    v-model="unidad"
-                    placeholder="Ej. pliego, m, rollo"
-                    :invalid="!!errors.unidad"
-                    :describedby="errors.unidad ? 'err-unidad' : undefined"
-                  />
-                  <div v-if="errors.unidad" id="err-unidad" class="field-error" role="alert">
-                    {{ errors.unidad }}
+                <!-- Grid de campos de costo -->
+                <div :class="esSimple ? 'form-row' : 'id-grid-3'">
+                  <div class="field">
+                    <FloatingField
+                      id="ins-costo-paquete"
+                      :label="esSimple ? 'Costo unitario' : 'Costo pack'"
+                      type="number"
+                      prefix="$"
+                      v-model.number="costoPaquete"
+                      min="0"
+                      step="0.01"
+                      :invalid="!!errors.costoPaquete"
+                      :describedby="errors.costoPaquete ? 'err-costo-paquete' : undefined"
+                    />
+                    <div v-if="errors.costoPaquete" id="err-costo-paquete" class="field-error" role="alert">
+                      {{ errors.costoPaquete }}
+                    </div>
+                  </div>
+
+                  <!-- Unidades por pack -->
+                  <div v-if="!esSimple" class="field">
+                    <FloatingField
+                      id="ins-cantidad-pack"
+                      label="Unidades por pack"
+                      type="number"
+                      v-model.number="cantidadPack"
+                      min="0.01"
+                      step="0.01"
+                      :invalid="!!errors.cantidadPack"
+                      :describedby="errors.cantidadPack ? 'err-cantidad-pack' : undefined"
+                    />
+                    <div v-if="errors.cantidadPack" id="err-cantidad-pack" class="field-error" role="alert">
+                      {{ errors.cantidadPack }}
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <FloatingField
+                      id="ins-unidad"
+                      label="Unidad de medida"
+                      required
+                      v-model="unidad"
+                      placeholder="Ej. pliego, m, rollo"
+                      :invalid="!!errors.unidad"
+                      :describedby="errors.unidad ? 'err-unidad' : undefined"
+                    />
+                    <div v-if="errors.unidad" id="err-unidad" class="field-error" role="alert">
+                      {{ errors.unidad }}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Costo unitario readonly destacado (Solo en modo Pack) -->
-              <div v-if="!esSimple" class="id-cost-row grand" style="margin-top: 4px; padding-top: 10px;">
-                <span class="id-cost-label">Costo unitario calculado</span>
-                <span class="id-cost-value text-mono">
-                  {{ money(costoUnitario) }} <span class="unit-ref">/ {{ unidad || 'u' }}</span>
-                </span>
-              </div>
-            </div>
-
-            <!-- FILA 4: Separador / Encabezado "Control de stock" -->
-            <div class="id-card-head" style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 4px;">
-              <h4 id="title-stock">Control de stock</h4>
-            </div>
-
-            <!-- FILA 5: Stock actual, stock mínimo y bloque de nivel inline -->
-            <div class="id-grid-3" style="align-items: flex-end;">
-              <div class="id-field">
-                <div class="id-num-with-unit">
-                  <FloatingField
-                    id="ins-stock-actual"
-                    label="Stock actual"
-                    type="number"
-                    v-model.number="stockActual"
-                    min="0"
-                    step="1"
-                    :invalid="!!errors.stockActual"
-                    :describedby="'stock-actual-unit' + (errors.stockActual ? ' err-stock-actual' : '')"
-                  />
-                  <span id="stock-actual-unit" class="id-unit-pill">{{ unidad || 'u' }}</span>
-                </div>
-                <div v-if="errors.stockActual" id="err-stock-actual" class="field-error" role="alert">
-                  {{ errors.stockActual }}
-                </div>
-              </div>
-
-              <div class="id-field">
-                <div class="id-num-with-unit">
-                  <FloatingField
-                    id="ins-stock-minimo"
-                    label="Stock mínimo"
-                    type="number"
-                    v-model.number="stockMinimo"
-                    min="0"
-                    step="1"
-                    :invalid="!!errors.stockMinimo"
-                    :describedby="'stock-minimo-unit' + (errors.stockMinimo ? ' err-stock-minimo' : '')"
-                  />
-                  <span id="stock-minimo-unit" class="id-unit-pill">{{ unidad || 'u' }}</span>
-                </div>
-                <div v-if="errors.stockMinimo" id="err-stock-minimo" class="field-error" role="alert">
-                  {{ errors.stockMinimo }}
-                </div>
-              </div>
-
-              <!-- Bloque de nivel inline -->
-              <div class="id-level-block-inline">
-                <div class="row" style="display: flex; justify-content: flex-end;">
-                  <span
-                    class="id-level-badge"
-                    :style="{ background: nivelMeta[nivel].bg, color: nivelMeta[nivel].color }"
-                  >
-                    <span class="dot" /> {{ nivelMeta[nivel].label }}
+                <!-- Costo unitario readonly destacado -->
+                <div v-if="!esSimple" class="id-cost-row grand">
+                  <span class="id-cost-label">Costo unitario calculado</span>
+                  <span class="id-cost-value text-mono">
+                    {{ money(costoUnitario) }} <span class="unit-ref">/ {{ unidad || 'u' }}</span>
                   </span>
                 </div>
-                <div class="id-level-bar" :class="{ 'sin_unidades': nivel === 'sin_unidades' }" style="margin-top: 4px;">
-                  <div
-                    class="fill"
-                    :style="{ width: fillPct + '%', background: nivelMeta[nivel].color }"
-                  />
-                </div>
-                <div class="id-level-stats-inline">
-                  <span>{{ stockMinimo > 0 ? Math.round((stockActual / stockMinimo) * 100) + '%' : 'sin mín.' }}</span>
+              </div>
+            </section>
+            <hr class="id-section-divider">
+            <!-- SECCIÓN 3: Control de stock -->
+            <section class="form-section">
+              <div class="form-section-head" style="margin-bottom: 4px;">
+                <h4 id="title-stock" style="font-size: 11px; color: var(--ink-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin: 0;">Control de stock</h4>
+              </div>
+              <div class="form-section-body">
+                <div class="id-grid-stock" style="align-items: flex-end;">
+                  <div class="field">
+                    <FloatingField
+                      id="ins-stock-actual"
+                      label="Stock actual"
+                      type="number"
+                      v-model.number="stockActual"
+                      min="0"
+                      step="1"
+                      :invalid="!!errors.stockActual"
+                      :describedby="errors.stockActual ? 'err-stock-actual' : undefined"
+                    />
+                    <div v-if="errors.stockActual" id="err-stock-actual" class="field-error" role="alert">
+                      {{ errors.stockActual }}
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <FloatingField
+                      id="ins-stock-minimo"
+                      label="Stock mínimo"
+                      type="number"
+                      v-model.number="stockMinimo"
+                      min="0"
+                      step="1"
+                      :invalid="!!errors.stockMinimo"
+                      :describedby="errors.stockMinimo ? 'err-stock-minimo' : undefined"
+                    />
+                    <div v-if="errors.stockMinimo" id="err-stock-minimo" class="field-error" role="alert">
+                      {{ errors.stockMinimo }}
+                    </div>
+                  </div>
+
+                  <!-- Bloque de nivel inline -->
+                  <div class="id-level-block-inline">
+                    <div class="row" style="display: flex; justify-content: space-between; align-items: center;">
+                      <div class="id-level-stats-inline" style="text-align: left;">
+                        <span>{{ stockMinimo > 0 ? Math.round((stockActual / stockMinimo) * 100) + '%' : 'sin mín.' }}</span>
+                      </div>
+                      <span
+                        class="id-level-badge"
+                        :style="{ background: nivelMeta[nivel].bg, color: nivelMeta[nivel].color }"
+                      >
+                        <span class="dot" /> {{ nivelMeta[nivel].label }}
+                      </span>
+                    </div>
+                    <div class="id-level-bar" :class="{ 'sin_unidades': nivel === 'sin_unidades' }" style="margin-top: 4px;">
+                      <div
+                        class="fill"
+                        :style="{ width: fillPct + '%', background: nivelMeta[nivel].color }"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
 
           </fieldset>
 
@@ -813,6 +777,10 @@ defineExpose({ loadInsumo })
 </template>
 
 <style scoped>
+.id-section-divider{
+  margin: 0px ;
+}
+
 .id-overlay {
   position: absolute;
   inset: 0;
@@ -892,7 +860,7 @@ defineExpose({ loadInsumo })
   box-shadow: var(--shadow-1);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   margin: 0; /* Resetea márgenes de fieldsets */
 }
 
@@ -934,7 +902,7 @@ defineExpose({ loadInsumo })
 .id-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 16px;
 }
 
 .id-num-with-unit {
@@ -1038,19 +1006,17 @@ defineExpose({ loadInsumo })
 
 .id-level-stats .strong { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 
+.form-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .id-cost-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
   font-size: 13px;
-}
-
-.id-cost-row.grand {
-  border-top: 1px solid var(--border-strong);
-  margin-top: 6px;
-  padding-top: 14px;
 }
 
 .id-cost-label {
@@ -1309,7 +1275,13 @@ defineExpose({ loadInsumo })
 .id-grid-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 14px;
+  gap: 16px;
+}
+
+.id-grid-stock {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 16px;
 }
 
 .id-level-block-inline {
@@ -1317,8 +1289,8 @@ defineExpose({ loadInsumo })
   flex-direction: column;
   gap: 4px;
   justify-content: flex-end;
-  height: 43px;
   box-sizing: border-box;
+  padding-bottom: 2px;
 }
 
 .id-level-stats-inline {

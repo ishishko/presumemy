@@ -1,19 +1,19 @@
 # Plan de Implementación Definitivo: Mejoras en Insumos
 
-Se detallan las especificaciones técnicas definitivas para el rediseño y mejoras en el módulo de Insumos y Categorías, respetando rigurosamente el orden de filas requerido y adoptando el nuevo switch tipo flip para el modo de costeo.
+Se detallan las especificaciones técnicas definitivas para el rediseño y mejoras en el módulo de Insumos y Categorías, respetando rigurosamente el orden de filas requerido, el nuevo switch tipo flip para el modo de costeo, y las adaptaciones de espaciado basadas en el editor de presupuestos.
 
 ## User Review Required
 
 > [!IMPORTANT]
 > **Orden Riguroso de Filas en la Ficha (Columna Izquierda)**:
-> 1. **Fila 1 (Identidad):** Nombre del Insumo + Badge de Código (`insumo.codigo` alineado a la derecha en la base).
-> 2. **Fila 2 (Categoría e Insumo Activo):** Dropdown de Categoría + Contenedor inline con el toggle switch de "Insumo activo" (alto y bordes idénticos al input).
-> 3. **Fila 3 (Costo y Flip Switch):**
+> 1. **Fila 1 (Nombre):** Nombre del Insumo + Badge de Código (`insumo.codigo` alineado a la derecha en la base) en su propia sección (`SECCIÓN 1: Nombre`).
+> 2. **Fila 2 (Categorización):** Dropdown de Categoría + Contenedor inline con el toggle switch de "Insumo activo" en su propia sección (`SECCIÓN 1b: Categorización`).
+> 3. **Fila 3 (Costo y Flip Switch):** En la sección `SECCIÓN 2: Costeo` (sin bordes superiores ni paddings/márgenes inline):
 >    - Flip Switch vertical/reducido con opciones **Pack** (por defecto, off) y **Simple** (on).
->    - **Modo Pack:** Grid de 3 columnas (`Costo Pack`, `Unidades por Pack`, `Unidad de medida`) + Costo Unitario calculado (readonly, destacado debajo).
+>    - **Modo Pack:** Grid de 3 columnas (`Costo Pack`, `Unidades por Pack`, `Unidad de medida`) + Costo Unitario calculado (readonly, destacado debajo sin borde superior ni paddings/márgenes excedentes).
 >    - **Modo Simple:** Grid de 2 columnas (`Costo Unitario` de entrada directa y `Unidad de medida`).
-> 4. **Fila 4 (Encabezado):** Título descriptivo "Control de stock" con línea divisoria superior.
-> 5. **Fila 5 (Stock y Nivel):** Grid de 3 columnas (`Stock actual` con su unidad, `Stock mínimo` con su unidad, y el bloque de `Nivel` inline: badge de nivel, barra de progreso y porcentaje alineados).
+> 4. **Fila 4 (Encabezado):** Título descriptivo "Control de stock" con línea divisoria superior e inline `margin-bottom: 4px;` en `SECCIÓN 3: Control de stock`.
+> 5. **Fila 5 (Stock y Nivel):** Grid de 3 columnas asimétricas (`Stock actual` e `Stock mínimo` sin las etiquetas de unidades de medida para evitar el colapso horizontal, y el bloque de `Nivel` inline: badge de nivel y porcentaje alineados arriba, y barra de progreso abajo).
 >
 > **Columna Derecha (Proveedores y Notas)**:
 > - **Arriba:** Proveedores (hasta 3 con referencias).
@@ -23,7 +23,7 @@ Se detallan las especificaciones técnicas definitivas para el rediseño y mejor
 > **Nuevo Flip Switch para Pack / Simple**:
 > Integraremos el switch tipo flip animado en 3D (`.tgl-flip`) adaptando sus colores para armonizar con el design system:
 > - **Pack (off):** fondo `var(--violet-700)` con texto blanco.
-> - **Simple (on):** fondo `var(--teal-600)` con texto blanco.
+> - **Simple (on):** fondo `var(--teal-500)` con texto blanco (corrigiendo la variable inexistente `--teal-600`).
 > - Dimensiones reducidas y compactas para no ocupar espacio innecesario.
 
 > [!IMPORTANT]
@@ -47,6 +47,7 @@ Se detallan las especificaciones técnicas definitivas para el rediseño y mejor
   * `.stock-bar.critico > div`: `background: var(--orange-500);`
   * `.stock-bar.sin_unidades`: fondo `var(--coral-50)` y borde `1px solid var(--coral-500)`.
 * Implementar los estilos para el nuevo flip switch de costo (`.checkbox-wrapper-10`).
+  * Corregir el color de fondo en checked a `var(--teal-500)` para solucionar la invisibilidad en modo Simple.
 * Agregar el estilo `.id-toggle-row-inline` para integrar "Insumo activo" en la segunda fila del grid.
 
 #### [MODIFY] [InsumosView.vue](file:///d:/Desarrollando/presumemy/web/src/views/InsumosView.vue)
@@ -58,25 +59,28 @@ Se detallan las especificaciones técnicas definitivas para el rediseño y mejor
 
 #### [MODIFY] [InsumoDetalle.vue](file:///d:/Desarrollando/presumemy/web/src/components/overlays/InsumoDetalle.vue)
 * **Lógica del Componente**:
-  * Crear ref `tipoCosto = ref<'pack' | 'simple'>('pack')` (o un boolean para el checkbox donde `false` es 'pack' y `true` es 'simple').
-  * Crear ref `costoUnitarioSimple = ref(0)`.
-  * En `loadInsumo()`: inicializar `tipoCosto` como `'simple'` si `i.cantidadPack === 1`, de lo contrario `'pack'`. Cargar `costoUnitarioSimple` o `costoPaquete` correspondientemente.
-  * En `validate()`: validar condicionalmente `costoPaquete` y `cantidadPack` si es Pack, o `costoUnitarioSimple` si es Simple.
-  * En `handleSave()`: mapear `costoPaquete` y `cantidadPack` según el valor de `tipoCosto.value` al construir el payload.
+  * Crear ref `esSimple = ref(false)` para controlar la modalidad del costo.
+  * En `validate()`: validar condicionalmente `costoPaquete` y `cantidadPack` si es Pack, o `costoPaquete` si es Simple.
+  * En `handleSave()`: mapear `cantidadPack = 1` si `esSimple` es true.
   * Actualizar `nivel` y `nivelMeta` para soportar `'sin_unidades'` con color rojo, `'critico'` con color naranja, `'bajo'` con color amarillo, y `'ok'` con color verde.
 * **Layout y Estructura (Template)**:
-  * **Nombre y Código (Fila 1):** Flex container con el input de Nombre a la izquierda y el badge de código (`insumo.codigo`) alineado a la derecha en la base.
-  * **Categoría e Insumo Activo (Fila 2):** Grid de 2 columnas. Columna izquierda: dropdown de categoría. Columna derecha: toggle de "Insumo activo" maquetado como input inline de alto 43px.
+  * **Nombre y Código (Fila 1):** Flex container en su propio `<section class="form-section">` (`SECCIÓN 1: Nombre`).
+  * **Categoría e Insumo Activo (Fila 2):** En su propio `<section class="form-section">` (`SECCIÓN 1b: Categorización`) con la clase `.form-row`.
   * **Selector de Costo y Campos (Fila 3):**
-    * Flip switch integrado (`.checkbox-wrapper-10`) etiquetado como "Modalidad".
-    * **Si es Pack:** Grid de 3 columnas (`Costo Pack`, `Unidades por Pack`, `Unidad de medida`). Abajo, la fila de costo unitario calculado (readonly).
-    * **Si es Simple:** Grid de 2 columnas (`Costo Unitario`, `Unidad de medida`).
+    * En su propio `<section class="form-section">` (`SECCIÓN 2: Costeo`) sin bordes ni rellenos inline.
+    * Flip switch integrado (`.checkbox-wrapper-10`) etiquetado como "Modalidad de costo".
+    * **Si es Pack:** Grid de 3 columnas (`Costo Pack`, `Unidades por Pack`, `Unidad de medida`) con clase `.id-grid-3`. Abajo, la fila de costo unitario calculado `.id-cost-row.grand` sin borde superior, paddings ni márgenes (estilo limpio).
+    * **Si es Simple:** Grid de 2 columnas (`Costo Unitario`, `Unidad de medida`) con clase `.form-row`.
   * **Separador y Control de Stock (Fila 4 y 5):**
-    * Título `Control de stock` con línea divisoria superior.
-    * Grid de 3 columnas: `Stock actual` (con su unidad), `Stock mínimo` (con su unidad), y el bloque de Nivel inline (`id-level-block-inline`) conteniendo la badge del nivel, la barra de progreso y el porcentaje de manera compacta.
-  * **Columna Derecha:**
-    * Proveedores (arriba).
-    * Notas (abajo).
+    * En su propio `<section class="form-section">` (`SECCIÓN 3: Control de stock`) sin bordes inline.
+    * Título `Control de stock` en `.form-section-head` con `style="margin-bottom: 4px;"`.
+    * Grid asimétrico de 3 columnas con clase `.id-grid-stock` (con columnas `1fr 1fr 2fr` para dar suficiente ancho a la barra de nivel).
+    * `Stock actual` e `Stock mínimo` sin los unit pills.
+    * Bloque de Nivel inline (`.id-level-block-inline`) sin altura fija (para evitar colapso). Contiene la badge y las estadísticas alineadas en una fila de `display: flex; justify-content: space-between; align-items: center;` en la parte superior, y la barra `.id-level-bar` abajo.
+* **Estilos (CSS Scoped)**:
+  * Definir `.form-section-body` con `gap: 18px` para homologar el espaciado vertical entre campos con el del editor de presupuestos.
+  * Definir `.id-grid-stock` para separar la distribución del stock de la del costo.
+  * Remover reglas de `border-top`, `padding` y `margin` en `.id-cost-row` y `.id-cost-row.grand`.
 
 ---
 
