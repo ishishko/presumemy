@@ -294,3 +294,7 @@ code {
     border-right-color: var(--border);
   }
 }
+
+body.no-scroll {
+  overflow: hidden !important;
+}

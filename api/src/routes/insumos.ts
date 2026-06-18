@@ -272,6 +272,34 @@ route.post('/proveedores', zValidator('json', z.object({ nombre: z.string().min(
 })
 
 // =========================================================
+// DELETE /api/insumos/proveedores/:id — Soft delete global de proveedor
+// =========================================================
+route.delete('/proveedores/:id', async (c) => {
+  const id = parseInt(c.req.param('id'))
+
+  const existente = await prisma.proveedor.findUnique({
+    where: { id }
+  })
+
+  if (!existente) {
+    throw notFound('Proveedor no encontrado')
+  }
+
+  await prisma.$transaction([
+    prisma.insumoProveedor.deleteMany({
+      where: { proveedorId: id }
+    }),
+    prisma.proveedor.update({
+      where: { id },
+      data: { activo: false }
+    })
+  ])
+
+  return c.json({ message: 'Proveedor eliminado' })
+})
+
+
+// =========================================================
 // GET /api/insumos/:id — Detalle con proveedores
 // =========================================================
 route.get('/:id', async (c) => {

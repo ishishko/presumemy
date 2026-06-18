@@ -1031,10 +1031,25 @@
 .checkbox-wrapper-10 {
   display: inline-block;
   vertical-align: middle;
+  position: relative;
 }
 
 .checkbox-wrapper-10 .tgl {
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 90px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.checkbox-wrapper-10 .tgl:focus-visible + .tgl-btn {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 2px;
 }
 
 .checkbox-wrapper-10 .tgl,

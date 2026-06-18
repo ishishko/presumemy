@@ -53,6 +53,10 @@ const showConfirmCreateProv = ref(false)
 const pendingProvIdx = ref<number | null>(null)
 const pendingProvName = ref('')
 
+const showConfirmDeleteGlobalProv = ref(false)
+const pendingDeleteProvId = ref<number | null>(null)
+const pendingDeleteProvName = ref('')
+
 const nivel = computed(() => {
   const s = parseFloat(String(stockActual.value)) || 0
   const m = parseFloat(String(stockMinimo.value)) || 0
@@ -315,6 +319,62 @@ function clearPendingProv() {
   pendingProvName.value = ''
 }
 
+function triggerDeleteGlobalProv(id: number, name: string) {
+  pendingDeleteProvId.value = id
+  pendingDeleteProvName.value = name
+  activeRowIdx.value = null
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
+  isConfirmingProv.value = true
+  showConfirmDeleteGlobalProv.value = true
+}
+
+async function handleDeleteGlobalProvConfirm() {
+  showConfirmDeleteGlobalProv.value = false
+  const idToDelete = pendingDeleteProvId.value
+  if (idToDelete === null) {
+    isConfirmingProv.value = false
+    clearPendingDeleteProv()
+    return
+  }
+
+  try {
+    await del('/insumos/proveedores', idToDelete)
+
+    // Remover de la lista autocompletable
+    proveedoresList.value = proveedoresList.value.filter(p => p.id !== idToDelete)
+
+    // Limpiar de las filas locales
+    proveedores.value.forEach(row => {
+      if (row.proveedorId === idToDelete) {
+        row.proveedorId = 0
+        row.nombreTemp = ''
+      }
+    })
+
+    toast('Proveedor eliminado del catálogo con éxito', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al eliminar el proveedor del catálogo', 'error')
+  } finally {
+    isConfirmingProv.value = false
+    clearPendingDeleteProv()
+    cleanupEmptyProveedores()
+  }
+}
+
+function handleDeleteGlobalProvCancel() {
+  showConfirmDeleteGlobalProv.value = false
+  isConfirmingProv.value = false
+  clearPendingDeleteProv()
+  cleanupEmptyProveedores()
+}
+
+function clearPendingDeleteProv() {
+  pendingDeleteProvId.value = null
+  pendingDeleteProvName.value = ''
+}
+
 function onCellEnter(idx: number) {
   const nextRow = proveedores.value[idx + 1]
   if (nextRow) {
@@ -561,23 +621,29 @@ watch(
 )
 
 watch(() => props.open, async (open) => {
-  if (open && (categorias.value.length === 0 || proveedoresList.value.length === 0)) {
-    try {
-      const [catsRes, provsRes] = await Promise.all([
-        get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
-        get<{ data: Proveedor[] }>('/insumos/proveedores'),
-      ])
-      categorias.value = catsRes.data
-      proveedoresList.value = provsRes.data
-    } catch (e: any) {
-      toast('Error al cargar datos', 'error')
+  if (open) {
+    document.body.classList.add('no-scroll')
+    if (categorias.value.length === 0 || proveedoresList.value.length === 0) {
+      try {
+        const [catsRes, provsRes] = await Promise.all([
+          get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
+          get<{ data: Proveedor[] }>('/insumos/proveedores'),
+        ])
+        categorias.value = catsRes.data
+        proveedoresList.value = provsRes.data
+      } catch (e: any) {
+        toast('Error al cargar datos', 'error')
+      }
     }
+  } else {
+    document.body.classList.remove('no-scroll')
   }
-})
+}, { immediate: true })
 
 onMounted(async () => {
   document.addEventListener('keydown', onKeydown)
   if (props.open) {
+    document.body.classList.add('no-scroll')
     if (categorias.value.length === 0 || proveedoresList.value.length === 0) {
       try {
         const [catsRes, provsRes] = await Promise.all([
@@ -600,6 +666,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
+  document.body.classList.remove('no-scroll')
 })
 
 defineExpose({ loadInsumo })
@@ -848,17 +915,30 @@ defineExpose({ loadInsumo })
                       @mousedown="activeRowIdx = idx"
                     >
                       <td>
-                        <input
-                          class="cell-input"
-                          v-model="p.nombreTemp"
-                          @focus="activeRowIdx = idx"
-                          @keydown.enter.prevent="onCellEnter(idx)"
-                          @change="onProveedorChange(idx)"
-                          @blur="onProveedorBlur(idx)"
-                          placeholder="Escribí o seleccioná"
-                          list="prov-datalist"
-                          :aria-label="'Proveedor ' + (idx + 1)"
-                        />
+                        <div class="prov-cell-wrapper" style="position: relative; display: flex; align-items: center; width: 100%; height: 100%;">
+                          <input
+                            class="cell-input"
+                            style="padding-right: 28px;"
+                            v-model="p.nombreTemp"
+                            @focus="activeRowIdx = idx"
+                            @keydown.enter.prevent="onCellEnter(idx)"
+                            @change="onProveedorChange(idx)"
+                            @blur="onProveedorBlur(idx)"
+                            placeholder="Escribí o seleccioná"
+                            list="prov-datalist"
+                            :aria-label="'Proveedor ' + (idx + 1)"
+                          />
+                          <button
+                            v-if="p.proveedorId > 0"
+                            type="button"
+                            class="prov-global-del-btn"
+                            @click="triggerDeleteGlobalProv(p.proveedorId, p.nombreTemp || '')"
+                            title="Eliminar este proveedor permanentemente del catálogo"
+                            style="position: absolute; right: 6px; background: transparent; border: none; padding: 4px; cursor: pointer; color: var(--ink-muted); display: flex; align-items: center; justify-content: center; transition: color 120ms ease;"
+                          >
+                            <Trash2 :size="12" />
+                          </button>
+                        </div>
                       </td>
                       <td>
                         <input
@@ -986,6 +1066,17 @@ defineExpose({ loadInsumo })
         @confirm="handleCreateProvConfirm"
         @cancel="handleCreateProvCancel"
       />
+
+      <ConfirmDialog
+        :open="showConfirmDeleteGlobalProv"
+        title="Eliminar proveedor de catálogo"
+        :message="`Vas a eliminar permanentemente al proveedor '${pendingDeleteProvName}' del catálogo. Se removerá de este y otros insumos donde esté cargado. Esta acción no se puede deshacer.`"
+        confirm-label="Eliminar"
+        cancel-label="Cancelar"
+        variant="danger"
+        @confirm="handleDeleteGlobalProvConfirm"
+        @cancel="handleDeleteGlobalProvCancel"
+      />
     </div>
   </Transition>
 </template>
@@ -996,9 +1087,12 @@ defineExpose({ loadInsumo })
 }
 
 .id-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  left: 240px;
+  z-index: 30;
   background: var(--page-bg);
   display: grid;
   grid-template-rows: 1fr auto;
@@ -1402,5 +1496,9 @@ defineExpose({ loadInsumo })
   font-size: 10px;
   color: var(--ink-muted);
   text-align: right;
+}
+
+.prov-global-del-btn:hover {
+  color: var(--coral-500) !important;
 }
 </style>

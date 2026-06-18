@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { ArrowLeft, Check, Trash2, X, Plus, Lock, Image } from '@lucide/vue'
 import { editorDirty } from '@/composables/useEditorMode'
 import { get, post, put, del } from '@/services/api'
@@ -243,14 +243,16 @@ watch(dirty, (val) => {
 
 watch(() => props.open, (open) => {
   if (open) {
+    document.body.classList.add('no-scroll')
     loadProducto()
     openOverlay()
     editorDirty.value = dirty.value
   } else {
+    document.body.classList.remove('no-scroll')
     closeOverlay()
     editorDirty.value = false
   }
-})
+}, { immediate: true })
 
 watch(() => props.open, async (open) => {
   if (open && categorias.value.length === 0) {
@@ -265,6 +267,10 @@ watch(() => props.open, async (open) => {
       toast('Error al cargar datos', 'error')
     }
   }
+})
+
+onUnmounted(() => {
+  document.body.classList.remove('no-scroll')
 })
 
 defineExpose({ loadProducto })
@@ -537,9 +543,12 @@ defineExpose({ loadProducto })
 
 <style scoped>
 .pd-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  left: 240px;
+  z-index: 30;
   background: var(--page-bg);
   display: grid;
   grid-template-rows: 1fr auto;

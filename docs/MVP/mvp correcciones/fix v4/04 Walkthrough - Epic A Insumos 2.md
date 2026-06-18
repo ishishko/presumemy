@@ -1,6 +1,6 @@
-# Walkthrough 04: Comportamientos Blur y Creación Dinámica de Proveedores
+# Walkthrough 04: Comportamientos Blur, Creación Dinámica, Accesibilidad y Eliminación Global de Proveedores
 
-Se completó con éxito la implementación de los comportamientos interactivos y visuales en la tabla de proveedores del detalle de insumos (`InsumoDetalle.vue`), unificando su diseño con la hoja de cálculo de presupuestos (`.lines-spreadsheet`) y agregando la creación dinámica de proveedores con confirmación del usuario.
+Se completó con éxito la implementación de los comportamientos interactivos y visuales en la tabla de proveedores del detalle de insumos (`InsumoDetalle.vue`), la accesibilidad de teclado en el flip switch de costo y la eliminación global de proveedores de catálogo.
 
 ## Cambios Realizados
 
@@ -24,15 +24,30 @@ Se completó con éxito la implementación de los comportamientos interactivos y
 ### 4. Foco al Agregar Fila
 * **Enfoque Automático:** Se implementó la función `focusProviderInput` para buscar y enfocar el primer input editable. Al pulsar "+ Agregar proveedor", se añade la nueva fila y se enfoca de manera inmediata el input de Nombre, emulando la fluidez de una planilla.
 
+### 5. Accesibilidad del Switch de Costo (checkbox-wrapper-10)
+* **Visualmente Oculto en lugar de display: none:** En `components.css`, se modificó el checkbox del flip switch para posicionarlo de forma absoluta con tamaño de 90x32px y `opacity: 0` por encima del botón visual. De esta manera, el navegador lo mantiene perfectamente en el orden de tabulación y es accesible mediante el teclado y lectores de pantalla.
+* **Outline focus-visible:** Se añadió el selector `.checkbox-wrapper-10 .tgl:focus-visible + .tgl-btn` para pintar un borde outline violeta (`outline: 2px solid var(--violet-500); outline-offset: 2px`) cuando el control tiene el foco de teclado.
+* **Activación por Espaciadora:** Se comprobó que el control nativo responde correctamente a la barra Espaciadora para alternar entre "Simple" y "Pack".
+
+### 6. Eliminación Global de Proveedores
+* **Backend (`DELETE /api/insumos/proveedores/:id`):** Implementado en `api/src/routes/insumos.ts` usando una transacción de Prisma. Realiza un soft delete (`activo: false`) en el proveedor y elimina de forma dura todas las relaciones vinculadas en `InsumoProveedor`.
+* **Botón Flotante en Input:** Se agregó un botón `.prov-global-del-btn` con el icono `Trash2` (12px) posicionado de manera absoluta a la derecha del input de proveedor, visible únicamente si el proveedor ya existe en base de datos (`proveedorId > 0`).
+* **Modal de Confirmación de Catálogo:** Al pulsar la papelera, se abre un diálogo modal custom (`variant="danger"`) para advertir que el proveedor será removido permanentemente de todo el catálogo.
+* **Sincronización Reactiva:** Si el usuario confirma la eliminación, el proveedor se elimina de la base de datos, se filtra de la lista de autocompletado (`proveedoresList`) y se remueve de todas las filas en edición del insumo actual de forma reactiva.
+
 ---
 
 ## Verificación de Calidad
 
 ### 1. Pruebas Unitarias de Backend
-Se verificó que los endpoints de la API funcionen correctamente y no existan regresiones en la suite de pruebas.
+Se creó el archivo de pruebas unitarias `proveedores.test.ts` para verificar el comportamiento de la ruta de eliminación global. La suite de pruebas de backend pasa en su totalidad (19 pruebas exitosas):
+```bash
+npm run test
+```
 
 ### 2. Compilación de Tipos Frontend
 Se validó que no existan errores de compilación ni de tipado en los componentes modificados ejecutando:
 ```bash
 npx vue-tsc -b
 ```
+Ambos procesos finalizaron con éxito sin advertencias ni errores.
