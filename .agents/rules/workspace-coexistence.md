@@ -44,3 +44,7 @@ Cualquier código generado para el Frontend (`/web`) debe basarse estrictamente 
 ## 5. Capacidades y Habilidades Extra (`Skills`)
 - Antigravity cuenta con extensiones de conocimiento adicionales almacenadas en la ruta local `./.agents/skills/`. 
 - El agente evaluará los metadatos de dichas carpetas bajo el patrón de *Progressive Disclosure* y activará las instrucciones de cada habilidad de forma autónoma cuando la tarea del usuario lo requiera.
+
+### PROHIVIDO HACER COMMITS SALVO QUE LO SOLICITE O AUTORICE EXPLICITAMENTE EL USUARIO
+- **Si el usuario solicita que se realice un commit en cierto momento del flujo solo se podra hacer ese commit**.
+- **Nunca** se pueden realizar **mas commits** que la cantidad de veces **que el usuario solicito hacer en la ultima Iteracion**.

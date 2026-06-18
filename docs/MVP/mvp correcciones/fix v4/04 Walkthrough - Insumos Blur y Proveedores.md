@@ -12,6 +12,7 @@ Se completó con éxito la implementación de los comportamientos interactivos y
 ### 2. Comportamiento Blur y Poda Segura de Filas
 * **Detección Fuera de la Tabla:** La función `onProvTableFocusout` y la rutina `cleanupEmptyProveedores` detectan si el foco actual del navegador ha salido del contenedor de la tabla (usando `ref="provTableRef"`). Si el foco sale, se eliminan las filas vacías que no tengan proveedor asignado, texto escrito ni precio de referencia.
 * **Pausa de Limpieza durante Modales:** Se introdujo la bandera reactiva `isConfirmingProv` para pausar la poda automática de filas mientras se muestra el modal de confirmación custom de Presumemi (`ConfirmDialog`). Esto evita que la fila desaparezca debajo del cursor del usuario mientras decide.
+* **Enfoque del Diálogo Custom:** Se implementó en `ConfirmDialog.vue` un `watch` sobre la propiedad `open` para que, cuando el diálogo se abra, se mueva el foco de teclado automáticamente al botón **"Cancelar"**. Esto remueve el foco de la tabla del fondo (evitando la escritura fantasma) y permite una navegación por teclado accesible e inmediata.
 
 ### 3. Creación Dinámica de Proveedores (Frontend + API Integration)
 * **Ingreso Directo de Texto:** El input del proveedor usa un `<datalist>` que permite autocompletar proveedores existentes pero también escribir texto libre normal.

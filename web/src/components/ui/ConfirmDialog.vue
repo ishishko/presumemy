@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{
   open: boolean
@@ -14,6 +14,16 @@ const emit = defineEmits<{
   confirm: []
   cancel: []
 }>()
+
+const cancelBtnRef = ref<HTMLButtonElement | null>(null)
+
+watch(() => props.open, (isOpen) => {
+  if (isOpen) {
+    nextTick(() => {
+      cancelBtnRef.value?.focus()
+    })
+  }
+}, { immediate: true })
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && props.open) emit('cancel')
@@ -31,7 +41,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
           <h4>{{ title }}</h4>
           <p>{{ message }}</p>
           <div class="confirm-actions">
-            <button class="btn btn-secondary" @click="emit('cancel')">
+            <button ref="cancelBtnRef" class="btn btn-secondary" @click="emit('cancel')">
               {{ cancelLabel || 'Cancelar' }}
             </button>
             <button
