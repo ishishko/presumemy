@@ -248,6 +248,10 @@ function onProveedorBlur(idx: number) {
   isConfirmingProv.value = true
   pendingProvIdx.value = idx
   pendingProvName.value = nombreTrim
+  activeRowIdx.value = null // Quitar highlight de la fila activa en la tabla
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur() // Desenfocar el input activo para evitar escritura fantasma detrás del modal
+  }
   showConfirmCreateProv.value = true
 }
 
@@ -263,8 +267,7 @@ async function handleCreateProvConfirm() {
 
   const row = proveedores.value[idx]
   try {
-    const res = await post<{ data: Proveedor }>('/insumos/proveedores', { nombre: nombreTrim })
-    const nuevoProv = res.data
+    const nuevoProv = await post<Proveedor>('/insumos/proveedores', { nombre: nombreTrim })
 
     // Agregar a la lista de proveedores global
     proveedoresList.value.push(nuevoProv)
@@ -310,6 +313,29 @@ function handleCreateProvCancel() {
 function clearPendingProv() {
   pendingProvIdx.value = null
   pendingProvName.value = ''
+}
+
+function onCellEnter(idx: number) {
+  const nextRow = proveedores.value[idx + 1]
+  if (nextRow) {
+    focusProviderInput(idx + 1, false)
+    return
+  }
+
+  // No hay fila debajo (es la última fila actual)
+  const current = proveedores.value[idx]
+  const isCurrentEmpty = !current.nombreTemp?.trim() && !current.precio
+  if (isCurrentEmpty) {
+    // Foco fuera de la tabla (las notas)
+    document.getElementById('ins-notes')?.focus()
+  } else {
+    // Si no está vacía y hay menos de 3, agregamos una nueva
+    if (proveedores.value.length < 3) {
+      addProveedor()
+    } else {
+      document.getElementById('ins-notes')?.focus()
+    }
+  }
 }
 
 function cleanupEmptyProveedores() {
@@ -826,6 +852,7 @@ defineExpose({ loadInsumo })
                           class="cell-input"
                           v-model="p.nombreTemp"
                           @focus="activeRowIdx = idx"
+                          @keydown.enter.prevent="onCellEnter(idx)"
                           @change="onProveedorChange(idx)"
                           @blur="onProveedorBlur(idx)"
                           placeholder="Escribí o seleccioná"
@@ -841,6 +868,7 @@ defineExpose({ loadInsumo })
                           step="0.01"
                           v-model.number="p.precio"
                           @focus="activeRowIdx = idx"
+                          @keydown.enter.prevent="onCellEnter(idx)"
                           :aria-label="'Precio de referencia ' + (idx + 1)"
                         />
                       </td>
