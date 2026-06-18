@@ -49,6 +49,10 @@ Se completó con éxito la Epic A (Insumos y Categorías) del fix v4, incluyendo
   * Preservación de la grilla simétrica de modalidad de costo (`1fr 1fr 1fr` en `.id-grid-3`).
 * **Corrección de Estado Activo (Simple) en Flip Switch:**
   * Corrección en `components.css` del color de fondo del switch activo, reemplazando la variable inexistente `var(--teal-600)` por la variable estándar del sistema de diseño `var(--teal-500)`. Esto soluciona la visibilidad del botón en modo Simple.
+* **Estilo Planilla en Proveedores y Simplificación de Notas ( Feedback de Planilla ):**
+  * **Comportamiento Planilla:** Se adaptaron los estilos de `.id-prov-table` y los inputs `.prov-input` para comportarse idénticamente a `.lines-spreadsheet`. Ahora, al hacer foco en una celda, toda la fila se destaca con el borde violeta (`var(--violet-700)`) usando `:focus-within` en `tr` y la celda seleccionada toma un color de fondo violeta claro (`var(--violet-50)`) mediante `td:focus-within`. También se ocultaron las flechas nativas del input numérico.
+  * **Integración del Botón Agregar:** Se integró el botón de agregar proveedor directamente dentro de la caja de la tabla de proveedores `.id-prov-table` mediante la clase global `.add-line-btn` (reemplazando `.id-prov-add`), dándole el aspecto visual de la planilla de presupuestos.
+  * **Notas Premium Integradas:** Se eliminó el card separado `fieldset.id-card.id-notes-full` y sus cabeceras redundantes `h4` y `.hint` superiores. En su lugar, el input `FloatingField` de notas se colocó libremente en la columna derecha dentro de un `.id-notes-wrapper` y con un hint de privacidad más sutil debajo en letra pequeña (`11px` y color `--ink-muted`). Esto elimina el doble borde de caja de la sección y la alinea perfectamente con los inputs de la izquierda.
 
 ---
 
@@ -68,3 +72,7 @@ Se ejecutó la verificación de tipado en [/web](file:///d:/Desarrollando/presum
 npx vue-tsc -b
 # Concluido exitosamente sin advertencias ni errores
 ```
+
+### 3. Verificación Visual (Navegador)
+* Se comprobó la correcta interacción del foco en la tabla de proveedores, destacando la fila en violeta y la celda activa en violeta claro.
+* Se validó que el input de Notas se visualice como un campo de texto limpio de altura ajustable con label flotante animado, sin bordes de tarjeta dobles redundantes.

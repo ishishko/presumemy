@@ -39,7 +39,7 @@ const cantidadPack = ref(1)
 const esSimple = ref(false)
 const notas = ref('')
 
-const proveedores = ref<Array<{ proveedorId: number; precio: number; esPrincipal: boolean }>>([])
+const proveedores = ref<Array<{ proveedorId: number; precio: number; esPrincipal: boolean; nombreTemp?: string }>>([])
 
 const showConfirmDelete = ref(false)
 const showConfirmExit = ref(false)
@@ -151,6 +151,7 @@ function loadInsumo() {
       proveedorId: p.proveedorId,
       precio: p.precio,
       esPrincipal: p.esPrincipal,
+      nombreTemp: p.proveedor?.nombre || '',
     }))
 
     costoPaquete.value = Number(i.costoPaquete)
@@ -158,7 +159,7 @@ function loadInsumo() {
     esSimple.value = Number(i.cantidadPack) === 1
   }
   if (proveedores.value.length === 0) {
-    proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: true })
+    proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' })
   }
 }
 
@@ -170,13 +171,13 @@ watch(esSimple, (simpleVal) => {
 
 function addProveedor() {
   if (proveedores.value.length >= 3) return
-  proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: false })
+  proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: false, nombreTemp: '' })
 }
 
 function removeProveedor(idx: number) {
   proveedores.value.splice(idx, 1)
   if (proveedores.value.length === 0) {
-    proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: true })
+    proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' })
   }
   if (!proveedores.value.some(p => p.esPrincipal)) {
     proveedores.value[0].esPrincipal = true
@@ -185,6 +186,81 @@ function removeProveedor(idx: number) {
 
 function setPrincipal(idx: number) {
   proveedores.value.forEach((p, i) => p.esPrincipal = i === idx)
+}
+
+function onProveedorChange(idx: number) {
+  const row = proveedores.value[idx]
+  const nombreTrim = row.nombreTemp?.trim() || ''
+  if (!nombreTrim) {
+    row.proveedorId = 0
+    return
+  }
+
+  // Buscar coincidencia exacta (case-insensitive)
+  const pr = proveedoresList.value.find(p => p.nombre.toLowerCase() === nombreTrim.toLowerCase())
+  if (pr) {
+    row.proveedorId = pr.id
+    row.nombreTemp = pr.nombre // Normalizar mayúsculas/minúsculas
+  } else {
+    row.proveedorId = 0
+  }
+}
+
+async function onProveedorBlur(idx: number) {
+  const row = proveedores.value[idx]
+  const nombreTrim = row.nombreTemp?.trim() || ''
+  if (!nombreTrim) {
+    row.proveedorId = 0
+    return
+  }
+
+  // Buscar coincidencia exacta (case-insensitive)
+  const pr = proveedoresList.value.find(p => p.nombre.toLowerCase() === nombreTrim.toLowerCase())
+  if (pr) {
+    row.proveedorId = pr.id
+    row.nombreTemp = pr.nombre
+    return
+  }
+
+  // Si no coincide, confirmamos la creación
+  const confirmar = window.confirm(`El proveedor "${nombreTrim}" no existe. ¿Querés crearlo?`)
+  if (confirmar) {
+    try {
+      const res = await post<{ data: Proveedor }>('/insumos/proveedores', { nombre: nombreTrim })
+      const nuevoProv = res.data
+
+      // Agregar a la lista de proveedores global
+      proveedoresList.value.push(nuevoProv)
+      proveedoresList.value.sort((a, b) => a.nombre.localeCompare(b.nombre))
+
+      // Asignar a la fila
+      row.proveedorId = nuevoProv.id
+      row.nombreTemp = nuevoProv.nombre
+      toast('Proveedor creado con éxito', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Error al crear el proveedor', 'error')
+      row.nombreTemp = ''
+      row.proveedorId = 0
+    }
+  } else {
+    // Si no confirma, limpiamos el campo
+    row.nombreTemp = ''
+    row.proveedorId = 0
+  }
+}
+
+function onProvTableFocusout(e: FocusEvent) {
+  const next = e.relatedTarget as HTMLElement | null
+  const table = e.currentTarget as HTMLElement
+  if (next && table.contains(next)) return
+
+  // Filtrar los que no tienen proveedorId y tampoco tienen texto escrito
+  const kept = proveedores.value.filter(p => p.proveedorId > 0 || (p.nombreTemp && p.nombreTemp.trim() !== ''))
+  proveedores.value = kept.length > 0 ? kept : [{ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' }]
+
+  if (!proveedores.value.some(p => p.esPrincipal)) {
+    proveedores.value[0].esPrincipal = true
+  }
 }
 
 function validate(): boolean {
@@ -640,8 +716,14 @@ defineExpose({ loadInsumo })
                 <span class="hint">Hasta 3 · marcá uno como principal</span>
               </div>
 
-              <div class="id-prov-table">
+              <div class="id-prov-table" @focusout="onProvTableFocusout">
                 <table>
+                  <colgroup>
+                    <col />
+                    <col style="width: 150px;" />
+                    <col style="width: 70px;" />
+                    <col style="width: 36px;" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>Proveedor</th>
@@ -653,15 +735,15 @@ defineExpose({ loadInsumo })
                   <tbody>
                     <tr v-for="(p, idx) in proveedores" :key="idx">
                       <td>
-                        <select
-                          id="prov-select"
+                        <input
                           class="prov-input"
-                          v-model.number="p.proveedorId"
+                          v-model="p.nombreTemp"
+                          @change="onProveedorChange(idx)"
+                          @blur="onProveedorBlur(idx)"
+                          placeholder="Escribí o seleccioná"
+                          list="prov-datalist"
                           :aria-label="'Proveedor ' + (idx + 1)"
-                        >
-                          <option :value="0">Seleccionar</option>
-                          <option v-for="pr in proveedoresList" :key="pr.id" :value="pr.id">{{ pr.nombre }}</option>
-                        </select>
+                        />
                       </td>
                       <td>
                         <input
@@ -696,36 +778,41 @@ defineExpose({ loadInsumo })
                     </tr>
                   </tbody>
                 </table>
+
+                <datalist id="prov-datalist">
+                  <option v-for="pr in proveedoresList" :key="pr.id" :value="pr.nombre" />
+                </datalist>
+
+                <button
+                  type="button"
+                  class="add-line-btn"
+                  @click="addProveedor"
+                  :disabled="proveedores.length >= 3"
+                >
+                  <Plus :size="14" /> Agregar proveedor
+                </button>
               </div>
 
               <div v-if="errors.proveedores" class="field-error" role="alert" style="margin-bottom: 6px;">
                 {{ errors.proveedores }}
               </div>
-
-              <button
-                class="id-prov-add"
-                @click="addProveedor"
-                :disabled="proveedores.length >= 3"
-              >
-                <Plus :size="14" /> Agregar proveedor
-              </button>
             </fieldset>
 
             <!-- SECCIÓN NOTAS -->
-            <fieldset class="id-card id-notes-full" aria-labelledby="title-notes">
-              <div class="head" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <h4 id="title-notes" style="margin: 0;">Notas</h4>
-                <span id="notes-hint" class="hint" style="font-size: 12px; color: var(--ink-muted);">Información interna · solo visible para tu equipo</span>
-              </div>
-              <textarea
+            <div class="id-notes-wrapper" style="display: flex; flex-direction: column; gap: 4px;">
+              <FloatingField
                 id="ins-notes"
-                class="textarea"
+                label="Notas"
+                multiline
                 v-model="notas"
                 placeholder="Anotá variaciones de proveedor, tiempos de entrega, observaciones de calidad"
                 rows="3"
                 aria-describedby="notes-hint"
               />
-            </fieldset>
+              <span id="notes-hint" class="hint" style="font-size: 11px; color: var(--ink-muted); padding-left: 4px;">
+                Información interna · solo visible para tu equipo
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -1074,26 +1161,54 @@ defineExpose({ loadInsumo })
 
 .id-prov-table thead th {
   text-align: left;
-  padding: 10px 12px;
+  padding: 10px 8px;
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--ink-muted);
   background: var(--page-bg);
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .id-prov-table thead th.num { text-align: right; }
 .id-prov-table thead th.center { text-align: center; }
 
-.id-prov-table tbody td {
-  padding: 0;
+.id-prov-table tbody tr {
   border-bottom: 1px solid var(--border);
+  transition: background 120ms ease;
 }
 
-.id-prov-table tbody tr:last-child td { border-bottom: 0; }
-.id-prov-table tbody td.center { text-align: center; padding: 8px; }
+/* Fila activa/enfocada: borde violeta */
+.id-prov-table tbody tr:focus-within td {
+  box-shadow: inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
+}
+
+.id-prov-table tbody tr:focus-within td:first-child {
+  box-shadow: inset 1.5px 0 0 var(--violet-700), inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
+}
+
+.id-prov-table tbody tr:focus-within td:last-child {
+  box-shadow: inset -1.5px 0 0 var(--violet-700), inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
+}
+
+.id-prov-table tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.id-prov-table tbody td {
+  padding: 0;
+  vertical-align: middle;
+}
+
+.id-prov-table tbody td.center {
+  text-align: center;
+}
+
+.id-prov-table td:focus-within {
+  background: var(--violet-50);
+}
 
 .prov-input {
   width: 100%;
@@ -1102,7 +1217,7 @@ defineExpose({ loadInsumo })
   font-family: var(--font-sans);
   font-size: 13px;
   color: var(--ink);
-  padding: 11px 12px;
+  padding: 11px 8px;
   outline: none;
   box-sizing: border-box;
 }
@@ -1112,7 +1227,15 @@ defineExpose({ loadInsumo })
   font-variant-numeric: tabular-nums;
 }
 
-.prov-input:focus { background: var(--teal-50); }
+/* Ocultar flechas del input type="number" */
+.id-prov-table .prov-input[type="number"]::-webkit-outer-spin-button,
+.id-prov-table .prov-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.id-prov-table .prov-input[type="number"] {
+  -moz-appearance: textfield;
+}
 
 .id-radio {
   width: 18px;
@@ -1141,65 +1264,21 @@ defineExpose({ loadInsumo })
 .id-prov-del {
   background: transparent;
   border: 0;
-  width: 28px;
-  height: 28px;
+  cursor: pointer;
+  color: var(--ink-muted);
+  padding: 8px;
   display: inline-grid;
   place-items: center;
   border-radius: 6px;
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
-  padding: 0;
+  transition: color 120ms ease;
+  width: auto;
+  height: auto;
 }
 
-.id-prov-del:hover { color: var(--coral-500); background: var(--coral-50); }
+.id-prov-del:hover { color: var(--coral-500); }
 .id-prov-del:disabled { opacity: 0.3; pointer-events: none; }
 
-.id-prov-add {
-  align-self: flex-start;
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  color: var(--violet-700);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 120ms ease, border-color 120ms ease;
-}
 
-.id-prov-add:hover { background: var(--violet-50); border-color: var(--violet-700); }
-.id-prov-add:disabled { opacity: 0.5; pointer-events: none; }
-
-.id-notes-full {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.id-notes-full .head h4 { font-size: 16px; color: var(--ink); font-weight: 500; }
-.id-notes-full .head .hint { font-size: 12px; color: var(--ink-muted); }
-
-.textarea {
-  font-family: var(--font-sans);
-  font-size: 14px;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1.5px solid var(--border-strong);
-  border-radius: var(--r-md);
-  padding: 12px;
-  outline: none;
-  resize: vertical;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
-}
-
-.textarea:focus {
-  border-color: var(--teal-500);
-  box-shadow: var(--focus-ring);
-}
 
 .id-foot {
   display: flex;

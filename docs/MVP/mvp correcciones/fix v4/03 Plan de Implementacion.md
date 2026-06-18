@@ -81,6 +81,12 @@ Se detallan las especificaciones técnicas definitivas para el rediseño y mejor
   * Definir `.form-section-body` con `gap: 18px` para homologar el espaciado vertical entre campos con el del editor de presupuestos.
   * Definir `.id-grid-stock` para separar la distribución del stock de la del costo.
   * Remover reglas de `border-top`, `padding` y `margin` en `.id-cost-row` y `.id-cost-row.grand`.
+  * Adaptar `.id-prov-table` para aplicar estilos y box-shadows de `.lines-spreadsheet` mediante el selector `:focus-within` en celdas y filas.
+  * Remover estilos obsoletos (`.id-prov-add`, `.id-notes-full` y `.textarea`).
+
+* **Columna Derecha (Proveedores y Notas)**:
+  * **Proveedores:** Integrar el botón "+ Agregar proveedor" dentro de la misma caja de la tabla `.id-prov-table` usando la clase global `.add-line-btn` de `components.css`.
+  * **Notas:** Quitar el `fieldset.id-card.id-notes-full` con cabeceras redundantes y dejar el `FloatingField` flotando directamente en `.id-notes-wrapper` con una descripción pequeña debajo para el hint de privacidad ("Información interna · solo visible para tu equipo").
 
 ---
 
@@ -95,3 +101,5 @@ Se detallan las especificaciones técnicas definitivas para el rediseño y mejor
 2. **Flip Switch**: Cambiar entre los modos Pack y Simple y verificar que se oculten/muestren los campos correctos y que al guardar persista el valor unitario en la base de datos (con `cantidadPack = 1` en modo Simple).
 3. **Badge del Código**: Verificar la alineación del badge del código al lado derecho de la fila de Nombre.
 4. **Semáforo de Stock**: Modificar cantidades para testear los 4 estados de stock y que se reflejen en la barra del listado y en la badge/barra del detalle del insumo en sus respectivos colores.
+5. **Estilo Planilla (Proveedores)**: Hacer foco en el dropdown de proveedor o en el input de precio de referencia y validar que la fila se resalte con un borde violeta y la celda activa tenga un fondo violeta suave. Confirmar que el botón "+ Agregar proveedor" aparezca fusionado con el contenedor de la tabla.
+6. **Sección de Notas**: Validar que el campo Notas se muestre como un input simple flotante con su label wave, eliminando la tarjeta de doble borde.

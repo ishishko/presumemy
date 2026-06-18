@@ -19,6 +19,17 @@ export const useAuthStore = defineStore('auth', () => {
     if (session?.access_token) {
       localStorage.setItem('sb-token', session.access_token)
     }
+
+    // Sincronizar token en cambios y refrescos en background
+    supabase.auth.onAuthStateChange((_event, session) => {
+      user.value = session?.user ?? null
+      if (session?.access_token) {
+        localStorage.setItem('sb-token', session.access_token)
+      } else {
+        localStorage.removeItem('sb-token')
+      }
+    })
+
     loading.value = false
   }
 

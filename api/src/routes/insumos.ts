@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -247,6 +248,27 @@ route.get('/proveedores', async (c) => {
     orderBy: { nombre: 'asc' },
   })
   return c.json({ data: proveedores })
+})
+
+// =========================================================
+// POST /api/insumos/proveedores — Crear nuevo proveedor
+// =========================================================
+route.post('/proveedores', zValidator('json', z.object({ nombre: z.string().min(1) })), async (c) => {
+  const { nombre } = c.req.valid('json')
+
+  const existente = await prisma.proveedor.findFirst({
+    where: { nombre, activo: true }
+  })
+
+  if (existente) {
+    return c.json({ data: existente })
+  }
+
+  const nuevo = await prisma.proveedor.create({
+    data: { nombre, activo: true }
+  })
+
+  return c.json({ data: nuevo }, 201)
 })
 
 // =========================================================
