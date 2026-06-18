@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { ArrowLeft, Check, Trash2, X, Plus, Lock } from '@lucide/vue'
+import { ArrowLeft, Check, Trash2, Plus, Lock } from '@lucide/vue'
 import { get, post, put, del } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -46,6 +46,12 @@ const showConfirmExit = ref(false)
 const errors = ref<Record<string, string>>({})
 
 const overlayRef = ref<HTMLElement | null>(null)
+const provTableRef = ref<HTMLElement | null>(null)
+const activeRowIdx = ref<number | null>(null)
+const isConfirmingProv = ref(false)
+const showConfirmCreateProv = ref(false)
+const pendingProvIdx = ref<number | null>(null)
+const pendingProvName = ref('')
 
 const nivel = computed(() => {
   const s = parseFloat(String(stockActual.value)) || 0
@@ -169,9 +175,24 @@ watch(esSimple, (simpleVal) => {
   }
 })
 
+function focusProviderInput(idx: number, isPrice = false) {
+  nextTick(() => {
+    if (provTableRef.value) {
+      const rows = provTableRef.value.querySelectorAll('tbody tr')
+      const row = rows[idx]
+      if (row) {
+        const selector = isPrice ? '.num-input' : '.cell-input'
+        const input = row.querySelector(selector) as HTMLInputElement | null
+        input?.focus()
+      }
+    }
+  })
+}
+
 function addProveedor() {
   if (proveedores.value.length >= 3) return
   proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: false, nombreTemp: '' })
+  focusProviderInput(proveedores.value.length - 1, false)
 }
 
 function removeProveedor(idx: number) {
@@ -206,11 +227,12 @@ function onProveedorChange(idx: number) {
   }
 }
 
-async function onProveedorBlur(idx: number) {
+function onProveedorBlur(idx: number) {
   const row = proveedores.value[idx]
   const nombreTrim = row.nombreTemp?.trim() || ''
   if (!nombreTrim) {
     row.proveedorId = 0
+    cleanupEmptyProveedores()
     return
   }
 
@@ -219,43 +241,103 @@ async function onProveedorBlur(idx: number) {
   if (pr) {
     row.proveedorId = pr.id
     row.nombreTemp = pr.nombre
+    cleanupEmptyProveedores()
     return
   }
 
-  // Si no coincide, confirmamos la creación
-  const confirmar = window.confirm(`El proveedor "${nombreTrim}" no existe. ¿Querés crearlo?`)
-  if (confirmar) {
-    try {
-      const res = await post<{ data: Proveedor }>('/insumos/proveedores', { nombre: nombreTrim })
-      const nuevoProv = res.data
+  isConfirmingProv.value = true
+  pendingProvIdx.value = idx
+  pendingProvName.value = nombreTrim
+  showConfirmCreateProv.value = true
+}
 
-      // Agregar a la lista de proveedores global
-      proveedoresList.value.push(nuevoProv)
-      proveedoresList.value.sort((a, b) => a.nombre.localeCompare(b.nombre))
+async function handleCreateProvConfirm() {
+  showConfirmCreateProv.value = false
+  const idx = pendingProvIdx.value
+  const nombreTrim = pendingProvName.value
+  if (idx === null || !nombreTrim) {
+    isConfirmingProv.value = false
+    clearPendingProv()
+    return
+  }
 
-      // Asignar a la fila
+  const row = proveedores.value[idx]
+  try {
+    const res = await post<{ data: Proveedor }>('/insumos/proveedores', { nombre: nombreTrim })
+    const nuevoProv = res.data
+
+    // Agregar a la lista de proveedores global
+    proveedoresList.value.push(nuevoProv)
+    proveedoresList.value.sort((a, b) => a.nombre.localeCompare(b.nombre))
+
+    // Asignar a la fila
+    if (row) {
       row.proveedorId = nuevoProv.id
       row.nombreTemp = nuevoProv.nombre
-      toast('Proveedor creado con éxito', 'success')
-    } catch (e: any) {
-      toast(e.message || 'Error al crear el proveedor', 'error')
+    }
+    toast('Proveedor creado con éxito', 'success')
+    focusProviderInput(idx, true)
+  } catch (e: any) {
+    toast(e.message || 'Error al crear el proveedor', 'error')
+    if (row) {
       row.nombreTemp = ''
       row.proveedorId = 0
     }
-  } else {
-    // Si no confirma, limpiamos el campo
-    row.nombreTemp = ''
-    row.proveedorId = 0
+    focusProviderInput(idx, false)
+  } finally {
+    isConfirmingProv.value = false
+    clearPendingProv()
+    cleanupEmptyProveedores()
   }
+}
+
+function handleCreateProvCancel() {
+  showConfirmCreateProv.value = false
+  const idx = pendingProvIdx.value
+  if (idx !== null) {
+    const row = proveedores.value[idx]
+    if (row) {
+      row.nombreTemp = ''
+      row.proveedorId = 0
+    }
+    focusProviderInput(idx, false)
+  }
+  isConfirmingProv.value = false
+  clearPendingProv()
+  cleanupEmptyProveedores()
+}
+
+function clearPendingProv() {
+  pendingProvIdx.value = null
+  pendingProvName.value = ''
+}
+
+function cleanupEmptyProveedores() {
+  nextTick(() => {
+    const activeEl = document.activeElement
+    if (provTableRef.value && activeEl && provTableRef.value.contains(activeEl)) {
+      return
+    }
+
+    // Foco está fuera de la tabla de proveedores, hacemos la limpieza
+    const kept = proveedores.value.filter(p => p.proveedorId > 0 || (p.nombreTemp && p.nombreTemp.trim() !== '') || p.precio > 0)
+    proveedores.value = kept.length > 0 ? kept : [{ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' }]
+
+    if (!proveedores.value.some(p => p.esPrincipal)) {
+      proveedores.value[0].esPrincipal = true
+    }
+  })
 }
 
 function onProvTableFocusout(e: FocusEvent) {
   const next = e.relatedTarget as HTMLElement | null
-  const table = e.currentTarget as HTMLElement
-  if (next && table.contains(next)) return
+  if (provTableRef.value && next && provTableRef.value.contains(next)) return
 
-  // Filtrar los que no tienen proveedorId y tampoco tienen texto escrito
-  const kept = proveedores.value.filter(p => p.proveedorId > 0 || (p.nombreTemp && p.nombreTemp.trim() !== ''))
+  activeRowIdx.value = null
+
+  if (isConfirmingProv.value) return
+
+  const kept = proveedores.value.filter(p => p.proveedorId > 0 || (p.nombreTemp && p.nombreTemp.trim() !== '') || p.precio > 0)
   proveedores.value = kept.length > 0 ? kept : [{ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' }]
 
   if (!proveedores.value.some(p => p.esPrincipal)) {
@@ -716,7 +798,7 @@ defineExpose({ loadInsumo })
                 <span class="hint">Hasta 3 · marcá uno como principal</span>
               </div>
 
-              <div class="id-prov-table" @focusout="onProvTableFocusout">
+              <div ref="provTableRef" class="lines-spreadsheet" @focusout="onProvTableFocusout">
                 <table>
                   <colgroup>
                     <col />
@@ -733,11 +815,17 @@ defineExpose({ loadInsumo })
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(p, idx) in proveedores" :key="idx">
+                    <tr
+                      v-for="(p, idx) in proveedores"
+                      :key="idx"
+                      :class="['ln-row', activeRowIdx === idx && 'active']"
+                      @mousedown="activeRowIdx = idx"
+                    >
                       <td>
                         <input
-                          class="prov-input"
+                          class="cell-input"
                           v-model="p.nombreTemp"
+                          @focus="activeRowIdx = idx"
                           @change="onProveedorChange(idx)"
                           @blur="onProveedorBlur(idx)"
                           placeholder="Escribí o seleccioná"
@@ -747,11 +835,12 @@ defineExpose({ loadInsumo })
                       </td>
                       <td>
                         <input
-                          class="prov-input num"
+                          class="cell-input num-input"
                           type="number"
                           min="0"
                           step="0.01"
                           v-model.number="p.precio"
+                          @focus="activeRowIdx = idx"
                           :aria-label="'Precio de referencia ' + (idx + 1)"
                         />
                       </td>
@@ -767,12 +856,12 @@ defineExpose({ loadInsumo })
                       </td>
                       <td>
                         <button
-                          class="id-prov-del"
+                          class="del-btn"
                           @click="removeProveedor(idx)"
                           :disabled="proveedores.length <= 1"
                           title="Eliminar proveedor"
                         >
-                          <X :size="14" />
+                          <Trash2 :size="14" />
                         </button>
                       </td>
                     </tr>
@@ -858,6 +947,16 @@ defineExpose({ loadInsumo })
         variant="danger"
         @confirm="handleDelete"
         @cancel="showConfirmDelete = false"
+      />
+
+      <ConfirmDialog
+        :open="showConfirmCreateProv"
+        title="Crear nuevo proveedor"
+        :message="`El proveedor '${pendingProvName}' no existe. ¿Querés crearlo?`"
+        confirm-label="Crear proveedor"
+        cancel-label="Cancelar"
+        @confirm="handleCreateProvConfirm"
+        @cancel="handleCreateProvCancel"
       />
     </div>
   </Transition>
@@ -1150,92 +1249,7 @@ defineExpose({ loadInsumo })
 .id-prov-card .head h4 { font-size: 16px; color: var(--ink); font-weight: 500; margin: 0; }
 .id-prov-card .head .hint { font-size: 12px; color: var(--ink-muted); }
 
-.id-prov-table {
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  background: var(--surface);
-  overflow: hidden;
-}
 
-.id-prov-table table { width: 100%; border-collapse: collapse; }
-
-.id-prov-table thead th {
-  text-align: left;
-  padding: 10px 8px;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ink-muted);
-  background: var(--page-bg);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.id-prov-table thead th.num { text-align: right; }
-.id-prov-table thead th.center { text-align: center; }
-
-.id-prov-table tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 120ms ease;
-}
-
-/* Fila activa/enfocada: borde violeta */
-.id-prov-table tbody tr:focus-within td {
-  box-shadow: inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
-}
-
-.id-prov-table tbody tr:focus-within td:first-child {
-  box-shadow: inset 1.5px 0 0 var(--violet-700), inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
-}
-
-.id-prov-table tbody tr:focus-within td:last-child {
-  box-shadow: inset -1.5px 0 0 var(--violet-700), inset 0 1.5px 0 var(--violet-700), inset 0 -1.5px 0 var(--violet-700);
-}
-
-.id-prov-table tbody tr:last-child {
-  border-bottom: 0;
-}
-
-.id-prov-table tbody td {
-  padding: 0;
-  vertical-align: middle;
-}
-
-.id-prov-table tbody td.center {
-  text-align: center;
-}
-
-.id-prov-table td:focus-within {
-  background: var(--violet-50);
-}
-
-.prov-input {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--ink);
-  padding: 11px 8px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.prov-input.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Ocultar flechas del input type="number" */
-.id-prov-table .prov-input[type="number"]::-webkit-outer-spin-button,
-.id-prov-table .prov-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.id-prov-table .prov-input[type="number"] {
-  -moz-appearance: textfield;
-}
 
 .id-radio {
   width: 18px;
@@ -1261,22 +1275,6 @@ defineExpose({ loadInsumo })
   background: var(--violet-700);
 }
 
-.id-prov-del {
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  color: var(--ink-muted);
-  padding: 8px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 6px;
-  transition: color 120ms ease;
-  width: auto;
-  height: auto;
-}
-
-.id-prov-del:hover { color: var(--coral-500); }
-.id-prov-del:disabled { opacity: 0.3; pointer-events: none; }
 
 
 
