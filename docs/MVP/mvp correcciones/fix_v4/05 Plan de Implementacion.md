@@ -1,6 +1,6 @@
-# Plan de Implementación 05: Epic B — Productos (Favoritos, Sincronización de Precios, Alertas de Margen y BOM Opcional)
+# Plan de Implementación 05: Epic B — Productos (Favoritos, Sincronización de Precios, Alertas de Margen y BOM Siempre Activo)
 
-Este plan detalla la especificación técnica y de diseño para implementar la Epic B en el catálogo de productos. El objetivo es introducir la capacidad de marcar productos favoritos, implementar una lógica avanzada de precios (sugerido por costo de receta + margen vs. precio final manual), mostrar alertas visuales cuando los precios quedan desactualizados ante variaciones de costo de los insumos, y flexibilizar la obligatoriedad de la estructura de materiales (BOM).
+Este plan detalla la especificación técnica y de diseño para implementar la Epic B en el catálogo de productos. El objetivo es introducir la capacidad de marcar productos favoritos, implementar una lógica avanzada de precios (sugerido por costo de receta + margen vs. precio final manual), mostrar alertas visuales cuando los precios quedan desactualizados ante variaciones de costo de los insumos, e integrar de forma permanente la estructura de materiales (BOM) en todos los productos.
 
 ## User Review Required
 
@@ -18,10 +18,9 @@ Este plan detalla la especificación técnica y de diseño para implementar la E
 > - **Filtro de Desactualizados:** Añadiremos un control de filtrado batch en la cabecera del catálogo para ver de un vistazo todos los productos con precios por debajo de su costo teórico.
 
 > [!NOTE]
-> **BOM Opcional:**
-> - El único campo requerido al crear un producto será el Nombre (junto con la Categoría).
-> - Si se desactiva "Costo por receta", el producto no almacenará líneas de BOM y se usará únicamente el precio de venta.
-> - Al activar "Costo por receta", se creará una línea de BOM vacía por defecto para facilitar la carga.
+> **BOM Siempre Activo:**
+> - Todos los productos tendrán siempre activada la receta/estructura de materiales (BOM). Eliminaremos la opción de desactivar la receta (el campo `tieneBom` en base de datos será siempre `true` para nuevos registros).
+> - La sección de la receta BOM estará visible en todo momento en la interfaz. Si un producto no requiere insumos (por ejemplo, si no se han cargado aún), su costo BOM simplemente se calculará en `$ 0`.
 
 ---
 
@@ -83,9 +82,10 @@ Este plan detalla la especificación técnica y de diseño para implementar la E
     * Si está inactivo (`precioManual === true`):
       * Habilitar el input de "Precio final" para ingreso manual libre.
   * Si `tieneBom` es `true` y `precio.value < precioCalculado.value`, mostrar un banner de advertencia claro de color naranja/coral: `⚠️ El precio de venta final está por debajo del sugerido (costo de receta + margen).`.
-* **BOM no obligatoria**:
-  * Si `tieneBom` es `false`, ocultar completamente la sección/tabla de la receta BOM.
-  * Si el usuario activa "tieneBom", inicializar la primera fila con datos vacíos si la lista actual está vacía.
+* **BOM Siempre Activo**:
+  * Remover el interruptor de "Costo por receta" / "Tiene BOM" de la interfaz.
+  * Mantener la sección y la tabla de la receta BOM visible de forma permanente.
+  * Al crear un nuevo producto, inicializar la receta con una fila de BOM vacía por defecto.
 * **Unidades en BOM**:
   * En la tabla de la receta, renderizar al lado del input de cantidad la unidad de medida del insumo seleccionado (ej: `100 cm`, `2 pliego`).
   * En las columnas de costo unitario y subtotal, mostrar la unidad asociada para clarificar las unidades base (ej: `$ 0.22 / cm`).
@@ -114,5 +114,5 @@ Este plan detalla la especificación técnica y de diseño para implementar la E
 5. **Alerta por Aumento de Costos (Simulación):**
    - Editar un insumo y duplicar su costo unitario.
    - Al volver al catálogo de productos, el producto que consume dicho insumo debe aparecer con el badge de advertencia `⚠️ Reajustar precio`. En el filtro de "Precios desactualizados" debe aparecer listado.
-6. **BOM Opcional:**
-   - Crear un producto sin activar "Costo por receta": debe guardarse exitosamente solo con el precio de venta.
+6. **BOM Siempre Activo:**
+   - Crear un producto: la receta BOM debe estar visible por defecto y guardarse exitosamente (incluso con líneas vacías que se descartan o una receta de costo $0).

@@ -35,7 +35,8 @@ const categoriaId = ref(0)
 const medida = ref('')
 const descripcion = ref('')
 const activo = ref(true)
-const tieneBom = ref(false)
+const tieneBom = ref(true)
+const precioManual = ref(false)
 const tipoGanancia = ref<'porcentaje' | 'fijo'>('porcentaje')
 const ganancia = ref(0)
 const precio = ref(0)
@@ -56,7 +57,7 @@ const bomTotal = computed(() =>
   bomLineas.value.reduce((s, l) => s + l.cantidad * l.costoUnitario, 0)
 )
 
-const costoProducto = computed(() => tieneBom.value ? bomTotal.value : 0)
+const costoProducto = computed(() => bomTotal.value)
 
 const precioCalculado = computed(() => {
   const v = parseFloat(String(ganancia.value)) || 0
@@ -73,12 +74,24 @@ const dirty = computed(() => {
     medida.value !== (p.descripcion || '') ||
     descripcion.value !== (p.descripcion || '') ||
     activo.value !== p.activo ||
-    tieneBom.value !== p.tieneBom ||
+    precioManual.value !== p.precioManual ||
     tipoGanancia.value !== p.tipoGanancia ||
     Number(ganancia.value) !== Number(p.ganancia) ||
     Number(precio.value) !== Number(p.precio) ||
     imagenUrl.value !== (p.imagenUrl || '')
   )
+})
+
+function getInsumoUnit(insumoId?: number): string {
+  if (!insumoId) return ''
+  const ins = insumosList.value.find(i => i.id === insumoId)
+  return ins?.unidad || ''
+}
+
+watch([precioCalculado, precioManual], ([newCalc, manual]) => {
+  if (!manual) {
+    precio.value = Number(Number(newCalc).toFixed(2))
+  }
 })
 
 function money(n: number): string {
@@ -91,13 +104,30 @@ function reset() {
   medida.value = ''
   descripcion.value = ''
   activo.value = true
-  tieneBom.value = false
+  tieneBom.value = true
+  precioManual.value = false
   tipoGanancia.value = 'porcentaje'
   ganancia.value = 0
   precio.value = 0
   imagenUrl.value = ''
   bomLineas.value = []
 }
+
+function syncBomLineasCosts() {
+  if (insumosList.value.length === 0) return
+  bomLineas.value.forEach(l => {
+    if (l.tipoLinea === 'insumo' && l.insumoId) {
+      const ins = insumosList.value.find(i => i.id === l.insumoId)
+      if (ins) {
+        l.costoUnitario = ins.costoUnitario
+      }
+    }
+  })
+}
+
+watch(insumosList, () => {
+  syncBomLineasCosts()
+})
 
 function loadProducto() {
   reset()
@@ -108,7 +138,8 @@ function loadProducto() {
     medida.value = ''
     descripcion.value = p.descripcion || ''
     activo.value = p.activo
-    tieneBom.value = p.tieneBom
+    tieneBom.value = true
+    precioManual.value = p.precioManual
     tipoGanancia.value = p.tipoGanancia
     ganancia.value = p.ganancia
     precio.value = p.precio
@@ -120,11 +151,13 @@ function loadProducto() {
       cantidad: b.cantidad,
       costoUnitario: b.costoUnitario,
     }))
+    syncBomLineasCosts()
   }
   if (tieneBom.value && bomLineas.value.length === 0) {
     addBomLinea()
   }
 }
+
 
 function addBomLinea() {
   bomLineas.value.push({
@@ -164,7 +197,8 @@ async function handleSave() {
     categoriaId: categoriaId.value,
     descripcion: descripcion.value || undefined,
     imagenUrl: imagenUrl.value || undefined,
-    tieneBom: tieneBom.value,
+    tieneBom: true,
+    precioManual: precioManual.value,
     tipoGanancia: tipoGanancia.value,
     ganancia: parseFloat(String(ganancia.value)) || 0,
     precio: parseFloat(String(precio.value)) || 0,
@@ -347,21 +381,19 @@ defineExpose({ loadProducto })
                 </div>
                 <ToggleSwitch v-model="activo" aria-label="Producto activo" />
               </div>
-
-              <div class="pd-toggle-row">
-                <div class="lbl">
-                  <span class="t">{{ tieneBom ? 'Costo por receta' : 'Costo manual' }}</span>
-                  <span class="h">
-                    {{ tieneBom ? 'El costo se calcula desde el BOM de insumos.' : 'Ingresá el costo directamente.' }}
-                  </span>
-                </div>
-                <ToggleSwitch v-model="tieneBom" aria-label="Costo por receta" />
-              </div>
             </section>
 
             <section class="pd-card">
               <div class="pd-card-head">
                 <h4>Precios</h4>
+              </div>
+
+              <div class="pd-toggle-row" style="margin-bottom: 12px; border-top: 0; padding-top: 0;">
+                <div class="lbl">
+                  <span class="t">Precio automático</span>
+                  <span class="h">Sincronizado con receta y margen</span>
+                </div>
+                <ToggleSwitch :modelValue="!precioManual" @update:modelValue="val => precioManual = !val" aria-label="Precio automático" />
               </div>
 
               <div class="pd-price-grid">
@@ -405,12 +437,18 @@ defineExpose({ loadProducto })
                 <span class="pd-price-label">Precio final</span>
                 <input
                   class="pd-money-input"
+                  :class="{ readonly: !precioManual }"
                   type="number"
                   min="0"
                   step="1"
                   v-model.number="precio"
+                  :readonly="!precioManual"
                   style="font-size: 18px; font-weight: 500; color: var(--violet-700); width: 150px"
                 />
+              </div>
+
+              <div v-if="precio < precioCalculado" class="price-warning-banner">
+                ⚠️ El precio de venta final está por debajo del sugerido (costo de receta + margen)
               </div>
             </section>
           </div>
@@ -455,23 +493,35 @@ defineExpose({ loadProducto })
                         <option v-for="ins in insumosList" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
                       </select>
                     </td>
-                    <td>
-                      <input
-                        class="cell-input num-input"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        v-model.number="l.cantidad"
-                      />
+                    <td style="position: relative; padding: 4px 8px;">
+                      <div style="display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
+                        <input
+                          class="cell-input num-input"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          v-model.number="l.cantidad"
+                          style="width: 70px;"
+                        />
+                        <span style="font-size: 11px; color: var(--ink-muted); white-space: nowrap; width: 35px; text-align: left;">
+                          {{ getInsumoUnit(l.insumoId) }}
+                        </span>
+                      </div>
                     </td>
-                    <td>
-                      <input
-                        class="cell-input num-input"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        v-model.number="l.costoUnitario"
-                      />
+                    <td style="position: relative; padding: 4px 8px;">
+                      <div style="display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
+                        <input
+                          class="cell-input num-input"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          v-model.number="l.costoUnitario"
+                          style="width: 70px;"
+                        />
+                        <span style="font-size: 11px; color: var(--ink-muted); white-space: nowrap; width: 35px; text-align: left;">
+                          {{ l.insumoId ? `/ ${getInsumoUnit(l.insumoId)}` : '' }}
+                        </span>
+                      </div>
                     </td>
                     <td class="num cell-subtotal">{{ money(l.cantidad * l.costoUnitario) }}</td>
                     <td>
@@ -989,5 +1039,16 @@ defineExpose({ loadProducto })
 @keyframes overlay-out {
   from { transform: translateY(0); opacity: 1; }
   to { transform: translateY(4px); opacity: 0.6; }
+}
+
+.price-warning-banner {
+  font-size: 12px;
+  color: #D97706;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  line-height: 1.4;
 }
 </style>

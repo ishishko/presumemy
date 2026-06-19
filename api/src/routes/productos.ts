@@ -10,6 +10,76 @@ const route = new Hono()
 route.use('*', authMiddleware)
 
 // =========================================================
+// HELPER FUNCTIONS FOR CALCULATING VIRTUALS
+// =========================================================
+function calculateProductoVirtuals(producto: any) {
+  let costoBOM = 0
+  for (const l of producto.bomLineas || []) {
+    const cantidad = Number(l.cantidad)
+    const costoUnit = (l.tipoLinea === 'insumo' && l.insumo)
+      ? Number(l.insumo.costoUnitario)
+      : Number(l.costoUnitario)
+    costoBOM += cantidad * costoUnit
+  }
+
+  const ganancia = Number(producto.ganancia)
+  let precioSugerido = costoBOM
+  if (producto.tipoGanancia === 'porcentaje') {
+    precioSugerido = costoBOM * (1 + ganancia / 100)
+  } else {
+    precioSugerido = costoBOM + ganancia
+  }
+
+  const finalPrecioManual = producto.precioManual
+  const finalPrecio = finalPrecioManual ? Number(producto.precio) : precioSugerido
+  const desactualizado = finalPrecioManual ? (finalPrecio < precioSugerido) : false
+
+  return {
+    ...producto,
+    costoBOM,
+    precioSugerido,
+    precio: finalPrecio,
+    desactualizado,
+  }
+}
+
+async function calculatePrecioForPayload(data: any) {
+  const insumoIds = data.bomLineas
+    ? data.bomLineas.filter((l: any) => l.tipoLinea === 'insumo' && l.insumoId).map((l: any) => l.insumoId as number)
+    : []
+
+  const insumos = insumoIds.length > 0
+    ? await prisma.insumo.findMany({ where: { id: { in: insumoIds } } })
+    : []
+
+  const insumosMap = new Map(insumos.map(i => [i.id, Number(i.costoUnitario)]))
+
+  let costoBOM = 0
+  if (data.bomLineas) {
+    for (const l of data.bomLineas) {
+      const cantidad = Number(l.cantidad)
+      let costoUnit = Number(l.costoUnitario)
+      if (l.tipoLinea === 'insumo' && l.insumoId) {
+        costoUnit = insumosMap.get(l.insumoId) ?? costoUnit
+      }
+      costoBOM += cantidad * costoUnit
+    }
+  }
+
+  let calculatedPrecio = Number(data.precio)
+  if (!data.precioManual) {
+    const ganancia = Number(data.ganancia)
+    if (data.tipoGanancia === 'porcentaje') {
+      calculatedPrecio = costoBOM * (1 + ganancia / 100)
+    } else {
+      calculatedPrecio = costoBOM + ganancia
+    }
+  }
+
+  return calculatedPrecio
+}
+
+// =========================================================
 // GET /api/productos — Lista con filtros
 // =========================================================
 route.get('/', zValidator('query', paginationSchema), async (c) => {
@@ -38,8 +108,10 @@ route.get('/', zValidator('query', paginationSchema), async (c) => {
     prisma.producto.count({ where }),
   ])
 
+  const mappedProductos = productos.map(p => calculateProductoVirtuals(p))
+
   return c.json({
-    data: productos,
+    data: mappedProductos,
     pagination: {
       page,
       limit,
@@ -218,7 +290,7 @@ route.get('/:id', async (c) => {
     throw notFound('Producto no encontrado')
   }
 
-  return c.json({ data: producto })
+  return c.json({ data: calculateProductoVirtuals(producto) })
 })
 
 // =========================================================
@@ -234,6 +306,8 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
 
   const nextId = (lastProducto?.id ?? 0) + 1
 
+  const calculatedPrecio = await calculatePrecioForPayload(data)
+
   const producto = await prisma.producto.create({
     data: {
       nombre: data.nombre,
@@ -241,12 +315,14 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
       categoriaId: data.categoriaId,
       descripcion: data.descripcion || null,
       imagenUrl: data.imagenUrl || null,
-      tieneBom: data.tieneBom,
+      tieneBom: true, // Force to true since BOM is always active
+      favorito: data.favorito ?? false,
+      precioManual: data.precioManual ?? false,
       tipoGanancia: data.tipoGanancia,
       ganancia: data.ganancia,
-      precio: data.precio,
+      precio: calculatedPrecio,
       bomLineas: data.bomLineas ? {
-        create: data.bomLineas.map((linea, index) => ({
+        create: data.bomLineas.map((linea) => ({
           tipoLinea: linea.tipoLinea,
           insumo: linea.insumoId ? { connect: { id: linea.insumoId } } : undefined,
           descripcion: linea.descripcion || null,
@@ -262,7 +338,7 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
     },
   })
 
-  return c.json({ data: producto }, 201)
+  return c.json({ data: calculateProductoVirtuals(producto) }, 201)
 })
 
 // =========================================================
@@ -280,15 +356,27 @@ route.put('/:id', zValidator('json', productoUpdateSchema), async (c) => {
     throw notFound('Producto no encontrado')
   }
 
+  // Merge payload with existing to compute calculatedPrecio properly
+  const mergedData = {
+    ...existing,
+    ...data,
+    precio: Number(data.precio ?? existing.precio),
+    ganancia: Number(data.ganancia ?? existing.ganancia),
+  }
+
+  const calculatedPrecio = await calculatePrecioForPayload(mergedData)
+
   const { bomLineas, ...productoData } = data
 
   const producto = await prisma.producto.update({
     where: { id },
     data: {
       ...productoData,
+      tieneBom: true, // Force to true since BOM is always active
+      precio: calculatedPrecio,
       bomLineas: bomLineas ? {
         deleteMany: {},
-        create: bomLineas.map((linea, index) => ({
+        create: bomLineas.map((linea) => ({
           tipoLinea: linea.tipoLinea,
           insumo: linea.insumoId ? { connect: { id: linea.insumoId } } : undefined,
           descripcion: linea.descripcion || null,
@@ -304,7 +392,41 @@ route.put('/:id', zValidator('json', productoUpdateSchema), async (c) => {
     },
   })
 
-  return c.json({ data: producto })
+  return c.json({ data: calculateProductoVirtuals(producto) })
+})
+
+// =========================================================
+// PATCH /api/productos/:id/favorito — Alternar favorito
+// =========================================================
+route.patch('/:id/favorito', async (c) => {
+  const id = parseInt(c.req.param('id'))
+
+  const existing = await prisma.producto.findUnique({
+    where: { id, activo: true },
+    include: {
+      categoria: true,
+      bomLineas: {
+        include: { insumo: true },
+      },
+    },
+  })
+
+  if (!existing) {
+    throw notFound('Producto no encontrado')
+  }
+
+  const updated = await prisma.producto.update({
+    where: { id },
+    data: { favorito: !existing.favorito },
+    include: {
+      categoria: true,
+      bomLineas: {
+        include: { insumo: true },
+      },
+    },
+  })
+
+  return c.json({ data: calculateProductoVirtuals(updated) })
 })
 
 // =========================================================

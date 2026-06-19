@@ -142,11 +142,12 @@ async function main() {
     'Iván Castillo',
   ]
 
+  let idx = 1
   for (const nombre of clientes) {
     await prisma.cliente.create({
       data: {
         nombre,
-        codigo: '', // Se actualizará después con el ID
+        codigo: `TEMP-${idx++}-${Date.now()}`,
         contactos: {
           create: {
             canal: 'instagram',

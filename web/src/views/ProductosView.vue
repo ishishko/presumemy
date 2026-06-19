@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Pencil, Trash2 } from '@lucide/vue'
-import { del } from '@/services/api'
+import { Pencil, Trash2, Star } from '@lucide/vue'
+import { del, patch } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
 import { useProductosStore } from '@/stores/productos'
 import ProductoDetalle from '@/components/overlays/ProductoDetalle.vue'
@@ -19,6 +19,7 @@ const store = useProductosStore()
 const { toast } = useToast()
 
 const catFilter = ref<number | 'todas'>('todas')
+const stateFilter = ref<'todos' | 'favorito' | 'desactualizado'>('todos')
 const showOverlay = ref(false)
 const editingProducto = ref<Producto | null>(null)
 const showConfirmDelete = ref(false)
@@ -29,9 +30,42 @@ const deletingCat = ref<any | null>(null)
 
 const showLoading = computed(() => !store.hasFetched)
 
+const counts = computed(() => {
+  const c = { favoritos: 0, desactualizados: 0 }
+  store.data.forEach((p) => {
+    if (p.favorito) c.favoritos++
+    if (p.desactualizado) c.desactualizados++
+  })
+  return c
+})
+
+const stateChips = computed(() => [
+  { id: 'todos' as const, label: 'Todos', count: store.data.length },
+  { id: 'favorito' as const, label: 'Favoritos ★', count: counts.value.favoritos, dot: '#FBBF24' },
+  { id: 'desactualizado' as const, label: 'Precios desactualizados ⚠️', count: counts.value.desactualizados, dot: '#EA5F3C' },
+])
+
 const filtered = computed(() => {
-  if (catFilter.value === 'todas') return store.data
-  return store.data.filter((p) => p.categoriaId === catFilter.value)
+  let list = store.data
+
+  // Apply category filter
+  if (catFilter.value !== 'todas') {
+    list = list.filter((p) => p.categoriaId === catFilter.value)
+  }
+
+  // Apply state filter
+  if (stateFilter.value === 'favorito') {
+    list = list.filter((p) => p.favorito)
+  } else if (stateFilter.value === 'desactualizado') {
+    list = list.filter((p) => p.desactualizado)
+  }
+
+  // Sorting: favorites first, then alphabetically by name
+  return [...list].sort((a, b) => {
+    if (a.favorito && !b.favorito) return -1
+    if (!a.favorito && b.favorito) return 1
+    return a.nombre.localeCompare(b.nombre)
+  })
 })
 
 function money(v: number): string {
@@ -89,6 +123,16 @@ async function handleDeleteConfirm() {
   deletingProducto.value = null
 }
 
+async function toggleFavorite(p: Producto) {
+  try {
+    const res = await patch<Producto>('/productos', `${p.id}/favorito`, {})
+    store.upsert(res)
+    toast(p.favorito ? 'Quitado de favoritos' : 'Marcado como favorito', 'info')
+  } catch (e: any) {
+    toast(e.message || 'Error al actualizar favorito', 'error')
+  }
+}
+
 async function handleCreateCat(nombre: string) {
   try {
     await store.createCategoria(nombre)
@@ -141,6 +185,19 @@ watch(createTrigger, (val) => {
   <div class="content" style="position: relative">
     <div v-if="showLoading" class="card"><p>Cargando productos...</p></div>
     <template v-else>
+    <div class="insumos-filter-row">
+      <button
+        v-for="s in stateChips"
+        :key="s.id"
+        :class="['insumos-state-pill', stateFilter === s.id && 'active']"
+        @click="stateFilter = stateFilter === s.id ? 'todos' : s.id"
+      >
+        <span v-if="s.dot" class="d" :style="{ background: s.dot }" />
+        {{ s.label }}
+        <span class="k">{{ s.count }}</span>
+      </button>
+    </div>
+
     <CategoriaPills
       v-model="catFilter"
       variant="productos"
@@ -151,7 +208,7 @@ watch(createTrigger, (val) => {
     />
 
     <div v-if="filtered.length === 0" class="prod-empty">
-      <p>No hay productos en esta categoría</p>
+      <p>No hay productos con los filtros seleccionados</p>
     </div>
 
     <div v-else class="prod-grid">
@@ -161,6 +218,15 @@ watch(createTrigger, (val) => {
         class="prod-card"
         @click="handleEdit(p)"
       >
+        <button
+          class="prod-fav-btn"
+          :class="{ active: p.favorito }"
+          @click.stop="toggleFavorite(p)"
+          :title="p.favorito ? 'Quitar de favoritos' : 'Marcar como favorito'"
+        >
+          <Star :size="14" :fill="p.favorito ? '#D97706' : 'none'" />
+        </button>
+
         <div class="prod-thumb">
           <img v-if="p.imagenUrl" :src="p.imagenUrl" :alt="p.nombre" />
           <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -175,8 +241,11 @@ watch(createTrigger, (val) => {
           <span class="sep" />
           <span>{{ p.categoria?.nombre }}</span>
         </div>
+        <div v-if="p.desactualizado" class="prod-warning-badge">
+          ⚠️ Reajustar precio
+        </div>
         <div class="prod-foot">
-          <span class="stock">Stock: <strong>{{ p.bomLineas?.length || 0 }} insumos</strong></span>
+          <span class="stock">Receta: <strong>{{ p.bomLineas?.length || 0 }} líneas</strong></span>
           <span class="price">{{ money(p.precio) }}</span>
         </div>
         <div class="prod-actions">
@@ -232,6 +301,7 @@ watch(createTrigger, (val) => {
   gap: 4px;
   opacity: 0;
   transition: opacity 120ms ease;
+  z-index: 5;
 }
 
 .prod-card:hover .prod-actions { opacity: 1; }
@@ -250,4 +320,47 @@ watch(createTrigger, (val) => {
 
 .prod-action-btn:hover { background: var(--page-bg); color: var(--ink); }
 .prod-action-danger:hover { background: var(--coral-50); color: var(--coral-500); }
+
+.prod-fav-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+  z-index: 5;
+}
+
+.prod-fav-btn:hover {
+  background: var(--surface);
+  color: #D97706;
+  transform: scale(1.1);
+}
+
+.prod-fav-btn.active {
+  color: #D97706;
+  border-color: #FBBF24;
+  background: #FEF3C7;
+}
+
+.prod-warning-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #D97706;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  padding: 3px 8px;
+  border-radius: 999px;
+  margin-top: 8px;
+  align-self: flex-start;
+}
 </style>

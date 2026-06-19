@@ -53,6 +53,11 @@ export interface Producto {
   descripcion?: string
   imagenUrl?: string
   tieneBom: boolean
+  favorito: boolean
+  precioManual: boolean
+  precioSugerido?: number
+  costoBOM?: number
+  desactualizado?: boolean
   tipoGanancia: 'porcentaje' | 'fijo'
   ganancia: number
   precio: number

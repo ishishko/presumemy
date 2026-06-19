@@ -101,7 +101,9 @@ model Producto {
   categoria     CategoriaProducto   @relation(fields: [categoriaId], references: [id])
   descripcion   String?
   imagenUrl     String?             @map("imagen_url")
-  tieneBom      Boolean             @default(false) @map("tiene_bom")
+  tieneBom      Boolean             @default(true) @map("tiene_bom")
+  favorito      Boolean             @default(false)
+  precioManual  Boolean             @default(false) @map("precio_manual")
   tipoGanancia  TipoGanancia        @default(porcentaje) @map("tipo_ganancia")
   ganancia      Decimal             @db.Decimal(10, 2) @default(0)
   precio        Decimal             @db.Decimal(10, 2) @default(0)
