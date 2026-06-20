@@ -1,5 +1,7 @@
 # G3.6 — `components/ui/StockBar.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** presentacional **con dominio** → `modules/insumos/components/StockBar.vue` (no `shared`) · barrel `@/modules/insumos`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/StockBar.vue` |

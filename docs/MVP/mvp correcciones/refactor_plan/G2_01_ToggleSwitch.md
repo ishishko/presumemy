@@ -1,5 +1,7 @@
 # G2.1 — `components/ui/ToggleSwitch.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/ToggleSwitch.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/ToggleSwitch.vue` |

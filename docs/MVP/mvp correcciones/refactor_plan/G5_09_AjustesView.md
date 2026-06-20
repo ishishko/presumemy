@@ -1,5 +1,7 @@
 # G5.9 — `views/AjustesView.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/ajustes/AjustesPage.vue` · `SettingsBlock` → `modules/ajustes/components` · store nuevo → `modules/ajustes/store.ts`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/views/AjustesView.vue` |

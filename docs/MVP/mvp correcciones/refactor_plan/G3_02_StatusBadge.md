@@ -1,5 +1,7 @@
 # G3.2 — `components/ui/StatusBadge.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** componente genérico → `shared/ui/StatusBadge.vue` (`@/shared/ui`). Su mapa `Record<EstadoPresupuesto, Tone>` vive en `modules/presupuestos/estado.ts`, no acá.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/StatusBadge.vue` |

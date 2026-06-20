@@ -1,5 +1,7 @@
 # G6.5 — `components/overlays/InsumoDetalle.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/insumos/InsumoDetalle.vue` · `ProveedoresEditor` → `modules/insumos/components` · `costeo.ts`/`stock.ts` → `modules/insumos`. Usa `OverlayShell` de `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/overlays/InsumoDetalle.vue` |

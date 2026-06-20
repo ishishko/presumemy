@@ -1,5 +1,7 @@
 # G3.10 — `App.vue`
 
+> **Ubicación (modular, rev.2):** destino `app/App.vue` (shell raíz). El arranque vive en `app/` (main, router, pinia).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/App.vue` |

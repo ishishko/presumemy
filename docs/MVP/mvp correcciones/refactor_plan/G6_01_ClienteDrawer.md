@@ -1,5 +1,7 @@
 # G6.1 — `components/drawers/ClienteDrawer.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/clientes/ClienteDrawer.vue` · `ContactosEditor` → `modules/clientes/components`. Usa `DrawerShell` de `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/drawers/ClienteDrawer.vue` |

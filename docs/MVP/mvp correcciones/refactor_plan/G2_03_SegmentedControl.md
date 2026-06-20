@@ -1,5 +1,7 @@
 # G2.3 — `components/ui/SegmentedControl.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/SegmentedControl.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/SegmentedControl.vue` |

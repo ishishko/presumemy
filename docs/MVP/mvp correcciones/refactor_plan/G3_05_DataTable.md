@@ -1,5 +1,7 @@
 # G3.5 — `components/ui/DataTable.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/DataTable.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/DataTable.vue` |

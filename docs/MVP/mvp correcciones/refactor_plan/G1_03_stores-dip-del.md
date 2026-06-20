@@ -1,5 +1,7 @@
 # G1.3 — Stores: absorber `del()` (DIP) — doc de patrón
 
+> **Ubicación (modular, rev.2):** cada store → `modules/<dominio>/store.ts`; `services/api.ts` → `shared/api/client.ts` (único que conoce `ofetch`). La UI del módulo no importa `shared/api`: pasa por `store.ts`/`api.ts` (C15).
+
 | | |
 |---|---|
 | **Rutas** | `web/src/stores/{insumos,productos,clientes,finanzas,presupuestos}.ts` |

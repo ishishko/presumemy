@@ -1,5 +1,7 @@
 # G3.8 — `components/layout/TheSidebar.vue`
 
+> **Ubicación (modular, rev.2):** shell de app → `app/shell/AppSidebar.vue`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/layout/TheSidebar.vue` |

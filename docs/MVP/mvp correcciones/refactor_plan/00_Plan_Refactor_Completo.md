@@ -6,6 +6,10 @@ El frontend de Presumemi (`web/`, Vue 3 + Vite + Tailwind v4) tiene el estilado 
 
 Esta sesión migra todo a **Tailwind puro** (se elimina `components.css` y los `<style scoped>`) y **rediseña la componentización con SOLID**. Se ejecuta **bottom-up** (decisión tomada): fundación → primitivos hoja → shell → vistas → drawers/overlays/editor pesados al final, para que las piezas reutilizables existan antes de tocar los archivos grandes. Implementación grande **guiada archivo por archivo**; referencia visual pixel-perfect = prototipo en `docs/MVP/design-system/project/ui_kits/presumemi/`.
 
+## Arquitectura modular por dominio (rev.2)
+
+Además del refactor de estilado/componentización, el frontend se **reorganiza a una estructura modular por dominio** (`app/ + shared/ + modules/<dominio>/`): todo lo de un dominio en una sola carpeta. La fuente de verdad es **[`00_Arquitectura_Modular.md`](00_Arquitectura_Modular.md)**. Reemplaza el `package-by-layer` actual y la adaptación FSD por capas (que dispersaba cada dominio). Invariantes que se conservan: `shared` sin dominio, regla de dependencia `app→modules→shared`, public API por barrel, **DIP por construcción** (la UI de un módulo no importa `shared/api`). Convivencia con este refactor = **Opción A (relocalizar al tocar)**: cada Grupo escribe directamente en su destino modular. La metadata de ubicación por archivo está en el índice (`01_Indice_y_Seguimiento.md`, "Ubicación modular por archivo") y en cada doc de archivo.
+
 ## Convenciones globales del refactor
 
 - **Tokens → `@theme`** en `main.css` (Tailwind v4): los design tokens de `tokens.css` se vuelven la fuente de verdad dentro de Tailwind (genera `bg-violet-700`, `text-ink-muted`, `rounded-lg`, `shadow-2`…). No es CSS vanilla; lo vanilla a borrar es `components.css`.

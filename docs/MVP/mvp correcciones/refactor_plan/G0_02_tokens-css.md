@@ -1,5 +1,7 @@
 # G0.2 — `assets/css/tokens.css`
 
+> **Ubicación (modular, rev.2):** los tokens se absorben en `app/styles/main.css` (`@theme`); el archivo se borra en G7.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/assets/css/tokens.css` |

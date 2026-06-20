@@ -1,5 +1,7 @@
 # G6.4 — `components/overlays/ProductoDetalle.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/productos/ProductoDetalle.vue` · `BomEditor` → `modules/productos/components` · `pricing.ts` (useProductoPricing) → `modules/productos`. Insumos para el BOM vía `@/modules/insumos` (barrel).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/overlays/ProductoDetalle.vue` |

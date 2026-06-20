@@ -1,5 +1,7 @@
 # G3.4 — `components/ui/BaseKpi.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/BaseKpi.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/BaseKpi.vue` |

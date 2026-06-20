@@ -1,5 +1,7 @@
 # G6.3 — `components/drawers/ImprentaDrawer.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/finanzas/ImprentaDrawer.vue`. Presupuestos vía `@/modules/presupuestos` (barrel).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/drawers/ImprentaDrawer.vue` |

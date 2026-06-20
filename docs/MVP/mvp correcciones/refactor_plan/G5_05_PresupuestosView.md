@@ -1,5 +1,7 @@
 # G5.5 — `views/PresupuestosView.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/presupuestos/PresupuestosPage.vue` · `estado.ts` (FSM+tonos) y `EstadoDropdown` viven en `modules/presupuestos`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/views/PresupuestosView.vue` |

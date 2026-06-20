@@ -1,5 +1,7 @@
 # G2.6 — `components/ui/ConfirmDialog.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/ConfirmDialog.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/ConfirmDialog.vue` |

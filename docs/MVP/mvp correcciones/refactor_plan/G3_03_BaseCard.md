@@ -1,5 +1,7 @@
 # G3.3 — `components/ui/BaseCard.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/BaseCard.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/BaseCard.vue` |

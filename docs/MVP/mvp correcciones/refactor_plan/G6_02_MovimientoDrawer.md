@@ -1,5 +1,7 @@
 # G6.2 — `components/drawers/MovimientoDrawer.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/finanzas/MovimientoDrawer.vue` · `SignedAmountInput`/catálogo `tipos.ts` → `modules/finanzas`. Presupuestos para el datalist se traen vía `@/modules/presupuestos` (barrel).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/drawers/MovimientoDrawer.vue` |

@@ -1,5 +1,7 @@
 # G3.1 — `components/ui/BaseButton.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/BaseButton.vue` · import `@/shared/ui`.
+
 > **rev.1 — orden:** aunque vive en la numeración G3, es un **primitivo hoja** que consumen `ConfirmDialog` (G2.6) y `DrawerShell` (G2.8). Por eso se **construye primero**, justo después de G0/G1 (ver "Orden de construcción corregido" en el índice).
 
 | | |

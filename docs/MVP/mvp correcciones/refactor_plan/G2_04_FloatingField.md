@@ -1,5 +1,7 @@
 # G2.4 — `components/ui/FloatingField.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/FloatingField.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/FloatingField.vue` |

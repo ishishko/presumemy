@@ -1,5 +1,7 @@
 # G5.7 — `features/auth/LoginView.vue`
 
+> **Ubicación (modular, rev.2):** sale de `features/` → `modules/auth/LoginPage.vue` (es una pantalla, no una feature).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/features/auth/LoginView.vue` |

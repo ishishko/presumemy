@@ -1,5 +1,7 @@
 # G4.2 — `components/ui/CategoriaDeleteDialog.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/categorias/CategoriaDeleteDialog.vue` · barrel `@/modules/categorias`. Reusa `ConfirmDialog` de `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/CategoriaDeleteDialog.vue` |

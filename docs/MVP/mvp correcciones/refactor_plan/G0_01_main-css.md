@@ -1,5 +1,7 @@
 # G0.1 — `assets/css/main.css`
 
+> **Ubicación (modular, rev.2):** destino `app/styles/main.css`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/assets/css/main.css` |

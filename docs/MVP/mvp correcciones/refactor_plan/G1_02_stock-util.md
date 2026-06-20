@@ -1,5 +1,7 @@
 # G1.2 — `utils/stock.ts` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino **`modules/insumos/stock.ts`** (es dominio insumo, no `shared`) · barrel `@/modules/insumos`.
+
 > **rev.1:** antes `composables/useStockLevel.ts`. Era un util **puro** sin reactividad → renombrado a `utils/stock.ts` y sin prefijo `use*` (que implica reactividad en Vue). Además se unifica el **modelo de semáforo** (ver C8 del índice).
 
 | | |

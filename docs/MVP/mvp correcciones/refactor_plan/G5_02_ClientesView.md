@@ -1,5 +1,7 @@
 # G5.2 — `views/ClientesView.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/clientes/ClientesPage.vue` · `Avatar` → `modules/clientes/components`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/views/ClientesView.vue` |

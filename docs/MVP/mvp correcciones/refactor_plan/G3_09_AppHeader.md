@@ -1,5 +1,7 @@
 # G3.9 — `components/layout/AppHeader.vue`
 
+> **Ubicación (modular, rev.2):** shell de app → `app/shell/AppHeader.vue`. La constante `EDITOR_STATUS_SLOT_ID` (C11) vive en `app/state`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/layout/AppHeader.vue` |

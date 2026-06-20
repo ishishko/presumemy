@@ -1,5 +1,7 @@
 # G5.3 — `views/ProductosView.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/productos/ProductosPage.vue` · `ProductCard` → `modules/productos/components` · usa `@/modules/categorias` por barrel.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/views/ProductosView.vue` |

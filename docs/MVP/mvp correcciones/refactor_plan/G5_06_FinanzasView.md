@@ -1,5 +1,7 @@
 # G5.6 — `views/FinanzasView.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/finanzas/FinanzasPage.vue` · catálogo `tipos.ts` y `FinTabs` en `modules/finanzas`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/views/FinanzasView.vue` |

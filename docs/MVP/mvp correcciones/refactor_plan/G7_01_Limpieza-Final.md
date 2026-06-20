@@ -1,5 +1,7 @@
 # G7.1 — Limpieza final
 
+> **Ubicación (modular, rev.2):** además del CSS, borrar las carpetas legacy vacías tras la relocalización (`views/`, `components/`, `stores/`, `services/`, `composables/`, `utils/`, `schemas/`, `types/` si quedaron sin contenido). El enforcement de barrels/imports profundos está en `G7_02_Enforcement.md`.
+
 | | |
 |---|---|
 | **Rutas** | `web/src/assets/css/components.css`, `tokens.css`, `web/src/style.css` |

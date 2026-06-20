@@ -1,5 +1,7 @@
 # G4.3 — `components/presupuestos/PresupuestoDoc.vue`
 
+> **Ubicación (modular, rev.2):** presentacional con dominio → `modules/presupuestos/PresupuestoDoc.vue` · barrel `@/modules/presupuestos` (lo consume `modules/auth` en la vista pública por barrel).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/presupuestos/PresupuestoDoc.vue` |

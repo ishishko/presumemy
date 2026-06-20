@@ -1,5 +1,7 @@
 # G1.1 — `utils/format.ts` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/lib/format.ts` · import `@/shared/lib`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/utils/format.ts` |

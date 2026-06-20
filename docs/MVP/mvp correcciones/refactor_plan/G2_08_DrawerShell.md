@@ -1,5 +1,7 @@
 # G2.8 — `components/ui/DrawerShell.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/DrawerShell.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/DrawerShell.vue` |

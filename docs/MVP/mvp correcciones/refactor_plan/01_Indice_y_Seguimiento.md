@@ -2,6 +2,7 @@
 
 > Documento maestro de navegación. El plan global está en [`00_Plan_Refactor_Completo.md`](00_Plan_Refactor_Completo.md).
 > El análisis de revisión está en [`02_Primera_correccion.md`](02_Primera_correccion.md); los ajustes derivados están aplicados en este índice y en los docs (ver **Changelog rev.1**).
+> **Arquitectura de carpetas:** modular por dominio — ver [`00_Arquitectura_Modular.md`](00_Arquitectura_Modular.md) (**rev.2**). Cada Grupo escribe directamente en su destino modular (Opción A). La "Ubicación modular por archivo" está al final de este índice.
 > Cada archivo a modificar/crear/borrar tiene su propio doc de acción. Se ejecutan **en el orden de construcción corregido** (abajo).
 
 ## Changelog rev.1 (incorpora `02_Primera_correccion.md`)
@@ -21,12 +22,22 @@
 - **Checkpoint PDF/Puppeteer** explícito entre G4.3 y G5.8.
 - **Audit de catálogos duplicados** (C12): barrido general además de `statusTones`/`tipoMovs`.
 
+## Changelog rev.2 (arquitectura modular por dominio)
+
+- **Estructura modular** (`app/ + shared/ + modules/<dominio>/`) reemplaza el `package-by-layer` y la adaptación FSD por capas (que dispersaba cada dominio). Fuente de verdad: `00_Arquitectura_Modular.md`. El marco FSD original se **eliminó** (absorbido).
+- **Convivencia Opción A** (relocalizar al tocar): cada Grupo escribe en su destino modular en la misma pasada. No cambia ninguna decisión de rev.1; solo *dónde vive* cada archivo.
+- **Nuevo `G0_00_Estructura_Modular.md`** (scaffolding, corre primero) y **`G7_02_Enforcement.md`** (ESLint boundaries por módulo; **Steiger no aplica**).
+- **Reubicaciones clave:** `views/`→`modules/<x>/*Page.vue`; `stores/`→`modules/<x>/store.ts`; `services/api`→`shared/api/client.ts`; UI kit→`shared/ui`; `utils/stock`→`modules/insumos/stock.ts`; `login`/`public`→`modules/auth`; singletons→`app/state`.
+- **Convenciones nuevas:** C13 (árbol de decisión), C14 (barrels), C15 (regla de dependencia + cross-module por barrel), C16 (enforcement).
+- **DIP reforzado por construcción:** la UI de un módulo no importa `shared/api`; pasa por su `store.ts`/`api.ts`.
+
 ## Orden de construcción corregido (gobierna la ejecución)
 
 El número de grupo es **temático**; este es el orden real de implementación:
 
-1. **G0** — fundación (`main.css` `@theme` + tokens).
-2. **G1** — datos/utils: `utils/format.ts`, `utils/stock.ts`, stores absorben `del()`.
+0. **G0.0** — scaffolding modular (`app/ shared/ modules/`, mover arranque) — **antes que todo** (`G0_00_Estructura_Modular.md`).
+1. **G0** — fundación (`main.css` `@theme` + tokens) → escribe en `app/styles`.
+2. **G1** — datos/utils: `shared/lib/format.ts`, `modules/insumos/stock.ts`, stores→`modules/<x>/store.ts` (absorben `del()`), `services/api`→`shared/api`.
 3. **`G3_01` BaseButton** — ⚠️ adelantado: primitivo hoja que consumen `ConfirmDialog`/`DrawerShell`.
 4. **Resto de G2** — primitivos (ToggleSwitch, PageHead, SegmentedControl, Floating*, ConfirmDialog, ToastContainer, DrawerShell).
 5. **Resto de G3** — StatusBadge, BaseCard, BaseKpi, DataTable, StockBar, RowActions, **FilterChips**, **OverlayShell**, shell (Sidebar/Header/App).
@@ -49,7 +60,9 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | Orden | Doc | Archivo | Tipo | Estado |
 |---|---|---|---|---|
 | — | `01_Indice_y_Seguimiento.md` | (este) | — | — |
-| G0.1 | `G0_01_main-css.md` | `assets/css/main.css` | migrar | ⬜ |
+| — | `00_Arquitectura_Modular.md` | (arquitectura) | — | — |
+| **G0.0** | `G0_00_Estructura_Modular.md` | scaffolding `app/ shared/ modules/` + arranque | crear (**primero**) | ⬜ |
+| G0.1 | `G0_01_main-css.md` | `assets/css/main.css` → `app/styles/main.css` | migrar | ⬜ |
 | G0.2 | `G0_02_tokens-css.md` | `assets/css/tokens.css` | migrar→borrar | ⬜ |
 | G1.1 | `G1_01_utils-format.md` | `utils/format.ts` | crear | ⬜ |
 | G1.2 | `G1_02_stock-util.md` | `utils/stock.ts` | crear | ⬜ |
@@ -94,6 +107,7 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G6.5 | `G6_05_InsumoDetalle.md` | `components/overlays/InsumoDetalle.vue` | migrar | ⬜ |
 | G6.6 | `G6_06_PresupuestoEditor.md` | `components/editors/PresupuestoEditor.vue` | migrar | ⬜ |
 | G7.1 | `G7_01_Limpieza-Final.md` | `components.css`, `tokens.css`, `style.css` | borrar | ⬜ |
+| **G7.2** | `G7_02_Enforcement.md` | ESLint boundaries por módulo + barrido imports profundos | configurar | ⬜ |
 
 ---
 
@@ -166,5 +180,47 @@ El id `#editor-header-status` (destino en `AppHeader`, origen en `PresupuestoEdi
 ### C12 — Audit de catálogos duplicados (rev.1)
 Antes de migrar G5/G6, barrido de catálogos repetidos para centralizarlos en `utils/`:
 - `statusTones` + `TRANSITIONS` (Dashboard, PresupuestosView, PresupuestoEditor) → `utils/presupuestoEstado.ts` (**con test** de `getAvailableTransitions`).
-- `tipoMovs` (FinanzasView, MovimientoDrawer) → `utils/movimientoTipos.ts`.
+- `tipoMovs` (FinanzasView, MovimientoDrawer) → `modules/finanzas/tipos.ts`.
 - Revisar también: `cuentas`, `metodosPago`, `canalLabels`/`canalColors`, `MONEDAS`, `tipoHoja` default.
+
+### C13 — Árbol de decisión de ubicación (rev.2)
+Primer "sí" gana: (1) ¿genérico sin negocio? → `shared`. (2) ¿arranque/shell/router/estilos/estado global? → `app`. (3) ¿pertenece a un dominio? → `modules/<dominio>` (segmento: UI, `store`, `api`, regla `<dominio>.ts`, `types`, `schema`). (4) ¿lo comparten dos dominios y tiene negocio? → módulo propio (ej. `categorias`). Detalle en `00_Arquitectura_Modular.md`.
+
+### C14 — Public API por barrel (rev.2)
+Cada `modules/<x>/index.ts` exporta la API pública del módulo; se consume **solo** por el barrel (`@/modules/insumos`), nunca por path profundo (`@/modules/insumos/store`). `shared` se consume por segmento (`@/shared/ui`, `@/shared/lib`).
+
+### C15 — Regla de dependencia (rev.2)
+`app → modules → shared` (nunca al revés). **Cross-module solo por barrel** (`presupuestos`→`@/modules/clientes`). La **UI de un módulo no importa `shared/api`**; el dato pasa por `store.ts`/`api.ts` del módulo → DIP por construcción. (Reemplaza/realiza C4.)
+
+### C16 — Enforcement (rev.2)
+`eslint-plugin-boundaries` / `no-restricted-imports` configurados por módulo (G7.2): prohíben import hacia arriba, lateral por path profundo, y `shared/api` desde UI de módulo. **Steiger no aplica** (es de capas FSD). Correr en CI junto a `vue-tsc`.
+
+---
+
+## Ubicación modular por archivo (vista de cohesión)
+
+> Qué docs/archivos viven en cada módulo. Para "ver todo lo de insumos", mirá `modules/insumos/`.
+
+**`app/`** — arranque + shell + glue (no-dominio)
+- `app/styles/main.css` ← G0.1 · `app/App.vue` ← G3.10 · `app/router.ts` + `app/pinia.ts` ← (router actual)
+- `app/shell/AppSidebar.vue` ← G3.8 · `app/shell/AppHeader.vue` ← G3.9
+- `app/state/{editorMode,createTrigger}.ts` ← composables singleton · scaffolding: G0.0
+
+**`shared/ui/`** — UI kit sin dominio
+- G3.1 BaseButton · G3.2 StatusBadge · G3.3 BaseCard · G3.4 BaseKpi · G3.5 DataTable · G3.7 RowActions · G3.11 FilterChips · G3.12 OverlayShell
+- G2.1 ToggleSwitch · G2.2 PageHead · G2.3 SegmentedControl · G2.4 FloatingField · G2.5 FloatingSelect · G2.6 ConfirmDialog · G2.7 ToastContainer · G2.8 DrawerShell
+
+**`shared/lib|api|config/`**
+- `shared/lib/format.ts` ← G1.1 · `shared/lib/{useToast,useDirty}` · `shared/api/client.ts` ← `services/api` · `shared/config/` ← tipos genéricos de `types/index.ts`
+
+**`modules/insumos/`** — InsumosPage ← G5.4 · InsumoDetalle ← G6.5 · components/StockBar ← G3.6 · `stock.ts` ← G1.2 · `store.ts` ← G1.3(insumos) · `costeo.ts` (useInsumoCosteo) · ProveedoresEditor · schema
+**`modules/productos/`** — ProductosPage ← G5.3 · ProductoDetalle ← G6.4 · components/{ProductCard,BomEditor} · `pricing.ts` (useProductoPricing) · `store.ts` ← G1.3(productos) · schema
+**`modules/clientes/`** — ClientesPage ← G5.2 · ClienteDrawer ← G6.1 · components/{Avatar,ContactosEditor} · `store.ts` ← G1.3(clientes) · schema
+**`modules/presupuestos/`** — PresupuestosPage ← G5.5 · PresupuestoEditor ← G6.6 · PresupuestoDoc ← G4.3 · `estado.ts` (FSM + `Record<Estado,Tone>`) · `calc.ts` (usePresupuestoCalc) · components/{LinesSpreadsheet,EstadoDropdown} · `store.ts` ← G1.3(presupuestos) · schema
+**`modules/finanzas/`** — FinanzasPage ← G5.6 · MovimientoDrawer ← G6.2 · ImprentaDrawer ← G6.3 · components/{FinTabs,SignedAmountInput} · `tipos.ts` (catálogo movimientos) · `store.ts` ← G1.3(finanzas) · schema
+**`modules/categorias/`** — CategoriaPills ← G4.1 · CategoriaDeleteDialog ← G4.2 · `store.ts` + `api.ts` (CRUD categorías insumo+producto)
+**`modules/ajustes/`** — AjustesPage ← G5.9 · components/SettingsBlock · `store.ts` (**nuevo**)
+**`modules/dashboard/`** — DashboardPage ← G5.1 · components/WeeklyChart · `stats-api.ts` ← `services/dashboard`
+**`modules/auth/`** — LoginPage ← G5.7 · PublicPresupuestoPage ← G5.8 · `public-api.ts` (`services/public.ts`) · session
+
+**Cross-cutting:** G0.0 (scaffolding) · G7.1 (limpieza CSS) · G7.2 (enforcement).

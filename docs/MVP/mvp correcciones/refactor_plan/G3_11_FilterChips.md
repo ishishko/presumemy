@@ -1,5 +1,7 @@
 # G3.11 — `components/ui/FilterChips.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/FilterChips.vue` · import `@/shared/ui`.
+
 > **rev.1:** promovido a primitivo con doc propio. Antes "nacía dentro de `ProductosView`" y lo consumían Insumos/Finanzas sin dueño claro.
 
 | | |

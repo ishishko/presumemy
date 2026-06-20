@@ -1,5 +1,7 @@
 # G5.1 — `views/DashboardView.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/dashboard/DashboardPage.vue` (+ `components/WeeklyChart.vue`, `stats-api.ts`). Consume otros módulos por barrel (`@/modules/insumos`, etc.).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/views/DashboardView.vue` |

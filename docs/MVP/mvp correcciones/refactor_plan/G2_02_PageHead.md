@@ -1,5 +1,7 @@
 # G2.2 — `components/layout/PageHead.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/PageHead.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/layout/PageHead.vue` |

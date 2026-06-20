@@ -1,5 +1,7 @@
 # G5.4 — `views/InsumosView.vue` (PILOTO)
 
+> **Ubicación (modular, rev.2):** destino `modules/insumos/InsumosPage.vue`. Es el **piloto también de la estructura modular**: valida barrels (`@/modules/insumos`, `@/shared/ui`, `@/modules/categorias`) y la regla de dependencia antes de propagar.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/views/InsumosView.vue` |

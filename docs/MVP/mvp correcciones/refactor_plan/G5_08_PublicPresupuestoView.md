@@ -1,5 +1,7 @@
 # G5.8 — `features/public/PublicPresupuestoView.vue`
 
+> **Ubicación (modular, rev.2):** sale de `features/` → `modules/auth/PublicPresupuestoPage.vue`. `services/public.ts` → `modules/auth/public-api.ts`. Consume `PresupuestoDoc` vía `@/modules/presupuestos`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/features/public/PublicPresupuestoView.vue` |

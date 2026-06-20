@@ -1,5 +1,7 @@
 # G2.5 — `components/ui/FloatingSelect.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/FloatingSelect.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/FloatingSelect.vue` |

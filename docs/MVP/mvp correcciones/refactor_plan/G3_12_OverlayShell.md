@@ -1,5 +1,7 @@
 # G3.12 — `components/ui/OverlayShell.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/OverlayShell.vue` · import `@/shared/ui`.
+
 > **rev.1:** decidido como **creación** (antes "posible/evaluar"). Dos overlays fullscreen reales lo justifican.
 
 | | |

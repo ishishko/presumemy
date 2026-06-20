@@ -1,5 +1,7 @@
 # G2.7 — `components/ui/ToastContainer.vue`
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/ToastContainer.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/ToastContainer.vue` |

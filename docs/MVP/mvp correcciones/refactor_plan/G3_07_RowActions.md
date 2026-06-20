@@ -1,5 +1,7 @@
 # G3.7 — `components/ui/RowActions.vue` (nuevo)
 
+> **Ubicación (modular, rev.2):** destino `shared/ui/RowActions.vue` · import `@/shared/ui`.
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/RowActions.vue` |

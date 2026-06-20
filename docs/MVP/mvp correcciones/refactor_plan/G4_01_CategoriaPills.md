@@ -1,5 +1,7 @@
 # G4.1 — `components/ui/CategoriaPills.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/categorias/CategoriaPills.vue` · barrel `@/modules/categorias` (lo consumen insumos y productos por barrel).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/CategoriaPills.vue` |

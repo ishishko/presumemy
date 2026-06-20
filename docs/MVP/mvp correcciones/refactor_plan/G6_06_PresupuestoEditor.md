@@ -1,5 +1,7 @@
 # G6.6 — `components/editors/PresupuestoEditor.vue`
 
+> **Ubicación (modular, rev.2):** destino `modules/presupuestos/PresupuestoEditor.vue` · `LinesSpreadsheet`/`EstadoDropdown` → `modules/presupuestos/components` · `calc.ts`/`estado.ts` → `modules/presupuestos`. Clientes y productos (autocomplete) vía `@/modules/clientes` y `@/modules/productos` (barrels). `EDITOR_STATUS_SLOT_ID` desde `app/state` (C11).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/editors/PresupuestoEditor.vue` |
