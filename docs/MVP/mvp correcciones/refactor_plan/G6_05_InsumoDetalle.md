@@ -6,7 +6,7 @@
 | **Grupo / orden** | G6 (pesados) · 5º |
 | **LOC actuales** | 1.344 (≈900 de template + `<style scoped>`) |
 | **Tipo** | migrar (+ extracción fuerte) |
-| **Dependencias** | G2.1/2.4/2.5, G3.1, G2.6, G1.1, G1.2, G1.3; nuevos `ProveedoresEditor`, `useInsumoCosteo`, posible `OverlayShell` |
+| **Dependencias** | G2.1/2.4/2.5, G3.1, G2.6, G1.1, G1.2 (`utils/stock.ts`), G1.3, G3.12 (`OverlayShell`); nuevos `ProveedoresEditor`, `useInsumoCosteo` |
 | **Consumidores** | `InsumosView` (G5.4) |
 
 ## Estado actual
@@ -25,9 +25,9 @@ Overlay delgado: shell + secciones, con **proveedores y costeo extraídos**, dat
 1. **(SRP — clave)** Extraer `components/insumos/ProveedoresEditor.vue`: encapsula la tabla de proveedores + toda su lógica (autocomplete, crear/borrar con sus `ConfirmDialog`, teclado, cleanup, principal). v-model de `proveedores[]` + recibe `proveedoresList`. Reduce el archivo a la mitad y aísla la parte más frágil.
 2. **(DIP)** Crear/usar `useProveedoresStore` (o métodos en `useInsumosStore`) para `crear`/`borrar` proveedor global y listar; el editor no toca `services/api`. Categorías → `useInsumosStore`.
 3. **(SRP/test)** Extraer `useInsumoCosteo` (simple/pack → `costoUnitario`). Regla de negocio testeable.
-4. **(reconciliar G1.2)** El semáforo aquí tiene 4 niveles (incluye `sin_unidades` y umbral `0.2`), distinto de `useStockLevel` (3 niveles, `0.5`). **Decisión:** unificar en `useStockLevel` con una variante/parámetro, o documentar que el overlay usa un nivel más granular. No duplicar la lógica; centralizar. Tokens `orange` faltantes → agregar a `@theme` o mapear a `--yellow`/`--coral`.
+4. **(C8 — RESUELTO rev.1)** El modelo de 4 niveles de este overlay es ahora el **canónico** en `utils/stock.ts` (`sin_unidades`/`critico`/`bajo`/`ok`, umbral `0.2`). Este overlay solo lo **consume** (no define niveles propios). Tokens `--orange-*` **ya existen** en `tokens.css` → asegurar su mapeo en `@theme` (G0.1).
 5. **(reuso)** `costoUnitario` muestra → `formatMoney`. `esSimple` toggle → `ToggleSwitch`/`SegmentedControl`. Campos → `FloatingField`/`FloatingSelect`. Stock bar/semáforo → `StockBar`/`StatusBadge` (con el nivel granular).
-6. **(reuso/eval)** `OverlayShell` compartido con `ProductoDetalle` (G6.4).
+6. **(reuso — DECIDIDO rev.1)** Usar `OverlayShell` (G3.12) como shell; no reimplementar.
 7. **(DRY)** `dirty` → `useDirty` (incluida la comparación de proveedores). **(Tailwind)** migrar `id-*`/`ins-*`/`cell-*` scoped; botón guardar sin `:style` inline. **(C6)** conservar transición `overlay`.
 
 ## Componentes/utils que crea
@@ -41,4 +41,4 @@ Overlay delgado: shell + secciones, con **proveedores y costeo extraídos**, dat
 ## Riesgos / notas
 - **El más riesgoso del refactor.** La lógica de foco/blur de proveedores es delicada (escritura fantasma detrás del modal, cleanup en focusout). Extraer con cuidado y probar a teclado y mouse exhaustivamente.
 - `ProveedoresEditor` es el subcomponente más valioso de todo el plan; diseñarlo con API por v-model + eventos clara.
-- Verificar existencia de tokens `--orange-ink`/`--orange-50`/`--green-*` antes de mapear.
+- **(rev.1)** Tokens `--orange-*` y `--green-*` **ya existen** en `tokens.css`; solo asegurar su mapeo en `@theme` (G0.1), no inventarlos.

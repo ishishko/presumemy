@@ -16,10 +16,7 @@ No existe. Cada vista repite `<table class="data-table …">` con `thead`/`tbody
 Tabla presentacional reutilizable basada en **slots** (no en objetos de dominio): la vista define columnas y el render de cada fila; la tabla aporta el chrome (wrap, header styling, hover, empty state). El componente no sabe qué es un `Insumo` (ISP).
 
 ## Plan de acción paso a paso
-1. **(ISP/diseño de API)** Dos enfoques posibles; elegir según ergonomía al migrar Insumos (piloto):
-   - **A (slots, recomendado):** prop `columns: { key; label; align?; width? }[]`; slot `row` (scoped por item) y slot `empty`. La vista pasa los datos y pinta cada celda.
-   - **B (headless):** solo provee wrapper + clases via slots `head`/`body`. Más flexible, menos guía.
-   Recomendado **A**; mantenerla mínima (YAGNI: sin sort/paginación hasta que se pidan).
+1. **(ISP/diseño de API — DECIDIDO rev.1: opción A)** prop `columns: { key; label; align?; width? }[]` + slot `row` scoped por item + slot `empty`. La vista pasa `rows` y pinta cada celda. Mínima (YAGNI: sin sort/paginación hasta que se pidan). Se **descarta** la variante headless. La API se valida en el piloto (G5.4) antes de propagar.
 2. **(Tailwind)** `table-wrap` → `overflow-x-auto`; `table` → `w-full border-collapse`; `th` → `text-left text-11 uppercase tracking-[.06em] text-ink-muted font-medium px-3 py-2 border-b border-border`; `td` → `text-13 px-3 py-2 border-b border-border`; fila hover → `hover:bg-page-bg`. Alineación num via columna `align:'right'` + `num` (tabular).
 3. **(slots)** `row` scoped: `<slot name="row" :item="item" :index="i" />`. `empty`: mensaje centrado (`colspan`).
 

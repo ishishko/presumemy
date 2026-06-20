@@ -16,7 +16,7 @@ Vista pública (sin auth) que hace `ofetch` directo al endpoint público, mapea 
 Migrar estilos a Tailwind preservando **fielmente** el render para PDF/impresión. Mantener el dato del DTO. Coordinar con `PresupuestoDoc` (G4.3) para no romper los selectores de impresión.
 
 ## Plan de acción paso a paso
-1. **(DIP opcional)** El `ofetch` directo es aceptable (ruta pública, sin store/auth para acelerar Puppeteer). Opcional: extraer a `services/public.ts` (`fetchPublicPresupuesto(token)`) para no usar `ofetch` crudo en la vista. Recomendado por consistencia, bajo riesgo.
+1. **(DIP — OBLIGATORIO rev.1)** Extraer el fetch a `services/public.ts` (`fetchPublicPresupuesto(token)`); la vista no usa `ofetch` crudo. Motivo: **consistencia + testabilidad** (no es purismo DIP — la ruta es pública y liviana, y el service también lo es). Mantiene la velocidad para Puppeteer.
 2. **(Tailwind)** Migrar `<style scoped>` (page, toolbar, public-state, spinner) a utilidades; spinner con `animate-spin`. Botón imprimir → `BaseButton variant="secondary"`.
 3. **(⚠️ PDF/print)** El bloque `<style>` global apunta a `.preview-doc` (clase de `PresupuestoDoc`). Al migrar `PresupuestoDoc` a Tailwind, esa clase puede desaparecer. **Acción:** mantener un hook estable — dejar `class="preview-doc"` en la raíz de `PresupuestoDoc` como ancla de impresión, **o** mover las reglas `@page`/`@media print`/`pdf-mode` a apuntar a un atributo/clase que `PresupuestoDoc` conserve. Documentar la decisión y **probar la generación de PDF** tras migrar.
 4. **(C6)** `@page { size:A4; margin:14mm }` y `@media print` se conservan (no expresables en utilidades) en `<style>` global o `@layer`.
@@ -27,5 +27,5 @@ Migrar estilos a Tailwind preservando **fielmente** el render para PDF/impresió
 - Sin `ofetch` crudo si se extrajo el service.
 
 ## Riesgos / notas
-- **Riesgo alto en PDF:** la migración de `PresupuestoDoc` puede romper los selectores de impresión. Coordinar G4.3 ↔ G5.8 y validar el PDF end-to-end (gotcha de Puppeteer en WSL documentado en memoria del proyecto).
+- **Riesgo alto en PDF:** la migración de `PresupuestoDoc` puede romper los selectores de impresión. Coordinar G4.3 ↔ G5.8 y validar el PDF end-to-end (gotcha de Puppeteer en WSL documentado en memoria del proyecto). **(rev.1)** Este es el **"Checkpoint PDF"** del índice: ejecutarlo tras G4.3 y **antes** de migrar esta vista; no avanzar a G6 sin PDF verificado.
 - No inicializa auth (meta `public`); mantener.

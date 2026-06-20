@@ -68,6 +68,12 @@ const filtered = computed(() => {
   })
 })
 
+function getImageUrl(path: string) {
+  if (!path) return ''
+  const token = localStorage.getItem('sb-token')
+  return `${import.meta.env.VITE_API_URL || ''}/api${path}?token=${token}`
+}
+
 function money(v: number): string {
   return `$ ${v.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
@@ -228,7 +234,7 @@ watch(createTrigger, (val) => {
         </button>
 
         <div class="prod-thumb">
-          <img v-if="p.imagenUrl" :src="p.imagenUrl" :alt="p.nombre" />
+          <img v-if="p.imagenes && p.imagenes.length > 0" :src="getImageUrl(p.imagenes[0])" :alt="p.nombre" />
           <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />

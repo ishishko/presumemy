@@ -32,7 +32,7 @@ El store es el **único** que conoce `services/api`. La vista llama `await store
 
 ## Plan de acción (aplicar a cada store)
 1. **(DIP)** Importar `del`/`delWithBody` en el store (ya importan `get/post/put`).
-2. **(DIP)** Convertir `remove` en `async`: `await del('<endpoint>', id)` y luego filtrar el array local. Manejo de error: re-lanzar para que la vista muestre el toast (la vista decide UX, el store hace la operación).
+2. **(DIP)** Convertir `remove` en `async`: `await del('<endpoint>', id)` y luego filtrar el array local. **(C10, rev.1 — convención de errores)** El store **re-lanza** el error (no lo traga); la **vista** hace `try/catch` + `toast` (decide la UX). Este patrón ya es uniforme de facto en las 6 vistas. **No** se introduce `useAsyncAction` todavía (YAGNI / Regla de Tres); reconsiderar solo si tras el piloto la repetición molesta.
 3. **(consumo)** En la vista (fase G5): quitar `import … from '@/services/api'`, reemplazar `await del(...); store.remove(id)` por `await store.remove(id)`.
 
 ## Antes → Después

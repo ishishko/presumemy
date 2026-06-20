@@ -1,13 +1,45 @@
 # Índice y seguimiento — Refactor frontend `web/`
 
 > Documento maestro de navegación. El plan global está en [`00_Plan_Refactor_Completo.md`](00_Plan_Refactor_Completo.md).
-> Cada archivo a modificar/crear/borrar tiene su propio doc de acción. Se ejecutan **en orden bottom-up**.
+> El análisis de revisión está en [`02_Primera_correccion.md`](02_Primera_correccion.md); los ajustes derivados están aplicados en este índice y en los docs (ver **Changelog rev.1**).
+> Cada archivo a modificar/crear/borrar tiene su propio doc de acción. Se ejecutan **en el orden de construcción corregido** (abajo).
+
+## Changelog rev.1 (incorpora `02_Primera_correccion.md`)
+
+- **`useStockLevel` → `utils/stock.ts`** (era un util puro mal etiquetado como composable). Doc: `G1_02_stock-util.md`.
+- **Modelo único de semáforo de stock** (C8): se unifica el de 4 niveles (`InsumoDetalle`) como canónico; `InsumosView` lo consume colapsado. Resuelve el conflicto de umbrales (`0.2` vs `0.5`).
+- **`BaseButton` se construye primero** (orden corregido): es primitivo hoja consumido por `ConfirmDialog` y `DrawerShell`. Sigue documentado en `G3_01` pero su build va tras G1.
+- **`FilterChips`** y **`OverlayShell`** ahora tienen doc propio (`G3_11`, `G3_12`); dejan de "nacer dentro de una vista" / "ser posibles".
+- **Tokens faltantes** (C9): `--teal-600`/`--violet-600` (usados por `ToastContainer`) no existen → se agregan a `@theme` o se remapean en G0.1. (`--orange-*` ya fueron agregados al `tokens.css`.)
+- **`DataTable` se compromete con la opción A** (slots + `columns`).
+- **Store de ajustes: se CREA** (verificado: no existe ninguno) — destraba G5.9.
+- **`services/public.ts` obligatorio** en G5.8 (motivo: consistencia + testabilidad, no dogma DIP).
+- **Convención de error handling** (C10): store re-lanza, vista hace try/catch + toast. **Sin** `useAsyncAction` por ahora (YAGNI).
+- **Dark mode de `LoginView`: se elimina** (dead code de facto; no hay estrategia dark global).
+- **Contrato del Teleport** `#editor-header-status` como **constante compartida** (C11).
+- **Tests añadidos**: `presupuestoEstado.ts` (FSM).
+- **Checkpoint PDF/Puppeteer** explícito entre G4.3 y G5.8.
+- **Audit de catálogos duplicados** (C12): barrido general además de `statusTones`/`tipoMovs`.
+
+## Orden de construcción corregido (gobierna la ejecución)
+
+El número de grupo es **temático**; este es el orden real de implementación:
+
+1. **G0** — fundación (`main.css` `@theme` + tokens).
+2. **G1** — datos/utils: `utils/format.ts`, `utils/stock.ts`, stores absorben `del()`.
+3. **`G3_01` BaseButton** — ⚠️ adelantado: primitivo hoja que consumen `ConfirmDialog`/`DrawerShell`.
+4. **Resto de G2** — primitivos (ToggleSwitch, PageHead, SegmentedControl, Floating*, ConfirmDialog, ToastContainer, DrawerShell).
+5. **Resto de G3** — StatusBadge, BaseCard, BaseKpi, DataTable, StockBar, RowActions, **FilterChips**, **OverlayShell**, shell (Sidebar/Header/App).
+6. **G4** — medianos.
+7. **G5** — vistas (piloto: InsumosView). **Checkpoint PDF tras G4.3, antes de G5.8.**
+8. **G6** — pesados.
+9. **G7** — limpieza.
 
 ## Cómo usar esta documentación
 
-1. Seguir el orden del índice (los archivos pesados dependen de que los primitivos ya estén migrados).
-2. Antes de tocar un archivo, abrir **solo su doc** (`Gx_yy_*.md`) y seguir el plan de acción paso a paso.
-3. Tras terminar un archivo: correr `vue-tsc`, comparar visual con el prototipo, marcar el estado en la tabla de abajo.
+1. Seguir el **orden de construcción corregido** (arriba).
+2. Antes de tocar un archivo, abrir **solo su doc** (`Gx_yy_*.md`) y seguir el plan paso a paso.
+3. Tras terminar: `vue-tsc`, comparar visual con el prototipo, marcar estado en la tabla.
 4. Un archivo migrado = idealmente un commit lógico.
 
 ## Estado de cada archivo
@@ -20,8 +52,9 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G0.1 | `G0_01_main-css.md` | `assets/css/main.css` | migrar | ⬜ |
 | G0.2 | `G0_02_tokens-css.md` | `assets/css/tokens.css` | migrar→borrar | ⬜ |
 | G1.1 | `G1_01_utils-format.md` | `utils/format.ts` | crear | ⬜ |
-| G1.2 | `G1_02_useStockLevel.md` | `composables/useStockLevel.ts` | crear | ⬜ |
+| G1.2 | `G1_02_stock-util.md` | `utils/stock.ts` | crear | ⬜ |
 | G1.3 | `G1_03_stores-dip-del.md` | `stores/{insumos,productos,clientes,finanzas,presupuestos}.ts` | migrar | ⬜ |
+| **G3.1** | `G3_01_BaseButton.md` | `components/ui/BaseButton.vue` | crear (**build primero**) | ⬜ |
 | G2.1 | `G2_01_ToggleSwitch.md` | `components/ui/ToggleSwitch.vue` | migrar | ⬜ |
 | G2.2 | `G2_02_PageHead.md` | `components/layout/PageHead.vue` | migrar | ⬜ |
 | G2.3 | `G2_03_SegmentedControl.md` | `components/ui/SegmentedControl.vue` | migrar | ⬜ |
@@ -30,7 +63,6 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G2.6 | `G2_06_ConfirmDialog.md` | `components/ui/ConfirmDialog.vue` | migrar | ⬜ |
 | G2.7 | `G2_07_ToastContainer.md` | `components/ui/ToastContainer.vue` | migrar | ⬜ |
 | G2.8 | `G2_08_DrawerShell.md` | `components/ui/DrawerShell.vue` | migrar | ⬜ |
-| G3.1 | `G3_01_BaseButton.md` | `components/ui/BaseButton.vue` | crear | ⬜ |
 | G3.2 | `G3_02_StatusBadge.md` | `components/ui/StatusBadge.vue` | crear | ⬜ |
 | G3.3 | `G3_03_BaseCard.md` | `components/ui/BaseCard.vue` | crear | ⬜ |
 | G3.4 | `G3_04_BaseKpi.md` | `components/ui/BaseKpi.vue` | crear | ⬜ |
@@ -40,9 +72,12 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G3.8 | `G3_08_TheSidebar.md` | `components/layout/TheSidebar.vue` | migrar | ⬜ |
 | G3.9 | `G3_09_AppHeader.md` | `components/layout/AppHeader.vue` | migrar | ⬜ |
 | G3.10 | `G3_10_App.md` | `App.vue` | migrar | ⬜ |
+| G3.11 | `G3_11_FilterChips.md` | `components/ui/FilterChips.vue` | crear | ⬜ |
+| G3.12 | `G3_12_OverlayShell.md` | `components/ui/OverlayShell.vue` | crear | ⬜ |
 | G4.1 | `G4_01_CategoriaPills.md` | `components/ui/CategoriaPills.vue` | migrar | ⬜ |
 | G4.2 | `G4_02_CategoriaDeleteDialog.md` | `components/ui/CategoriaDeleteDialog.vue` | migrar | ⬜ |
 | G4.3 | `G4_03_PresupuestoDoc.md` | `components/presupuestos/PresupuestoDoc.vue` | migrar | ⬜ |
+| — | **Checkpoint PDF/Puppeteer** | (verificar tras G4.3, antes de G5.8) | gate | ⬜ |
 | G5.1 | `G5_01_DashboardView.md` | `views/DashboardView.vue` | migrar | ⬜ |
 | G5.2 | `G5_02_ClientesView.md` | `views/ClientesView.vue` | migrar | ⬜ |
 | G5.3 | `G5_03_ProductosView.md` | `views/ProductosView.vue` | migrar | ⬜ |
@@ -51,7 +86,7 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G5.6 | `G5_06_FinanzasView.md` | `views/FinanzasView.vue` | migrar | ⬜ |
 | G5.7 | `G5_07_LoginView.md` | `features/auth/LoginView.vue` | migrar | ⬜ |
 | G5.8 | `G5_08_PublicPresupuestoView.md` | `features/public/PublicPresupuestoView.vue` | migrar | ⬜ |
-| G5.9 | `G5_09_AjustesView.md` | `views/AjustesView.vue` | migrar | ⬜ |
+| G5.9 | `G5_09_AjustesView.md` | `views/AjustesView.vue` (+ `stores/ajustes.ts` **nuevo**) | migrar+crear | ⬜ |
 | G6.1 | `G6_01_ClienteDrawer.md` | `components/drawers/ClienteDrawer.vue` | migrar | ⬜ |
 | G6.2 | `G6_02_MovimientoDrawer.md` | `components/drawers/MovimientoDrawer.vue` | migrar | ⬜ |
 | G6.3 | `G6_03_ImprentaDrawer.md` | `components/drawers/ImprentaDrawer.vue` | migrar | ⬜ |
@@ -75,40 +110,61 @@ Los tokens de `tokens.css` se definen en `@theme` dentro de `main.css`. Tailwind
 | `--ink`, `--ink-muted` | `--color-ink`, `--color-ink-muted` | `text-ink`, `text-ink-muted` |
 | `--page-bg`, `--surface` | `--color-page-bg`, `--color-surface` | `bg-page-bg`, `bg-surface` |
 | `--border`, `--border-strong` | `--color-border`, `--color-border-strong` | `border-border` |
-| pasteles (`--lavender`, `--mint`, `--yellow`…) | `--color-*` | `bg-lavender`, etc. |
+| pasteles (`--lavender`, `--mint`, `--yellow`, `--orange-*`…) | `--color-*` | `bg-lavender`, `bg-orange-50`, etc. |
 | `--r-sm/md/lg/xl/pill` | `--radius-sm/md/lg/xl/pill` | `rounded-md`, `rounded-lg`, `rounded-pill` |
 | `--shadow-1/2/pop` | `--shadow-1/2/pop` | `shadow-1`, `shadow-2`, `shadow-pop` |
 | `--font-sans` (Onest) | `--font-sans` | `font-sans` (default del body) |
 | escala `--fs-12…48` | `--text-12…48` | `text-12`, `text-14`, … |
 
 ### C2 — Espaciado (grid 4px = escala default Tailwind)
-No se crea escala custom. Equivalencias:
-`--s-1`=4px→`1` · `--s-2`=8px→`2` · `--s-3`=12px→`3` · `--s-4`=16px→`4` · `--s-5`=20px→`5` · `--s-6`=24px→`6` · `--s-8`=32px→`8` · `--s-10`=40px→`10` · `--s-12`=48px→`12` · `--s-16`=64px→`16`.
-Ej.: `padding: var(--s-6)` → `p-6`; `gap: var(--s-2)` → `gap-2`.
+No se crea escala custom. `--s-1`=4px→`1` · `--s-2`→`2` · `--s-4`=16px→`4` · `--s-6`→`6` · `--s-8`=32px→`8` … Ej.: `padding: var(--s-6)` → `p-6`.
 
 ### C3 — Variantes con mapa de estrategia (OCP)
-Nunca `if/else` ni concatenación de strings para variantes. Patrón:
+Nunca `if/else` ni concatenación para variantes. Patrón:
 ```ts
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-teal-500 text-white hover:brightness-94',
+  primary: 'bg-teal-500 text-white hover:brightness-95',
   secondary: 'bg-surface border border-border-strong text-ink',
   ghost: 'bg-transparent text-violet-700 hover:bg-violet-50',
   danger: 'bg-coral-500 text-white',
 }
 // uso: :class="VARIANTS[variant]"
 ```
-Agregar variante = nueva entrada, sin tocar el render.
 
 ### C4 — DIP (acceso a datos)
-Componentes y vistas **no importan `services/api`**. El store es el único que conoce el API. Las vistas llaman `store.fetch()/create()/update()/remove()`.
+Componentes y vistas **no importan `services/api`**. El store es el único que conoce el API. La vista pública (G5.8) usa `services/public.ts` (no `ofetch` crudo).
 
 ### C5 — Vue idiomático
-`<script setup lang="ts">`, props tipadas con `defineProps<…>()`, `defineModel()` para v-model, `defineEmits<…>()`. Componentes presentacionales sin fetch propio. A11y existente (roles, aria, teclado) se conserva.
+`<script setup lang="ts">`, props tipadas, `defineModel()` para v-model, `defineEmits<…>()`. Componentes presentacionales sin fetch propio. A11y existente intacta.
 
 ### C6 — Excepción de `<style scoped>`
-Solo se conservan animaciones irreductibles: el "wave" del label flotante (`FloatingField`/`FloatingSelect`) y las transiciones `drawer`/`toast`/`confirm`. Todo lo demás pasa a utilidades.
+Solo animaciones irreductibles: wave del label (`FloatingField`/`FloatingSelect`), transiciones `drawer`/`toast`/`confirm`/`overlay`, `card-appear` (login), `aj-grow`, `@page`/`@media print` (vista pública). Todo lo demás → utilidades.
 
 ### C7 — Verificación por archivo
 - `cd web && npx vue-tsc -b` sin errores.
-- `npm run dev` → comparar contra `docs/MVP/design-system/project/ui_kits/presumemi/index.html` (pixel-perfect).
-- Si el archivo tiene test (`ConfirmDialog`), mantener API y que el test siga verde.
+- `npm run dev` → comparar con `docs/MVP/design-system/project/ui_kits/presumemi/index.html` (pixel-perfect).
+- Si el archivo tiene test (`ConfirmDialog`), mantener API y test verde.
+
+### C8 — Modelo único de semáforo de stock (rev.1)
+Fuente única en `utils/stock.ts`. **Modelo canónico de 4 niveles** (el de `InsumoDetalle`):
+`sin_unidades` (stock=0) · `critico` (stock ≤ min·0.2) · `bajo` (stock < min) · `ok`.
+- `getNivel(stock, minimo): Nivel` puro; `NIVEL_META: Record<Nivel,{ label; tone }>` con `tone` semántico (no color crudo).
+- `InsumosView` (lista) puede **colapsar** `sin_unidades`→`critico` si la UI de la tabla solo maneja 3 chips, vía un helper `nivelColapsado()`.
+- ⚠️ **Decisión a confirmar con producto:** hoy `InsumosView` usa umbral `0.5` y `InsumoDetalle` `0.2`. Se adopta `0.2` (más granular) como canónico; es un cambio de comportamiento menor en la lista — validar visualmente en el piloto (G5.4).
+
+### C9 — Tokens a agregar/remapear en G0 (rev.1)
+`ToastContainer` usa `--teal-600`/`--violet-600` que **no existen** (hoy resuelven a color heredado). En G0.1: agregarlos a `@theme` **o** remapear a `teal-700`/`violet-700`. `--orange-*` ya existen en `tokens.css`.
+
+### C10 — Convención de error handling (rev.1)
+- El **store** ejecuta la operación y **re-lanza** el error (no lo traga).
+- La **vista** envuelve en `try/catch` y muestra el `toast` (decide la UX).
+- **No** se introduce `useAsyncAction` todavía (la duplicación es de ~3 líneas; aplica YAGNI / Regla de Tres). Reconsiderar solo si tras el piloto la repetición molesta.
+
+### C11 — Contrato del Teleport del badge de estado (rev.1)
+El id `#editor-header-status` (destino en `AppHeader`, origen en `PresupuestoEditor`) se define como **constante compartida** (`const EDITOR_STATUS_SLOT_ID = 'editor-header-status'`) importada por ambos, para que el acoplamiento sea explícito y refactor-safe. Documentar en G3.9 y G6.6.
+
+### C12 — Audit de catálogos duplicados (rev.1)
+Antes de migrar G5/G6, barrido de catálogos repetidos para centralizarlos en `utils/`:
+- `statusTones` + `TRANSITIONS` (Dashboard, PresupuestosView, PresupuestoEditor) → `utils/presupuestoEstado.ts` (**con test** de `getAvailableTransitions`).
+- `tipoMovs` (FinanzasView, MovimientoDrawer) → `utils/movimientoTipos.ts`.
+- Revisar también: `cuentas`, `metodosPago`, `canalLabels`/`canalColors`, `MONEDAS`, `tipoHoja` default.

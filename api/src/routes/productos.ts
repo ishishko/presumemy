@@ -314,7 +314,7 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
       codigo: `P-${nextId}`,
       categoriaId: data.categoriaId,
       descripcion: data.descripcion || null,
-      imagenUrl: data.imagenUrl || null,
+      imagenes: data.imagenes || [],
       tieneBom: true, // Force to true since BOM is always active
       favorito: data.favorito ?? false,
       precioManual: data.precioManual ?? false,

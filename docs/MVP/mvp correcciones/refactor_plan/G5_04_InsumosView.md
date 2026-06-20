@@ -6,7 +6,7 @@
 | **Grupo / orden** | G5 (vistas) · 4º — **piloto del enfoque end-to-end** |
 | **LOC actuales** | 337 |
 | **Tipo** | migrar |
-| **Dependencias** | G1.1 (`formatMoney`), G1.2 (`useStockLevel`), G1.3 (store `del`), G3.5 (`DataTable`), G3.6 (`StockBar`), G3.2 (`StatusBadge`), G3.7 (`RowActions`), nuevo `FilterChips` (de G5.3), G4.1/4.2 (categorías) |
+| **Dependencias** | G1.1 (`formatMoney`), G1.2 (`utils/stock.ts`), G1.3 (store `del`), G3.5 (`DataTable`), G3.6 (`StockBar`), G3.2 (`StatusBadge`), G3.7 (`RowActions`), G3.11 (`FilterChips`), G4.1/4.2 (categorías) |
 | **Consumidores** | ruta `/insumos` |
 
 ## Estado actual (la "God view" testigo)
@@ -23,10 +23,10 @@ Hace: fetch, CRUD de insumos + de categorías, filtros (estado + categoría), c�
 
 ## Plan de acción paso a paso
 1. **(DIP)** Quitar `import { del }`; `handleDeleteConfirm` → `await store.remove(i.id)`.
-2. **(SRP)** Borrar `getNivel`/`nivelMeta`/`Nivel` locales → importar de `useStockLevel` (G1.2). `counts` se recalcula con `getNivel(stock, min)`.
+2. **(SRP/C8)** Borrar `getNivel`/`nivelMeta`/`Nivel` locales → importar de `utils/stock.ts` (G1.2). `counts` se recalcula con `getNivel`; como la tabla mantiene 3 chips, usar `nivelColapsado()` (mapea `sin_unidades`→`critico`).
 3. **(DRY)** `money` → `formatMoney`.
 4. **(reuso)** Tabla → `DataTable` (slot `row`): celdas usan `StockBar` (`:stock :minimo`), `StatusBadge` (`:tone="NIVEL_META[nivel].tone"`), `RowActions` (`@edit @delete`).
-5. **(DRY)** Chips de estado → `FilterChips` (compartido con Productos).
+5. **(DRY)** Chips de estado → `FilterChips` (G3.11). **El piloto fija la API de `FilterChips` y de `DataTable` (opción A) antes de propagar.**
 6. **(Tailwind)** Eliminar todos los inline `style="..."` y `<style scoped>`.
 7. **(categorías)** `CategoriaPills` + `CategoriaDeleteDialog` ya migrados; el `CategoriaDeleteDialog` reemplaza el `ConfirmDialog` de categoría actual (hoy usa un `ConfirmDialog` con mensaje condicional — homogeneizar con Productos que ya usa `CategoriaDeleteDialog`).
 
@@ -53,3 +53,4 @@ Hace: fetch, CRUD de insumos + de categorías, filtros (estado + categoría), c�
 ## Riesgos / notas
 - **Es el piloto:** si la API de `DataTable`/`FilterChips` no resulta ergonómica aquí, ajustarla **antes** de propagar a las demás vistas. No avanzar a G5.5+ hasta validar Insumos visualmente.
 - Homogeneizar el borrado de categoría con `CategoriaDeleteDialog` (hoy Insumos usa `ConfirmDialog`; Productos ya usa el dialog dedicado).
+- **(C8, rev.1)** Validar visualmente que el cambio de umbral del semáforo (`0.5`→`0.2` canónico) no altere de forma indeseada qué insumos aparecen como crítico/bajo en la lista; si producto lo rechaza, parametrizar el umbral en `getNivel`.

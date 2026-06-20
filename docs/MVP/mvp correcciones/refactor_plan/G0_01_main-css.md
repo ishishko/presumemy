@@ -28,6 +28,7 @@ Ser la **fuente de verdad del design system dentro de Tailwind**: declarar todos
 4. **(base)** Migrar los estilos base de elementos hoy en `tokens.css` (headings violeta peso 500 + `letter-spacing`, `body`, `a`, `label`, `hr`, `::selection`, `.num`/`.text-mono`) a `@layer base { … }` en este archivo. Pueden quedar como CSS plano dentro del layer (no es "componente").
 5. **(transición)** **Conservar** `@import "./components.css";` por ahora — se elimina en G7 cuando ninguna vista lo use.
 6. Eliminar `@import "./tokens.css";` una vez que su contenido fue absorbido (ver G0.2).
+7. **(rev.1 / C9)** Agregar los tokens **faltantes** `--color-teal-600` y `--color-violet-600` (hoy usados por `ToastContainer` pero **inexistentes** en `tokens.css` → resuelven a color heredado) **o** decidir remapear esos usos a `teal-700`/`violet-700`. Confirmar además que `--orange-*` (ya presentes en `tokens.css`) queden mapeados en `@theme`.
 
 ## Antes → Después
 ```css

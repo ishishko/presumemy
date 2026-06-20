@@ -1047,9 +1047,11 @@
   z-index: 10;
 }
 
+.checkbox-wrapper-10 .tgl:focus + .tgl-btn,
 .checkbox-wrapper-10 .tgl:focus-visible + .tgl-btn {
-  outline: 2px solid var(--violet-500);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 8px;
 }
 
 .checkbox-wrapper-10 .tgl,

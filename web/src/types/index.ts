@@ -51,7 +51,7 @@ export interface Producto {
   categoriaId: number
   categoria?: CategoriaProducto
   descripcion?: string
-  imagenUrl?: string
+  imagenes: string[]
   tieneBom: boolean
   favorito: boolean
   precioManual: boolean

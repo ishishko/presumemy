@@ -6,7 +6,7 @@
 | **Grupo / orden** | G5 (vistas) · 9º (la más grande del grupo) |
 | **LOC actuales** | 702 (≈390 de `<style scoped>`) |
 | **Tipo** | migrar (+ extracción de subcomponentes) |
-| **Dependencias** | G0; G2.1 (`ToggleSwitch`), G2.4/2.5 (`FloatingField`/`FloatingSelect`), G3.1 (`BaseButton`), nuevo `SettingsBlock` |
+| **Dependencias** | G0; G2.1 (`ToggleSwitch`), G2.4/2.5 (`FloatingField`/`FloatingSelect`), G3.1 (`BaseButton`), nuevo `SettingsBlock`, **`stores/ajustes.ts` (crear — verificado: no existe)** |
 | **Consumidores** | ruta `/ajustes` |
 
 ## Estado actual
@@ -23,7 +23,7 @@
 Vista compuesta por bloques reutilizables, datos vía store (DIP), dirty con `useDirty`, switches con `ToggleSwitch`, sin `:style` inline, scoped reducido a animaciones.
 
 ## Plan de acción paso a paso
-1. **(DIP)** Crear/usar `stores/ajustes.ts` (fetch config+distribución, `saveConfig`, `saveSocios`). La vista deja de importar `get/put`.
+1. **(DIP — rev.1: CREAR)** Crear `stores/ajustes.ts` (**no existe ninguno**; la memoria que lo mencionaba está desactualizada): `fetch` config+distribución, `saveConfig`, `saveSocios`, con la convención de errores C10. La vista deja de importar `get/put`.
 2. **(SRP)** Extraer `components/ajustes/SettingsBlock.vue` (slots: header con título/hint + `dirty` chip, body, foot con acciones). Los 4 bloques lo usan. Opcional: cada bloque como subcomponente propio (`InicioBlock`, `PresupuestosBlock`, `SociosBlock`, `CuentaBlock`) para SRP fuerte si el archivo sigue grande.
 3. **(DRY)** Reemplazar `.aj-switch` (socios) por `ToggleSwitch` (G2.1). Elimina ~30 líneas scoped + duplicación de a11y.
 4. **(dirty)** Usar `useDirty` por bloque en vez de refs manuales (snapshot/compare ya implementado en el composable).
@@ -38,6 +38,6 @@ Crea `SettingsBlock.vue` (+ opcionalmente bloques). Consume `ToggleSwitch`, `Flo
 - Sin `services/api` directo; sin `:style` inline; switch de socios = `ToggleSwitch`.
 
 ## Riesgos / notas
-- **Reconciliar con el store de ajustes** mencionado en memoria (puede existir y no usarse, o estar desactualizado). Verificar antes de crear uno nuevo.
+- **(rev.1, resuelto)** Verificado en `web/src/stores/`: **no existe** store de ajustes (hay 7: auth, dashboard, clientes, finanzas, insumos, presupuestos, productos). Se **crea** uno nuevo; la nota de memoria estaba desactualizada.
 - Validación `sociosValid` (suma activa = 100%) debe seguir gobernando el botón guardar de Finanzas.
 - Archivo grande: la extracción de `SettingsBlock` es la que más reduce ruido.

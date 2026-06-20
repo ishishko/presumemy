@@ -4,7 +4,7 @@ export const productoSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   categoriaId: z.coerce.number().int().positive(),
   descripcion: z.string().optional(),
-  imagenUrl: z.string().optional(),
+  imagenes: z.array(z.string()).default([]),
   tieneBom: z.boolean().default(true),
   favorito: z.boolean().optional().default(false),
   precioManual: z.boolean().optional().default(false),

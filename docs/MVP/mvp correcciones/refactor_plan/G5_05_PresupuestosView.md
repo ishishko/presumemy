@@ -22,7 +22,7 @@ Tabla de presupuestos con filtros por estado, **dropdown de cambio de estado FSM
 Vista orquestadora con `DataTable` + `RowActions` + un componente de **dropdown de estado** que encapsule la FSM, consumiendo un módulo común de estados (tone/label/transiciones). Sin `services/api`, sin duplicar `statusTones`.
 
 ## Plan de acción paso a paso
-1. **(SRP/DRY)** Extraer módulo `utils/presupuestoEstado.ts`: `ESTADO_META: Record<Estado,{tone,label}>` + `TRANSITIONS: Record<Estado,Estado[]>` + `getAvailableTransitions`. Lo consumen Dashboard (G5.1) y esta vista. (Fuente única de la FSM en el front; el backend valida igual.)
+1. **(SRP/DRY)** Extraer módulo `utils/presupuestoEstado.ts`: `ESTADO_META: Record<Estado,{tone,label}>` + `TRANSITIONS: Record<Estado,Estado[]>` + `getAvailableTransitions`. Lo consumen Dashboard (G5.1), esta vista y `PresupuestoEditor` (G6.6). (Fuente única de la FSM en el front; el backend valida igual.) **(rev.1)** Agregar **test unitario** de `getAvailableTransitions` (6 estados, transiciones no triviales — lógica de negocio crítica).
 2. **(SRP)** Extraer `components/presupuestos/EstadoDropdown.vue`: recibe `presupuesto`/estado, muestra `StatusBadge`, despliega transiciones y emite `change(nuevoEstado)`. Encapsula el dropdown + cierre por click-fuera.
 3. **(DIP)** Mover el `patch('/presupuestos/:id/estado')` al store (`store.cambiarEstado(id, estado)` con update optimista + revert). La vista llama al store. `del` → `store.remove`.
 4. **(reuso)** Tabla → `DataTable`; acciones → `RowActions`; filtros → `FilterChips`; `money`/`formatDate` → `utils/format` (G1.1).

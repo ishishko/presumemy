@@ -25,12 +25,12 @@ Grid con `ProductCard` reutilizable, chips de estado compartidos, sin `services/
 1. **(DIP)** `del` → `store.remove`; mover `toggleFavorite`'s `patch` al store (`store.toggleFavorito(id)` que hace el `patch` + `upsert`). La vista no toca `services/api`.
 2. **(SRP)** Extraer `components/productos/ProductCard.vue` (props `producto`; emits `edit/delete/toggle-favorite`). Mueve el markup + `<style scoped>` de la card y su hover de acciones.
 3. **(DS)** Reemplazar amber crudo por tokens: favorito/warning → `--yellow`/`--yellow-ink` (o agregar tokens `amber-*` a `@theme` si el DS realmente quiere ese tono; **decisión a anotar** — preferir tokens existentes).
-4. **(DRY)** Chips de estado → extraer `components/ui/FilterChips.vue` (compartido con `InsumosView`, mismo `.insumos-state-pill`). Props `chips` + v-model.
+4. **(DRY)** Chips de estado → usar `FilterChips` (**G3.11**, ya con doc propio; compartido con Insumos/Finanzas). El toggle-deselect de esta vista se cubre con la prop `deselectable` del componente.
 5. **(reuso)** `money` → `formatMoney`. `CategoriaPills`/`CategoriaDeleteDialog` ya migrados (G4).
 6. **(Tailwind)** `.prod-grid` → `grid grid-cols-[repeat(auto-fill,minmax(...))] gap-4`.
 
 ## Componentes que crea/consume
-Crea `ProductCard.vue`, `FilterChips.vue`. Consume `formatMoney`, `CategoriaPills`, `CategoriaDeleteDialog`, store con `toggleFavorito`.
+Crea `ProductCard.vue`. Consume `FilterChips` (G3.11), `formatMoney`, `CategoriaPills`, `CategoriaDeleteDialog`, store con `toggleFavorito`.
 
 ## Criterios de aceptación
 - `vue-tsc` ok; grid, favorito (toggle optimista o vía store), warning, filtros idénticos.
@@ -38,4 +38,4 @@ Crea `ProductCard.vue`, `FilterChips.vue`. Consume `formatMoney`, `CategoriaPill
 
 ## Riesgos / notas
 - **Decisión de color:** el amber actual no es token del DS. Resolver: usar `--yellow`/`--yellow-ink` o introducir `amber` en `@theme`. Documentar.
-- `FilterChips` se diseña aquí pero debe servir a Insumos (G5.4); coordinar API.
+- **(rev.1)** `FilterChips` ya no se diseña aquí: su doc es G3.11 y su API se fija en el piloto (G5.4).

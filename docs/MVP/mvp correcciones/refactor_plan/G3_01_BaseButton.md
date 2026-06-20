@@ -1,9 +1,11 @@
 # G3.1 — `components/ui/BaseButton.vue` (nuevo)
 
+> **rev.1 — orden:** aunque vive en la numeración G3, es un **primitivo hoja** que consumen `ConfirmDialog` (G2.6) y `DrawerShell` (G2.8). Por eso se **construye primero**, justo después de G0/G1 (ver "Orden de construcción corregido" en el índice).
+
 | | |
 |---|---|
 | **Ruta** | `web/src/components/ui/BaseButton.vue` |
-| **Grupo / orden** | G3 (base + shell) · 1º |
+| **Grupo / orden** | G3 (numeración) · **build: primero, tras G1** |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
 | **Dependencias** | G0 |

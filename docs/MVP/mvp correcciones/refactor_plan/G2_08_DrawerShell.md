@@ -44,4 +44,4 @@ Base reutilizable de drawers, estilada con Tailwind salvo la transición `drawer
 
 ## Riesgos / notas
 - Migrarlo **antes** que los drawers de G6 evita rehacer su layout.
-- El botón cerrar usa `.icon-btn` global → al migrar, usar utilidades o `BaseButton variant="ghost" icon` (G3.1).
+- El botón cerrar usa `.icon-btn` global → al migrar, usar `BaseButton variant="ghost" icon` (G3.1, ya construido primero — rev.1).

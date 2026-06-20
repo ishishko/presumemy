@@ -5,17 +5,19 @@ Este plan detalla la especificación técnica y de diseño para implementar las 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Almacenamiento de Archivos Locales en el Servidor:**
-> - Añadiremos una carpeta física `api/uploads` para almacenar los archivos de imagen subidos.
-> - Crearemos un endpoint `POST /api/upload` en la API (usando `multipart/form-data`) para subir imágenes de forma segura desde la app web, retornando la ruta relativa del archivo (ej. `/uploads/filename.png`).
-> - Serviremos la carpeta de forma estática en la API utilizando el middleware de archivos estáticos de Hono.
+> **Modelo de Datos - Modificación y Reutilización de Campo:**
+> - No se crearán campos adicionales redundantes. Modificaremos y renombraremos la columna existente de base de datos para almacenar la lista de fotos:
+>   - En `schema.prisma`, cambiamos `imagenUrl String? @map("imagen_url")` a:
+>     `imagenes String[] @default([]) @map("imagenes")`
+>   - El primer elemento del array (`imagenes[0]`) será tratado por defecto como la imagen principal del producto.
+> - Se creará una migración de base de datos (`npm run db:migrate`) para alterar la columna `imagen_url` de tipo `TEXT` a un array `TEXT[]` y renombrarla a `imagenes`.
 
 > [!IMPORTANT]
-> **Modelo de Datos con Múltiples Imágenes:**
-> - Modificaremos el modelo `Producto` en el esquema de Prisma para almacenar un array de strings para las imágenes adicionales:
->   - `imagenes String[] @default([])` en PostgreSQL.
->   - El campo original `imagenUrl` se mantendrá y sincronizará automáticamente en el backend con la primera posición de este array (`imagenes[0] || null`) para mantener compatibilidad con el resto de la app.
-> - Se aplicará la migración y se regenerará el cliente Prisma.
+> **Seguridad y Acceso Autorizado a Imágenes:**
+> - Los archivos subidos no estarán expuestos públicamente. La ruta `/uploads/*` estará protegida mediante autenticación.
+> - Crearemos un middleware de autorización para `/uploads/*` en Hono. Dicho middleware verificará que el token JWT sea válido.
+> - Para permitir que las etiquetas HTML `<img>` carguen las imágenes de forma nativa en el frontend sin fallar por falta de cabeceras, el middleware permitirá autenticar tanto por cabecera `Authorization: Bearer <token>` como por parámetro de consulta `?token=<token>`.
+> - En el frontend, la obtención de URLs de imágenes anexará automáticamente el token del usuario actual: `/api/uploads/filename.png?token=JWT_TOKEN`.
 
 ---
 
@@ -25,28 +27,41 @@ Este plan detalla la especificación técnica y de diseño para implementar las 
 
 #### [MODIFY] [schema.prisma](file:///d:/Desarrollando/presumemy/api/prisma/schema.prisma)
 * **Modelo Producto**:
-  * Añadir el campo `imagenes String[] @default([])` para almacenar las rutas de hasta 3 fotos ordenadas.
-  * Mantener `imagenUrl String? @map("imagen_url")` como referencia a la imagen principal.
+  * Eliminar `imagenUrl String? @map("imagen_url")`
+  * Añadir `imagenes String[] @default([]) @map("imagenes")`
 
 #### [MODIFY] [index.ts](file:///d:/Desarrollando/presumemy/api/src/index.ts)
-* **Servidor de Archivos Estáticos:**
-  * Importar `serveStatic` de `@hono/node-server/serve-static` (o configurar el middleware estático de Hono).
-  * Servir la ruta `/uploads/*` mapeada a la carpeta física `./uploads` en el servidor:
-    ```typescript
-    import { serveStatic } from '@hono/node-server/serve-static'
-    app.use('/uploads/*', serveStatic({ root: './' }))
-    ```
-  * Crear un endpoint de subida general `/api/upload` que procese un campo de formulario `file` y guarde el archivo en el directorio local `./uploads/` con un nombre único autogenerado (ej. usando `crypto.randomUUID()` y la extensión del archivo).
+* **Middleware de Acceso Seguro a /uploads**:
+  * Configurar una ruta de servicio de estáticos para `./uploads`.
+  * Interceptar y aplicar un filtro de seguridad en `/uploads/*` para verificar el token JWT de Supabase de la sesión activa, tomándolo de la cabecera `Authorization` o del query param `?token=<token>`. Si no hay token válido, retornar HTTP `401 Unauthorized`.
+  ```typescript
+  import { serveStatic } from '@hono/node-server/serve-static'
+  import { verifySupabaseToken } from './middleware/auth.js' // lógica de verificación adaptada
+  
+  app.use('/uploads/*', async (c, next) => {
+    const token = c.req.query('token') || c.req.header('Authorization')?.split(' ')[1]
+    if (!token) return c.json({ error: 'No autorizado' }, 401)
+    try {
+      await verifySupabaseToken(token) // función helper que valide el JWT contra Supabase
+      await next()
+    } catch {
+      return c.json({ error: 'Token inválido' }, 401)
+    }
+  })
+  app.use('/uploads/*', serveStatic({ root: './' }))
+  ```
+* **Endpoint de Subida Autenticado:**
+  * Crear `POST /api/upload` protegido con el middleware de autenticación habitual.
+  * Procesar `multipart/form-data`, guardar la imagen en el directorio local `./uploads/` con un UUID para evitar colisiones y retornar la ruta relativa (ej. `/uploads/uuid-file.png`).
 
 #### [MODIFY] [productos.ts](file:///d:/Desarrollando/presumemy/api/src/types/productos.ts)
 * **Validación Zod:**
-  * Actualizar `productoSchema` en `api/src/types/productos.ts` para admitir `imagenes` como un array opcional de strings: `imagenes: z.array(z.string()).optional()`.
+  * Actualizar `productoSchema` en `api/src/types/productos.ts` sustituyendo `imagenUrl` por `imagenes: z.array(z.string()).default([])`.
 
 #### [MODIFY] [productos.ts](file:///d:/Desarrollando/presumemy/api/src/routes/productos.ts)
-* **POST y PUT /api/productos:**
-  * Soportar and mapear el campo `imagenes`.
-  * Si se recibe `imagenes`, guardar el array completo y establecer `imagenUrl` como `imagenes[0] || null` antes de realizar la inserción o actualización en base de datos.
-  * Si se consulta el producto en GET, garantizar que la propiedad `imagenes` se retorne en el JSON de respuesta.
+* **Controlador de Productos:**
+  * Actualizar las consultas a base de datos y la creación/edición de productos para persistir y retornar el array de `imagenes`.
+  * En cualquier payload retornado, la propiedad `imagenes` expondrá el array completo ordenado.
 
 ---
 
@@ -54,63 +69,64 @@ Este plan detalla la especificación técnica y de diseño para implementar las 
 
 #### [MODIFY] [index.ts](file:///d:/Desarrollando/presumemy/web/src/types/index.ts)
 * **Interfaz Producto:**
-  * Añadir `imagenes?: string[]` a la interfaz `Producto`.
+  * Reemplazar `imagenUrl?: string` por `imagenes: string[]` en `Producto`.
 
 #### [MODIFY] [productos.ts](file:///d:/Desarrollando/presumemy/web/src/schemas/productos.ts)
 * **Esquema Zod:**
-  * Actualizar `productoSchema` para incluir `imagenes: z.array(z.string()).optional()`.
+  * Reemplazar `imagenUrl` por `imagenes: z.array(z.string()).default([])` en el esquema de frontend.
+
+#### [MODIFY] [ProductosView.vue](file:///d:/Desarrollando/presumemy/web/src/views/ProductosView.vue)
+* **Renderizado de Miniaturas en Grid:**
+  * En la tarjeta del producto, utilizar la primera imagen del array `imagenes` (si existe) para la visualización del catálogo.
+  * Para cargar la imagen de forma autenticada, implementar una propiedad computada o función helper `getImageUrl(path: string)` que construya la URL absoluta apuntando a `/api` y le añada el token JWT almacenado en Pinia/localStorage:
+    ```typescript
+    function getImageUrl(path: string) {
+      if (!path) return ''
+      const token = localStorage.getItem('sb-token') // o desde el authStore
+      return `${import.meta.env.VITE_API_URL || ''}${path}?token=${token}`
+    }
+    ```
 
 #### [MODIFY] [ProductoDetalle.vue](file:///d:/Desarrollando/presumemy/web/src/components/overlays/ProductoDetalle.vue)
 
 * **Rediseño del Layout (2 Bloques):**
-  * Cambiar la estructura en el template para renderizar un grid principal de dos columnas principales:
-    - **Bloque Izquierdo (60%):**
-      - Cabecera: Campo del Nombre grande (`.pd-inline-name`).
-      - Cuerpo (Grid de 2 columnas):
-        - Columna izquierda: **Módulo de Fotos**.
-          - Caja principal para la foto activa grande con zona de drag and drop para subir y un indicador visual de carga/vacío.
-          - Fila inferior de **2 miniaturas** para añadir imágenes secundarias.
-          - Interactividad HTML5 Drag & Drop (`@dragstart`, `@dragover`, `@drop`) para reordenar las 3 imágenes arrastrándolas entre sí (intercambiando sus índices en el array local).
-        - Columna derecha: **Identidad** (Categoría dropdown, Medida, Descripción multilínea, y Switch de Activo).
-    - **Bloque Derecho (40%):**
-      - Tarjeta de **Precios** unificada que agrupa:
-        - Switch de Precio Automático.
-        - **Tipo de Ganancia:** Reemplazar el `SegmentedControl` por el flip switch `.checkbox-wrapper-10` con las opciones `Fijo` (on) y `Porcentaje` (off).
-        - Entrada de Margen/Ganancia.
-        - Campos de Costo base, Precio calculado y Precio final con su banner de advertencia si corresponde.
+  * Modificar el marcado HTML y estilos para lograr una distribución de 60% / 40% en pantalla completa.
+  * **Bloque Izquierdo (60%):**
+    - Cabecera: Campo del Nombre grande (`.pd-inline-name`).
+    - Cuerpo (Grid de 2 columnas):
+      - Columna izquierda: **Módulo de Fotos**.
+        - Caja grande para la foto activa principal (`imagenes[0]`), implementando zona de drag & drop para subir una foto local o seleccionarla por click.
+        - Fila de **2 miniaturas** debajo (`imagenes[1]` e `imagenes[2]`).
+        - Implementación de eventos nativos HTML5 Drag & Drop (`@dragstart`, `@dragover`, `@drop`) que permita arrastrar cualquiera de las 3 imágenes sobre las otras para intercambiar su posición en el array local `imagenes.value`, actualizando el orden instantáneamente.
+      - Columna derecha: **Identidad** (Categoría dropdown, Medida, Descripción multilínea, y Switch de Activo).
+  * **Bloque Derecho (40%):**
+    - Tarjeta de **Precios** unificada que agrupa:
+      - Switch de Precio Automático.
+      - **Tipo de Ganancia:** Reemplazar el `SegmentedControl` por el flip switch `.checkbox-wrapper-10` con las opciones `Fijo` (on) y `Porcentaje` (off).
+      - Entrada de Margen/Ganancia.
+      - Campos de Costo base, Precio calculado y Precio final con su banner de advertencia si corresponde.
 
-* **Subida de Archivos desde la Web:**
-  * Reemplazar el input de texto "URL de imagen" por un manejador de subida de archivos real.
-  * Al soltar un archivo en la zona de drop o seleccionarlo desde el selector de archivos, realizar una subida HTTP `multipart/form-data` al endpoint `/api/upload`.
-  * Guardar la ruta relativa retornada (ej. `/uploads/xxxx.png`) en el array de imágenes local del producto y actualizar la visualización de forma inmediata.
-
-* **Comportamiento y Accesibilidad de la Tabla Receta (BOM):**
-  * Declarar e implementar la detección de focusout en la tabla de receta:
-    - Añadir `ref="recetaTableRef"` a la tabla.
-    - Agregar `@focusout="onRecetaTableFocusout"` en la tabla o su contenedor.
-    - La función `onRecetaTableFocusout(event)` verificará si el foco ha salido de la tabla (usando `!recetaTableRef.value.contains(event.relatedTarget)`). En caso afirmativo, ejecutará `cleanupEmptyRecetaLineas()` para purgar líneas en blanco (líneas donde la cantidad es 0 o vacía y no tienen insumo seleccionado ni descripción).
-  * Heredar los mismos estilos interactivos de planilla (.lines-spreadsheet) para el foco en celdas de inputs de cantidad, costo unitario y selección, aplicando un resaltado de borde violeta a la fila activa y fondo violeta suave a la celda enfocada.
+* **Accesibilidad y Comportamiento de la Tabla Receta (BOM):**
+  * Aplicar el comportamiento interactivo de la tabla de proveedores:
+    - Agregar `ref="recetaTableRef"` a la tabla de receta.
+    - Agregar `@focusout="onRecetaTableFocusout"` para detectar cuándo el foco del usuario ha salido de los campos de la tabla. En ese momento, limpiar y remover filas vacías.
+    - Heredar el estilo de planilla `.lines-spreadsheet`, `.cell-input`, `.num-input` y `.del-btn` para enfocar, resaltar filas activas en violeta y celdas individuales en fondo violeta suave.
 
 ---
 
 ## Verification Plan
 
 ### Automated Tests
-- Ejecutar validación de TypeScript en `/web`: `npx vue-tsc -b`.
-- Correr pruebas del backend en `/api`: `npm run test`.
+- Validar tipos en `/web`: `npx vue-tsc -b`.
+- Correr tests de API en `/api`: `npm run test`.
 
 ### Manual Verification
-1. **Subida de Imágenes:**
-   - Crear o editar un producto y arrastrar una imagen local sobre la caja de fotos. El archivo debe subirse al servidor y mostrarse inmediatamente.
-   - Verificar físicamente que el archivo se guarde en `api/uploads/` y que la base de datos guarde la ruta relativa.
-2. **Arrastrar y Reordenar Fotos:**
-   - Cargar 3 imágenes distintas. Arrastrar una de las miniaturas sobre la principal: los elementos deben intercambiar su posición de forma interactiva y el precio/orden debe persistir correctamente al guardar.
-3. **Rediseño Visual (2 Bloques):**
-   - Comprobar la visualización del layout 60% / 40% en pantalla completa.
-   - El nombre debe aparecer destacado arriba a la izquierda.
-   - La sección de precios debe estar contenida por completo en la columna derecha del 40%.
-   - El tipo de ganancia debe alternar entre fijo y porcentaje usando el flip switch de estilo `.checkbox-wrapper-10`.
+1. **Acceso Protegido a Archivos:**
+   - Intentar abrir una imagen de producto subida en una pestaña de incógnito/anónima del navegador sin parámetros: debe retornar un error `401 Unauthorized`.
+   - Verificar que al agregar el token JWT como query param `?token=...`, la imagen se renderice correctamente en la app.
+2. **Carga y Reordenamiento Drag & Drop:**
+   - Cargar 3 imágenes. Arrastrar la tercera imagen sobre la primera: comprobar que se intercambian y que al guardar el producto, la nueva imagen principal se actualiza tanto en el catálogo como en la base de datos.
+3. **Layout de 2 Bloques:**
+   - Validar estéticamente la alineación de las 2 columnas y el rediseño del flip switch de Tipo de Ganancia.
 4. **Accesibilidad en la Receta:**
-   - Hacer clic en la tabla Receta, agregar una línea y no rellenar ningún campo.
-   - Hacer clic fuera de la tabla: la línea vacía debe eliminarse automáticamente.
-   - Navegar con la tecla `Tab` por las celdas de la receta y verificar que el borde de la fila activa se resalta en violeta y la celda actual adquiere un fondo violeta suave.
+   - Verificar la navegación mediante Tab y la limpieza automática de filas vacías.

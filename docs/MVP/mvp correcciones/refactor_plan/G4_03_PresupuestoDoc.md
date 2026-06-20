@@ -37,3 +37,5 @@ Documento 100% Tailwind, sin `money()`/`niceDate()` locales (usar utils de G1.1)
 ## Riesgos / notas
 - **PDF/Puppeteer:** el HTML público debe verse igual; verificar que las utilidades Tailwind se incluyan en el bundle que sirve la ruta pública. Probar la generación de PDF tras migrar.
 - Consolidar fechas con cuidado: hay dos formatos distintos en uso.
+- **(rev.1) Checkpoint PDF:** tras migrar este doc y **antes** de tocar `PublicPresupuestoView` (G5.8), correr una verificación explícita de generación de PDF/print (gate de mayor riesgo del plan; ver fila "Checkpoint PDF" en el índice). No avanzar a G5.8/G6 sin PDF verificado.
+- **(rev.1) Tipos:** mover `PresupuestoDocData`/`PresupuestoDocLine` a `types/` es **opcional** (mejora cohesión, pero exportarlos desde el SFC que los posee es patrón Vue legítimo). No bloqueante.

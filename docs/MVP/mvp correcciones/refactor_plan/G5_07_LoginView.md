@@ -18,7 +18,7 @@ Login con la misma estética migrada a Tailwind. Animaciones puntuales como exce
 ## Plan de acción paso a paso
 1. **(Tailwind)** Migrar layout y estética a utilidades: `login-wrap` (gradiente radial → `bg-[radial-gradient(...)]` o capa), blobs (`absolute rounded-full blur-[100px]`), card (`bg-white/82 backdrop-blur-xl border rounded-[24px] shadow-... p-10 max-w-[390px]`).
 2. **(C6 excepción)** Conservar `@keyframes card-appear`/`spin` en `<style scoped>` mínimo (o `animate-[...]` de Tailwind v4). El spinner del `Loader2` puede usar `animate-spin`.
-3. **(dark mode)** `@media (prefers-color-scheme: dark)` → variantes `dark:` de Tailwind. **Verificar** si el proyecto usa dark mode en otro lado; si no está soportado globalmente, anotar (puede quedar como única pantalla con dark).
+3. **(dark mode — DECIDIDO rev.1: eliminar)** El bloque `@media (prefers-color-scheme: dark)` es **dead code de facto**: ninguna otra pantalla soporta dark ni hay estrategia global. Se **elimina** en la migración (no se reescribe a `dark:`). Si en el futuro se decide soportar dark, será una iniciativa propia y global.
 4. **(reuso opcional)** Inputs con ícono: evaluar `FloatingField` (tiene `prefix`, no ícono izquierdo) — probablemente se mantiene custom (input + ícono absoluto) en Tailwind. Botón submit: puede ser `BaseButton variant="primary"` + contenido con spinner/arrow, o quedar custom por el shadow/gradiente especial. Decidir al implementar; preferir `BaseButton` si cubre el estilo.
 5. **(DS)** Reemplazar hex crudos por tokens donde exista equivalente (`#276061` ≈ hover de teal → `teal-700` o `brightness`).
 
@@ -28,5 +28,5 @@ Login con la misma estética migrada a Tailwind. Animaciones puntuales como exce
 - Foco accesible en inputs (ring teal) conservado.
 
 ## Riesgos / notas
-- **Dark mode:** decidir estrategia global de Tailwind v4 (`dark:`) antes de migrar esta pantalla; si no hay dark mode en el resto, documentar la inconsistencia.
+- **(rev.1) Dark mode eliminado:** se quita el bloque dark de esta pantalla (era la única con dark). Confirmar con producto que no se espera dark mode en login.
 - Pantalla aislada (ruta bare) → bajo riesgo de afectar otras vistas; buena para validar gradientes/animaciones en Tailwind.

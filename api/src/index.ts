@@ -2,6 +2,11 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { serve } from '@hono/node-server'
+import { serveStatic } from '@hono/node-server/serve-static'
+import fs from 'fs'
+import path from 'path'
+import crypto from 'crypto'
+import { writeFile, readFile } from 'fs/promises'
 
 import insumosRoutes from './routes/insumos.js'
 import productosRoutes from './routes/productos.js'
@@ -11,6 +16,15 @@ import finanzasRoutes from './routes/finanzas.js'
 import dashboardRoutes from './routes/dashboard.js'
 import ajustesRoutes from './routes/ajustes.js'
 import publicRoutes from './routes/public.js'
+import { verifySupabaseToken, authMiddleware } from './middleware/auth.js'
+
+// Asegurar que la carpeta de subidas existe localmente
+try {
+  fs.mkdirSync('./uploads', { recursive: true })
+} catch (err: any) {
+  if (err.code !== 'EEXIST') throw err
+}
+
 
 const app = new Hono()
 
@@ -31,6 +45,68 @@ app.use('*', cors({
   credentials: true,
 }))
 app.use('*', logger())
+
+// Middleware de acceso seguro a la carpeta de uploads (subidas de imagen)
+app.use('/api/uploads/*', async (c, next) => {
+  const token = c.req.query('token') || c.req.header('Authorization')?.split(' ')[1]
+  if (!token) {
+    return c.json({ error: 'Token de autenticación requerido' }, 401)
+  }
+  try {
+    await verifySupabaseToken(token)
+    await next()
+  } catch {
+    return c.json({ error: 'Token de autenticación inválido o expirado' }, 401)
+  }
+})
+
+// Servir las imágenes subidas de forma segura desde la carpeta ./uploads
+app.get('/api/uploads/:filename', async (c) => {
+  const filename = c.req.param('filename')
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return c.json({ error: 'Nombre de archivo inválido' }, 400)
+  }
+  const filePath = path.join('./uploads', filename)
+  try {
+    const fileBuffer = await readFile(filePath)
+    const ext = path.extname(filename).toLowerCase()
+    let contentType = 'application/octet-stream'
+    if (ext === '.png') contentType = 'image/png'
+    else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg'
+    else if (ext === '.gif') contentType = 'image/gif'
+    else if (ext === '.svg') contentType = 'image/svg+xml'
+    else if (ext === '.webp') contentType = 'image/webp'
+    
+    return c.body(fileBuffer, 200, {
+      'Content-Type': contentType,
+    })
+  } catch (err) {
+    return c.json({ error: 'Archivo no encontrado' }, 404)
+  }
+})
+
+// Endpoint de subida autenticado
+app.post('/api/upload', authMiddleware, async (c) => {
+  const body = await c.req.parseBody()
+  const file = body['file']
+  
+  if (!file || !(file instanceof File)) {
+    return c.json({ error: 'No se subió ningún archivo o formato inválido' }, 400)
+  }
+  
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+  
+  const fileExt = path.extname(file.name)
+  const fileName = `${crypto.randomUUID()}${fileExt}`
+  const filePath = path.join('./uploads', fileName)
+  
+  await writeFile(filePath, buffer)
+  
+  return c.json({
+    url: `/uploads/${fileName}`
+  }, 201)
+})
 
 // Health check
 app.get('/health', (c) => c.json({ ok: true, timestamp: new Date().toISOString() }))

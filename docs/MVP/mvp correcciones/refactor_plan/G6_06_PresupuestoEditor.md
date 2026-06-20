@@ -41,7 +41,7 @@ Crea `LinesSpreadsheet.vue`, `usePresupuestoCalc`. Consume `EstadoDropdown` + `p
 
 ## Riesgos / notas
 - **El refactor de mayor superficie.** Hacerlo último, con todos los primitivos y `presupuestoEstado.ts` ya estables.
-- No romper el **Teleport del badge** a `#editor-header-status` (depende de `AppHeader` G3.9) ni la integración con `useEditorMode` (guardar/cerrar desde el topbar).
+- **(C11, rev.1)** No romper el **Teleport del badge**: usar la constante compartida `EDITOR_STATUS_SLOT_ID` (definida en G3.9) en vez del string literal `'editor-header-status'`, para que el contrato con `AppHeader` sea explícito y refactor-safe. Mantener la integración con `useEditorMode` (guardar/cerrar desde el topbar).
 - `presupuestoSchema` (zod) de validación se conserva.
 - El cambio de estado acá es **local** (se persiste al guardar), distinto del de `PresupuestosView` (persiste inmediato) — preservar esa diferencia.
 - Verificar acción de PDF/link público (coordinación con `PublicPresupuestoView`/Puppeteer).

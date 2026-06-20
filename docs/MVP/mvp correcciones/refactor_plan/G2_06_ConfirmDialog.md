@@ -51,4 +51,4 @@ Mismo comportamiento y **misma API** (los tests dependen de ella). Migrar el sco
 
 ## Riesgos / notas
 - Riesgo principal: romper el test al alterar estructura/props. Revisar el spec antes de tocar el template.
-- Si `BaseButton` aún no existe al migrar, dejar botones con clases temporales y volver tras G3.1 (o reordenar: hacer G3.1 antes). Recomendado: `BaseButton` listo antes de este.
+- **(rev.1)** `BaseButton` (G3.1) se construye **primero** en el orden corregido, así que ya está disponible aquí — usarlo directamente para los botones (sin clases temporales).

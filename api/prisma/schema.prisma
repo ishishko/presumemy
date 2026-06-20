@@ -100,7 +100,7 @@ model Producto {
   categoriaId   Int                 @map("categoria_id")
   categoria     CategoriaProducto   @relation(fields: [categoriaId], references: [id])
   descripcion   String?
-  imagenUrl     String?             @map("imagen_url")
+  imagenes      String[]            @default([]) @map("imagenes")
   tieneBom      Boolean             @default(true) @map("tiene_bom")
   favorito      Boolean             @default(false)
   precioManual  Boolean             @default(false) @map("precio_manual")
