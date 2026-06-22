@@ -1,15 +1,15 @@
-# G6.2 — `components/drawers/MovimientoDrawer.vue`
+# G6.2 — `modules/finanzas/MovimientoDrawer.vue`
 
 > **Ubicación (modular, rev.2):** destino `modules/finanzas/MovimientoDrawer.vue` · `SignedAmountInput`/catálogo `tipos.ts` → `modules/finanzas`. Presupuestos para el datalist se traen vía `@/modules/presupuestos` (barrel).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/drawers/MovimientoDrawer.vue` |
+| **Ruta destino** | `web/src/modules/finanzas/MovimientoDrawer.vue` |
 | **Grupo / orden** | G6 (pesados) · 2º |
 | **LOC actuales** | 530 (≈195 de `<style scoped>`) |
 | **Tipo** | migrar (+ extracción) |
 | **Dependencias** | G2.8 (`DrawerShell`), G2.4/2.5, G3.1 (`BaseButton`), G2.6 (`ConfirmDialog`), G1.1 (`formatMoney`), G1.3 (store finanzas), catálogo común de tipos |
-| **Consumidores** | `FinanzasView` (G5.6) |
+| **Consumidores** | `FinanzasPage` (G5.6) |
 
 ## Estado actual
 Drawer de movimiento financiero: fecha, cuenta, tipo, signo (ingreso/egreso), valor (money input grande), detalle, nro factura, presupuesto (datalist). Resumen de impacto. Smells:
@@ -25,14 +25,14 @@ Drawer sobre `DrawerShell`, catálogo de tipos compartido, datos vía store, `fo
 
 ## Plan de acción paso a paso
 1. **(DRY)** Reescribir con `DrawerShell` (slots body/foot). Borra ~195 líneas duplicadas.
-2. **(SRP/DRY)** Extraer catálogo `utils/movimientoTipos.ts`: `TIPOS_MOV: { id; label; sign }[]` + helper de signo + mapa tono (ingreso/egreso). Compartido con `FinanzasView` (G5.6). Elimina la duplicación del array.
+2. **(SRP/DRY)** Extraer catálogo `modules/finanzas/tipos.ts`: `TIPOS_MOV: { id; label; sign }[]` + helper de signo + mapa tono (ingreso/egreso). Compartido con `FinanzasPage` (G5.6). Elimina la duplicación del array.
 3. **(DIP)** `post`/`put` → store finanzas (`createTransaccion`/`updateTransaccion`); la carga de presupuestos → `usePresupuestosStore` (no `get` directo).
 4. **(SRP)** Extraer `SignedAmountInput.vue` (sign-toggle + money input grande con color por signo) — encapsula `fd-sign-toggle` + `fd-money-input`. Reusable también en `ImprentaDrawer`/otros si aplica.
 5. **(DRY)** `moneyAbs` → `formatMoney`; quitar hex `#2E6F70` → tono teal del DS.
 6. **(dirty)** `useDirty`. **(Tailwind)** migrar `fd-summary`, `.fd-row`, labels.
 
 ## Componentes que crea/consume
-Crea `utils/movimientoTipos.ts`, `SignedAmountInput.vue`. Consume `DrawerShell`, `FloatingField`, `FloatingSelect`, `BaseButton`, `ConfirmDialog`, stores, `formatMoney`.
+Crea `modules/finanzas/tipos.ts`, `modules/finanzas/components/SignedAmountInput.vue`. Consume `DrawerShell`, `FloatingField`, `FloatingSelect`, `BaseButton`, `ConfirmDialog`, stores, `formatMoney`.
 
 ## Criterios de aceptación
 - `vue-tsc` ok; tipo→signo automático, impacto, datalist de presupuestos, dirty+confirm-exit funcionan igual.

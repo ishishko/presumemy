@@ -1,15 +1,15 @@
-# G4.1 — `components/ui/CategoriaPills.vue`
+# G4.1 — `CategoriaPills.vue` (se duplica en insumos y productos)
 
-> **Ubicación (modular, rev.2):** destino `modules/categorias/CategoriaPills.vue` · barrel `@/modules/categorias` (lo consumen insumos y productos por barrel).
+> **Ubicación (modular, rev.2):** destino `modules/insumos/components/CategoriaPills.vue` **y** `modules/productos/components/CategoriaPills.vue`. No hay módulo `categorias/`; cada módulo de dominio tiene su propia copia porque cada uno tiene su store/api de categorías.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/CategoriaPills.vue` |
+| **Ruta destino** | `web/src/modules/insumos/components/CategoriaPills.vue` + `web/src/modules/productos/components/CategoriaPills.vue` |
 | **Grupo / orden** | G4 (medianos) · 1º |
 | **LOC actuales** | 350 |
 | **Tipo** | migrar |
 | **Dependencias** | G0; G2.4 (`FloatingField`) opcional para inputs inline |
-| **Consumidores** | `InsumosView` (G5.4), `ProductosView` (G5.3) |
+| **Consumidores** | `InsumosPage` (G5.4), `ProductosPage` (G5.3) |
 
 ## Estado actual
 Pills de categoría con filtro + edición inline avanzada: seleccionar (toggle a 'todas'), **long-press 500ms** para revelar acciones (lápiz/X), rename inline, create inline (máx 12), remove (emite a un dialog). v-model `number|'todas'`. Listener global de click para cerrar acciones. Clases globales `.insumos-cat-pill`/`.insumos-cat-row` (hardcodeadas incluso para variant `productos` — comentario "unificamos el estilo"). `<style scoped>` extenso (≈100 líneas): `.editable-pill`, `.pill-actions` (animación width), `.action-btn`, `.inline-edit-input`, `.add-pill`.

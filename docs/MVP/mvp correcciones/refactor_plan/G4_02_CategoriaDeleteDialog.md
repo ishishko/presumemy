@@ -1,15 +1,15 @@
-# G4.2 — `components/ui/CategoriaDeleteDialog.vue`
+# G4.2 — `CategoriaDeleteDialog.vue` (se duplica en insumos y productos)
 
-> **Ubicación (modular, rev.2):** destino `modules/categorias/CategoriaDeleteDialog.vue` · barrel `@/modules/categorias`. Reusa `ConfirmDialog` de `@/shared/ui`.
+> **Ubicación (modular, rev.2):** destino `modules/insumos/components/CategoriaDeleteDialog.vue` **y** `modules/productos/components/CategoriaDeleteDialog.vue`. No hay módulo `categorias/`; cada módulo de dominio tiene su propia copia. Reusa `ConfirmDialog` de `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/CategoriaDeleteDialog.vue` |
+| **Ruta destino** | `web/src/modules/insumos/components/CategoriaDeleteDialog.vue` + `web/src/modules/productos/components/CategoriaDeleteDialog.vue` |
 | **Grupo / orden** | G4 (medianos) · 2º |
 | **LOC actuales** | 200 |
 | **Tipo** | migrar |
 | **Dependencias** | G0; G2.6 (`ConfirmDialog`), G3.1 (`BaseButton`), G2.5 (`FloatingSelect`) |
-| **Consumidores** | `InsumosView`, `ProductosView` (al borrar categoría con elementos) |
+| **Consumidores** | `InsumosPage`, `ProductosPage` (al borrar categoría con elementos) |
 
 ## Estado actual
 Diálogo de borrado de categoría con 3 casos: (1) sin asociados → confirmación simple; (2) con asociados y hay alternativas → select de reasignación; (3) con asociados sin alternativas → bloqueado. Emits `confirm(reasignarA?)`/`cancel`. **Duplica casi literal** el `<style scoped>` de `ConfirmDialog` (mask/dialog/transición `confirm`) + clases globales `.field`/`.select`/`.btn`. Lógica de casos en computeds (`count`, `otrasCategorias`, `canConfirm`).

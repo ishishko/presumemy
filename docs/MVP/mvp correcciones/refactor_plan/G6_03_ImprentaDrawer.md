@@ -1,15 +1,15 @@
-# G6.3 — `components/drawers/ImprentaDrawer.vue`
+# G6.3 — `modules/finanzas/ImprentaDrawer.vue`
 
 > **Ubicación (modular, rev.2):** destino `modules/finanzas/ImprentaDrawer.vue`. Presupuestos vía `@/modules/presupuestos` (barrel).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/drawers/ImprentaDrawer.vue` |
+| **Ruta destino** | `web/src/modules/finanzas/ImprentaDrawer.vue` |
 | **Grupo / orden** | G6 (pesados) · 3º |
 | **LOC actuales** | 534 (≈195 de `<style scoped>`) |
 | **Tipo** | migrar (+ extracción) |
 | **Dependencias** | G2.8 (`DrawerShell`), G2.1 (`ToggleSwitch`), G2.4/2.5, G3.1 (`BaseButton`), G2.6 (`ConfirmDialog`), G1.1 (`formatMoney`), G1.3 (store finanzas), `usePresupuestosStore` |
-| **Consumidores** | `FinanzasView` (G5.6) |
+| **Consumidores** | `FinanzasPage` (G5.6) |
 
 ## Estado actual
 Drawer de orden de imprenta: fecha, presupuesto (datalist), temática, hojas, tipo de hoja, valor nuestro/patri (diferencia), método de pago, pagado (toggle). Mismos smells que los otros drawers:

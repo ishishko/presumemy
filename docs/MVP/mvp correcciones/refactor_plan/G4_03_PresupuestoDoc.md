@@ -1,15 +1,15 @@
-# G4.3 — `components/presupuestos/PresupuestoDoc.vue`
+# G4.3 — `modules/presupuestos/PresupuestoDoc.vue`
 
-> **Ubicación (modular, rev.2):** presentacional con dominio → `modules/presupuestos/PresupuestoDoc.vue` · barrel `@/modules/presupuestos` (lo consume `modules/auth` en la vista pública por barrel).
+> **Ubicación (modular, rev.2):** presentacional con dominio → `modules/presupuestos/PresupuestoDoc.vue` · barrel `@/modules/presupuestos` (lo consume `PublicPresupuestoPage` que también vive en `modules/presupuestos/`).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/presupuestos/PresupuestoDoc.vue` |
+| **Ruta destino** | `web/src/modules/presupuestos/PresupuestoDoc.vue` |
 | **Grupo / orden** | G4 (medianos) · 3º |
 | **LOC actuales** | 158 |
 | **Tipo** | migrar |
 | **Dependencias** | G0; G1.1 (`formatMoney`/`formatDate`) |
-| **Consumidores** | `PresupuestoEditor` (preview, G6.6), `PublicPresupuestoView` (G5.8) |
+| **Consumidores** | `PresupuestoEditor` (preview, G6.6), `PublicPresupuestoPage` (G5.8) |
 
 ## Estado actual
 Documento de presupuesto presentacional (folio, cliente, fechas, tabla de líneas, totales, seña/resto, entrega, contacto, notas, footer). Tipos exportados `PresupuestoDocData`/`PresupuestoDocLine`. **Smell:** define `money()` y `niceDate()` locales (duplican `formatMoney`/`formatDate`). Clases globales `.preview-doc`, `.doc-head`, `.doc-meta`, `.doc-customer`, `.doc-table`, `.doc-totals`, `.doc-grid`, `.doc-block`, `.doc-notes`, `.doc-foot` (`components.css` ~1760-2007) + helpers `.text-hint`/`.num`.

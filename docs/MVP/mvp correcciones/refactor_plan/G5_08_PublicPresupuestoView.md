@@ -1,10 +1,10 @@
-# G5.8 — `features/public/PublicPresupuestoView.vue`
+# G5.8 — `modules/presupuestos/PublicPresupuestoPage.vue`
 
-> **Ubicación (modular, rev.2):** sale de `features/` → `modules/auth/PublicPresupuestoPage.vue`. `services/public.ts` → `modules/auth/public-api.ts`. Consume `PresupuestoDoc` vía `@/modules/presupuestos`.
+> **Ubicación (modular, rev.2):** destino `modules/presupuestos/PublicPresupuestoPage.vue` (es una vista de presupuesto, aunque pública). `public-api.ts` → `modules/presupuestos/public-api.ts`. Consume `PresupuestoDoc` del mismo módulo.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/features/public/PublicPresupuestoView.vue` |
+| **Ruta destino** | `web/src/modules/presupuestos/PublicPresupuestoPage.vue` |
 | **Grupo / orden** | G5 (vistas) · 8º |
 | **LOC actuales** | 208 |
 | **Tipo** | migrar |
@@ -18,7 +18,7 @@ Vista pública (sin auth) que hace `ofetch` directo al endpoint público, mapea 
 Migrar estilos a Tailwind preservando **fielmente** el render para PDF/impresión. Mantener el dato del DTO. Coordinar con `PresupuestoDoc` (G4.3) para no romper los selectores de impresión.
 
 ## Plan de acción paso a paso
-1. **(DIP — OBLIGATORIO rev.1)** Extraer el fetch a `services/public.ts` (`fetchPublicPresupuesto(token)`); la vista no usa `ofetch` crudo. Motivo: **consistencia + testabilidad** (no es purismo DIP — la ruta es pública y liviana, y el service también lo es). Mantiene la velocidad para Puppeteer.
+1. **(DIP — OBLIGATORIO rev.1)** Extraer el fetch a `modules/presupuestos/public-api.ts` (`fetchPublicPresupuesto(token)`); la vista no usa `ofetch` crudo. Motivo: **consistencia + testabilidad** (no es purismo DIP — la ruta es pública y liviana, y el service también lo es). Mantiene la velocidad para Puppeteer.
 2. **(Tailwind)** Migrar `<style scoped>` (page, toolbar, public-state, spinner) a utilidades; spinner con `animate-spin`. Botón imprimir → `BaseButton variant="secondary"`.
 3. **(⚠️ PDF/print)** El bloque `<style>` global apunta a `.preview-doc` (clase de `PresupuestoDoc`). Al migrar `PresupuestoDoc` a Tailwind, esa clase puede desaparecer. **Acción:** mantener un hook estable — dejar `class="preview-doc"` en la raíz de `PresupuestoDoc` como ancla de impresión, **o** mover las reglas `@page`/`@media print`/`pdf-mode` a apuntar a un atributo/clase que `PresupuestoDoc` conserve. Documentar la decisión y **probar la generación de PDF** tras migrar.
 4. **(C6)** `@page { size:A4; margin:14mm }` y `@media print` se conservan (no expresables en utilidades) en `<style>` global o `@layer`.

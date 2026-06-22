@@ -1,10 +1,10 @@
-# G2.2 — `components/layout/PageHead.vue`
+# G2.2 — `shared/ui/PageHead.vue`
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/PageHead.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/layout/PageHead.vue` |
+| **Ruta destino** | `web/src/shared/ui/PageHead.vue` |
 | **Grupo / orden** | G2 (primitivos) · 2º |
 | **LOC actuales** | 18 |
 | **Tipo** | migrar |

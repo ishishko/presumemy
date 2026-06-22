@@ -1,10 +1,10 @@
-# G5.2 — `views/ClientesView.vue`
+# G5.2 — `modules/clientes/ClientesPage.vue`
 
 > **Ubicación (modular, rev.2):** destino `modules/clientes/ClientesPage.vue` · `Avatar` → `modules/clientes/components`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/views/ClientesView.vue` |
+| **Ruta destino** | `web/src/modules/clientes/ClientesPage.vue` |
 | **Grupo / orden** | G5 (vistas) · 2º |
 | **LOC actuales** | 216 |
 | **Tipo** | migrar |
@@ -25,13 +25,13 @@ Vista orquestadora delgada: `DataTable` + `Avatar` + `RowActions`, sin `services
 
 ## Plan de acción paso a paso
 1. **(DIP)** Quitar `import { del }`; `handleDeleteConfirm` → `await store.remove(c.id)` (store ya absorbe el `del`, G1.3).
-2. **(SRP/DRY)** Extraer `components/ui/Avatar.vue` (props `name` → calcula iniciales + paleta determinística). Mover `avatarPalette/getAvatarPalette/getInitials` ahí. **Reutilizable** (el sidebar también pinta un avatar). Paleta con tokens, no hex crudos.
+2. **(SRP/DRY)** Extraer `modules/clientes/components/Avatar.vue` (props `name` → calcula iniciales + paleta determinística). Mover `avatarPalette/getAvatarPalette/getInitials` ahí. **Reutilizable** (el sidebar también pinta un avatar). Paleta con tokens, no hex crudos.
 3. **(reuso)** Tabla → `DataTable` (slot `row`); acciones → `RowActions`; `money` → `formatMoney`.
 4. **(Tailwind)** `.clientes-name-cell/.clientes-avatar/.clientes-code/.canal-*` → utilidades. Dots de canal: mapa `canal → clase` (no hex inline) — definir tokens si faltan colores de canal, o usar los existentes.
 5. **(limpieza)** Quitar inline styles de celdas (`style="width:..."` → columnas de `DataTable`).
 
 ## Componentes que crea/consume
-Crea `Avatar.vue`. Consume `DataTable`, `RowActions`, `formatMoney`.
+Crea `modules/clientes/components/Avatar.vue`. Consume `DataTable`, `RowActions`, `formatMoney`.
 
 ## Criterios de aceptación
 - `vue-tsc` ok; avatar (color por nombre), contacto principal, totales idénticos.

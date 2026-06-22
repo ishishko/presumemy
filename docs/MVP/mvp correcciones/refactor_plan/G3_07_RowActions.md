@@ -1,15 +1,15 @@
-# G3.7 — `components/ui/RowActions.vue` (nuevo)
+# G3.7 — `shared/ui/RowActions.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/RowActions.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/RowActions.vue` |
+| **Ruta destino** | `web/src/shared/ui/RowActions.vue` |
 | **Grupo / orden** | G3 (base + shell) · 7º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
 | **Dependencias** | G0 |
-| **Consumidores** | `InsumosView`, `ProductosView`, `ClientesView`, `FinanzasView` (acciones de fila en tablas) |
+| **Consumidores** | `InsumosPage`, `ProductosPage`, `ClientesPage`, `FinanzasPage` (acciones de fila en tablas) |
 
 ## Estado actual
 No existe. `InsumosView` lo tiene como `<style scoped>` propio (líneas 273-280 + 326-350): `.row-actions`, `.row-action-btn`, `.row-action-danger` (editar/eliminar con hover). El mismo patrón se repite en otras tablas.

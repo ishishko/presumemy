@@ -1,10 +1,10 @@
-# G5.3 — `views/ProductosView.vue`
+# G5.3 — `modules/productos/ProductosPage.vue`
 
-> **Ubicación (modular, rev.2):** destino `modules/productos/ProductosPage.vue` · `ProductCard` → `modules/productos/components` · usa `@/modules/categorias` por barrel.
+> **Ubicación (modular, rev.2):** destino `modules/productos/ProductosPage.vue` · `ProductCard` → `modules/productos/components` · `CategoriaPills`/`CategoriaDeleteDialog` viven en `modules/productos/components/` (no hay módulo `categorias/`).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/views/ProductosView.vue` |
+| **Ruta destino** | `web/src/modules/productos/ProductosPage.vue` |
 | **Grupo / orden** | G5 (vistas) · 3º |
 | **LOC actuales** | 253 |
 | **Tipo** | migrar |
@@ -25,14 +25,14 @@ Grid con `ProductCard` reutilizable, chips de estado compartidos, sin `services/
 
 ## Plan de acción paso a paso
 1. **(DIP)** `del` → `store.remove`; mover `toggleFavorite`'s `patch` al store (`store.toggleFavorito(id)` que hace el `patch` + `upsert`). La vista no toca `services/api`.
-2. **(SRP)** Extraer `components/productos/ProductCard.vue` (props `producto`; emits `edit/delete/toggle-favorite`). Mueve el markup + `<style scoped>` de la card y su hover de acciones.
+2. **(SRP)** Extraer `modules/productos/components/ProductCard.vue` (props `producto`; emits `edit/delete/toggle-favorite`). Mueve el markup + `<style scoped>` de la card y su hover de acciones.
 3. **(DS)** Reemplazar amber crudo por tokens: favorito/warning → `--yellow`/`--yellow-ink` (o agregar tokens `amber-*` a `@theme` si el DS realmente quiere ese tono; **decisión a anotar** — preferir tokens existentes).
 4. **(DRY)** Chips de estado → usar `FilterChips` (**G3.11**, ya con doc propio; compartido con Insumos/Finanzas). El toggle-deselect de esta vista se cubre con la prop `deselectable` del componente.
-5. **(reuso)** `money` → `formatMoney`. `CategoriaPills`/`CategoriaDeleteDialog` ya migrados (G4).
+5. **(reuso)** `money` → `formatMoney`. `CategoriaPills`/`CategoriaDeleteDialog` ya migrados (G4) y viven en `modules/productos/components/`.
 6. **(Tailwind)** `.prod-grid` → `grid grid-cols-[repeat(auto-fill,minmax(...))] gap-4`.
 
 ## Componentes que crea/consume
-Crea `ProductCard.vue`. Consume `FilterChips` (G3.11), `formatMoney`, `CategoriaPills`, `CategoriaDeleteDialog`, store con `toggleFavorito`.
+Crea `modules/productos/components/ProductCard.vue`. Consume `FilterChips` (G3.11), `formatMoney`, `CategoriaPills`, `CategoriaDeleteDialog`, store con `toggleFavorito`.
 
 ## Criterios de aceptación
 - `vue-tsc` ok; grid, favorito (toggle optimista o vía store), warning, filtros idénticos.

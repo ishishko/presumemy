@@ -1,15 +1,15 @@
-# G3.9 — `components/layout/AppHeader.vue`
+# G3.9 — `app/shell/AppHeader.vue`
 
-> **Ubicación (modular, rev.2):** shell de app → `app/shell/AppHeader.vue`. La constante `EDITOR_STATUS_SLOT_ID` (C11) vive en `app/state`.
+> **Ubicación (modular, rev.2):** destino `app/shell/AppHeader.vue` (topbar del shell).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/layout/AppHeader.vue` |
+| **Ruta destino** | `web/src/app/shell/AppHeader.vue` |
 | **Grupo / orden** | G3 (base + shell) · 9º |
 | **LOC actuales** | 79 |
 | **Tipo** | migrar |
 | **Dependencias** | G0; G3.1 (`BaseButton`) |
-| **Consumidores** | `App.vue` |
+| **Consumidores** | `app/App.vue` |
 
 ## Estado actual
 Topbar 56px con: título de página, modo editor (título + guardar + cerrar), `#editor-header-status` (destino Teleport del badge de estado del editor), botón crear (`+`), search input, campana. Clases globales `.app-header`, `.icon-btn`, `.btn .btn-primary .btn-icon`, `.search`. `<style scoped>` para `.editor-mode-title` y `.header-status-slot:empty`. **Smells:** `:style` inline en el botón guardar (líneas 29-31, opacidad/cursor según `editorDirty`); el `<input>` de búsqueda **no tiene binding** (placeholder estático, no funcional).

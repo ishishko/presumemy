@@ -1,15 +1,15 @@
-# G2.7 — `components/ui/ToastContainer.vue`
+# G2.7 — `shared/ui/ToastContainer.vue`
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/ToastContainer.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/ToastContainer.vue` |
+| **Ruta destino** | `web/src/shared/ui/ToastContainer.vue` |
 | **Grupo / orden** | G2 (primitivos) · 7º |
 | **LOC actuales** | 117 |
 | **Tipo** | migrar |
 | **Dependencias** | G0; usa `useToast` (sin cambios) |
-| **Consumidores** | `App.vue` (montado una vez global) |
+| **Consumidores** | `app/App.vue` (montado una vez global) |
 
 ## Estado actual
 `Teleport to body` + `TransitionGroup name="toast"`. Renderiza `toasts` de `useToast` con tipo `success/error/info`, icono, mensaje, botón undo, botón close. `<style scoped>` extenso: contenedor fijo, toast card, iconos por tipo, undo, close, transiciones. Usa colores `--teal-600`/`--violet-600` que **no están en tokens.css** (posible token faltante a revisar).

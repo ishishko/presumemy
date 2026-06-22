@@ -1,4 +1,4 @@
-# G3.12 — `components/ui/OverlayShell.vue` (nuevo)
+# G3.12 — `shared/ui/OverlayShell.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/OverlayShell.vue` · import `@/shared/ui`.
 
@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/OverlayShell.vue` |
+| **Ruta destino** | `web/src/shared/ui/OverlayShell.vue` |
 | **Grupo / orden** | G3 (base + shell) · 12º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |

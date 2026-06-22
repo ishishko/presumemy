@@ -1,15 +1,15 @@
-# G3.8 — `components/layout/TheSidebar.vue`
+# G3.8 — `app/shell/AppSidebar.vue`
 
-> **Ubicación (modular, rev.2):** shell de app → `app/shell/AppSidebar.vue`.
+> **Ubicación (modular, rev.2):** destino `app/shell/AppSidebar.vue` (shell de navegación).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/layout/TheSidebar.vue` |
+| **Ruta destino** | `web/src/app/shell/AppSidebar.vue` |
 | **Grupo / orden** | G3 (base + shell) · 8º |
 | **LOC actuales** | 110 |
 | **Tipo** | migrar |
 | **Dependencias** | G0 |
-| **Consumidores** | `App.vue` |
+| **Consumidores** | `app/App.vue` |
 
 ## Estado actual
 Sidebar fijo 240px violeta. Arrays `navOperacion`/`navDatos` (data-driven, bien). Clases globales `.sidebar`, `.sidebar-brand`, `.sidebar-section`, `.sidebar-section-label`, `.nav-item`(+`.active`), `.sidebar-foot`, `.sidebar-foot-user`, `.avatar`, `.who`, `.spacer` (`components.css` ~6-173). Lee `useAuthStore` para nombre/iniciales. **Smell:** `:style` inline en el botón logout (línea 101).

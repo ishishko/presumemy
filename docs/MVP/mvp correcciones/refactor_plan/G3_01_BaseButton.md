@@ -1,4 +1,4 @@
-# G3.1 — `components/ui/BaseButton.vue` (nuevo)
+# G3.1 — `shared/ui/BaseButton.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/BaseButton.vue` · import `@/shared/ui`.
 
@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/BaseButton.vue` |
+| **Ruta destino** | `web/src/shared/ui/BaseButton.vue` |
 | **Grupo / orden** | G3 (numeración) · **build: primero, tras G1** |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |

@@ -28,7 +28,8 @@ Eliminar todo el CSS vanilla y el código muerto, dejando solo `@theme` + `@laye
 3. **(borrar)** Confirmar que ningún `var(--legacy)` sin `@theme` se usa; borrar el `:root` de `tokens.css` y el `@import "./tokens.css";` (los estilos base ya viven en `@layer base`). Borrar el archivo si queda vacío.
 4. **(borrar)** Borrar `web/src/style.css` (verificar que `main.ts` no lo importe — hoy no).
 5. **(scoped)** Revisar cada `<style scoped>` restante: debe ser solo animación irreductible (wave de `FloatingField`/`FloatingSelect`, transiciones `drawer`/`toast`/`confirm`/`overlay`, `card-appear` login, `aj-grow`, `@page`/`@media print` de la vista pública). Borrar cualquier otro.
-6. **(duplicados)** Confirmar que `money()`/`getNivel`/`nivelMeta`/`statusTones`/`TRANSITIONS`/`formatDate` locales fueron eliminados de todas las vistas (centralizados en `utils/`/composables).
+6. **(duplicados)** Confirmar que `money()`/`getNivel`/`nivelMeta`/`statusTones`/`TRANSITIONS`/`formatDate` locales fueron eliminados de todas las vistas (centralizados en `shared/lib`/`modules/<dominio>/`).
+7. **(carpetas legacy)** Borrar carpetas vacías tras la relocalización modular: `views/`, `components/`, `stores/`, `services/`, `composables/`, `utils/`, `schemas/`, `types/` (si quedaron sin contenido). Verificar que no queden archivos huérfanos antes de borrar.
 
 ## Criterios de aceptación
 - `cd web && npx vue-tsc -b` sin errores.

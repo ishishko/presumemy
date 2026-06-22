@@ -1,10 +1,10 @@
-# G5.7 — `features/auth/LoginView.vue`
+# G5.7 — `modules/auth/LoginPage.vue`
 
-> **Ubicación (modular, rev.2):** sale de `features/` → `modules/auth/LoginPage.vue` (es una pantalla, no una feature).
+> **Ubicación (modular, rev.2):** destino `modules/auth/LoginPage.vue` (módulo auth contiene solo login + session-store).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/features/auth/LoginView.vue` |
+| **Ruta destino** | `web/src/modules/auth/LoginPage.vue` |
 | **Grupo / orden** | G5 (vistas) · 7º |
 | **LOC actuales** | 386 (la mayoría `<style scoped>`) |
 | **Tipo** | migrar |

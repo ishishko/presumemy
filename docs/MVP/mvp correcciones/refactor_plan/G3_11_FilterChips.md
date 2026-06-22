@@ -1,4 +1,4 @@
-# G3.11 — `components/ui/FilterChips.vue` (nuevo)
+# G3.11 — `shared/ui/FilterChips.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/FilterChips.vue` · import `@/shared/ui`.
 
@@ -6,12 +6,12 @@
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/FilterChips.vue` |
+| **Ruta destino** | `web/src/shared/ui/FilterChips.vue` |
 | **Grupo / orden** | G3 (base + shell) · 11º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
 | **Dependencias** | G0 |
-| **Consumidores** | `InsumosView` (G5.4), `ProductosView` (G5.3), `FinanzasView` (G5.6, filtros tipo/cuenta) |
+| **Consumidores** | `InsumosPage` (G5.4), `ProductosPage` (G5.3), `FinanzasPage` (G5.6, filtros tipo/cuenta) |
 
 ## Estado actual
 No existe. El patrón de chips de filtro está **triplicado** con clases globales distintas:

@@ -1,15 +1,15 @@
-# G3.4 — `components/ui/BaseKpi.vue` (nuevo)
+# G3.4 — `shared/ui/BaseKpi.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/BaseKpi.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/BaseKpi.vue` |
+| **Ruta destino** | `web/src/shared/ui/BaseKpi.vue` |
 | **Grupo / orden** | G3 (base + shell) · 4º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
 | **Dependencias** | G0; G3.3 (`BaseCard`) opcional como base |
-| **Consumidores** | `DashboardView` (G5.1), `FinanzasView` (G5.6) |
+| **Consumidores** | `DashboardPage` (G5.1), `FinanzasPage` (G5.6) |
 
 ## Estado actual
 No existe. Clase global `.kpi` (`components.css` ~408-439). `DashboardView` arma KPIs con `<div class="kpi" style="margin-top:6px">` y markup repetido (label, valor grande tabular, delta).

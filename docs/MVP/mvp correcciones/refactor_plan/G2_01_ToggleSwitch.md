@@ -1,15 +1,15 @@
-# G2.1 — `components/ui/ToggleSwitch.vue`
+# G2.1 — `shared/ui/ToggleSwitch.vue`
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/ToggleSwitch.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/ToggleSwitch.vue` |
+| **Ruta destino** | `web/src/shared/ui/ToggleSwitch.vue` |
 | **Grupo / orden** | G2 (primitivos) · 1º |
 | **LOC actuales** | 31 |
 | **Tipo** | migrar |
 | **Dependencias** | G0 (`@theme`) |
-| **Consumidores** | `AjustesView`, `InsumoDetalle` (flip switch), drawers |
+| **Consumidores** | `AjustesPage`, `InsumoDetalle` (flip switch), drawers |
 
 ## Estado actual
 Botón `role="switch"` con a11y correcta (teclado space/enter, `aria-checked`, `aria-label`, `disabled`). Estilado por clase global `.toggle-switch` + `.on` (en `components.css`). Usa `props.modelValue` + emit `update:modelValue` manual.

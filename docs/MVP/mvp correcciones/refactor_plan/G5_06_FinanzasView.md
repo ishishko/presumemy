@@ -1,10 +1,10 @@
-# G5.6 — `views/FinanzasView.vue`
+# G5.6 — `modules/finanzas/FinanzasPage.vue`
 
 > **Ubicación (modular, rev.2):** destino `modules/finanzas/FinanzasPage.vue` · catálogo `tipos.ts` y `FinTabs` en `modules/finanzas`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/views/FinanzasView.vue` |
+| **Ruta destino** | `web/src/modules/finanzas/FinanzasPage.vue` |
 | **Grupo / orden** | G5 (vistas) · 6º |
 | **LOC actuales** | 380 |
 | **Tipo** | migrar |
@@ -24,14 +24,14 @@ Vista con KPIs (`BaseKpi`), dos `DataTable`, tabs y filtros por componentes, sin
 
 ## Plan de acción paso a paso
 1. **(DIP)** `del` → `store.removeTransaccion`/`store.removeOrden` (absorber el `del` en el store, G1.3 — finanzas tiene 2 endpoints).
-2. **(DRY)** `money`/`signedMoney`/`formatDate` → `utils/format` (`formatMoney` + `formatSignedMoney`).
+2. **(DRY)** `money`/`signedMoney`/`formatDate` → `shared/lib/format` (`formatMoney` + `formatSignedMoney`).
 3. **(OCP)** `tipoMovs`: separar **dato** (id+label) de **signo** (ingreso/egreso). El tono del badge sale de un mapa `tipo → 'ingreso'|'egreso'` → `StatusBadge tone`. Eliminar la comparación por hex (`=== '#2E6F70'`).
-4. **(SRP)** Extraer `components/finanzas/FinTabs.vue` (tabs movimientos/imprenta con contadores) si aporta; si no, Tailwind inline.
+4. **(SRP)** Extraer `modules/finanzas/components/FinTabs.vue` (tabs movimientos/imprenta con contadores) si aporta; si no, Tailwind inline.
 5. **(reuso)** Tablas → `DataTable` (2 configs de columnas); acciones → `RowActions`; filtros tipo/cuenta → `FilterChips`; badge pagado/pendiente y tipo → `StatusBadge`.
 6. **(Tailwind)** KPIs → `BaseKpi`; eliminar inline styles; `.fin-*` → utilidades.
 
 ## Componentes que crea/consume
-Posible `FinTabs.vue`. Consume `BaseKpi`, `DataTable`, `RowActions`, `StatusBadge`, `FilterChips`, `formatMoney`.
+Posible `modules/finanzas/components/FinTabs.vue`. Consume `BaseKpi`, `DataTable`, `RowActions`, `StatusBadge`, `FilterChips`, `formatMoney`.
 
 ## Criterios de aceptación
 - `vue-tsc` ok; ambas pestañas, KPIs, filtros, montos con signo y badges idénticos.

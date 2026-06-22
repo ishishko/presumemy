@@ -1,14 +1,14 @@
-# G3.10 — `App.vue`
+# G3.10 — `app/App.vue`
 
 > **Ubicación (modular, rev.2):** destino `app/App.vue` (shell raíz). El arranque vive en `app/` (main, router, pinia).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/App.vue` |
+| **Ruta destino** | `web/src/app/App.vue` |
 | **Grupo / orden** | G3 (base + shell) · 10º (cierra el shell) |
 | **LOC actuales** | 105 |
 | **Tipo** | migrar |
-| **Dependencias** | G3.8 (`TheSidebar`), G3.9 (`AppHeader`), G2.7 (`ToastContainer`) |
+| **Dependencias** | G3.8 (`AppSidebar`), G3.9 (`AppHeader`), G2.7 (`ToastContainer`) |
 | **Consumidores** | raíz de la app |
 
 ## Estado actual

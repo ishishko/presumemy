@@ -1,16 +1,16 @@
-# G2.6 — `components/ui/ConfirmDialog.vue`
+# G2.6 — `shared/ui/ConfirmDialog.vue`
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/ConfirmDialog.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/ConfirmDialog.vue` |
+| **Ruta destino** | `web/src/shared/ui/ConfirmDialog.vue` |
 | **Grupo / orden** | G2 (primitivos) · 6º |
 | **LOC actuales** | 102 |
 | **Tipo** | migrar |
 | **Dependencias** | G0; idealmente G3.1 (`BaseButton`) para los botones |
-| **Consumidores** | `InsumosView`, `ProductosView`, `ClientesView`, etc. (confirmaciones de borrado) |
-| **⚠️ Tiene test** | `components/ui/__tests__/` → **no cambiar API/props** |
+| **Consumidores** | `InsumosPage`, `ProductosPage`, `ClientesPage`, etc. (confirmaciones de borrado) |
+| **⚠️ Tiene test** | `shared/ui/__tests__/` → **no cambiar API/props** |
 
 ## Estado actual
 `Teleport to body` + `Transition name="confirm"`. Props `open/title/message/confirmLabel/cancelLabel/variant`. Emits `confirm/cancel`. Escape cierra. Botones con clases globales `.btn .btn-secondary` / `.btn .btn-danger|.btn-primary`. Estilos en `<style scoped>` (mask, dialog, actions, transición).

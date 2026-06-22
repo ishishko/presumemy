@@ -30,79 +30,80 @@ Además del refactor de estilado/componentización, el frontend se **reorganiza 
 
 ## Grupo 0 — Fundación (sin esto no compila nada migrado)
 
-- **`web/src/assets/css/main.css`** — definir bloque `@theme` con todos los tokens (colores, `--font-sans` Onest, escala `--text-*`, `--radius-*`, `--shadow-*`, focus rings). Mover estilos base de elementos (headings violeta peso 500, body, links, `::selection`) a `@layer base`. Mantener `@import "./components.css"` **temporalmente** (se borra en Grupo 7).
-- **`web/src/assets/css/tokens.css`** — origen del mapeo; se vacía/borra cuando todo migró a `@theme`.
+- **`app/styles/main.css`** (desde `assets/css/main.css`) — definir bloque `@theme` con todos los tokens (colores, `--font-sans` Onest, escala `--text-*`, `--radius-*`, `--shadow-*`, focus rings). Mover estilos base de elementos (headings violeta peso 500, body, links, `::selection`) a `@layer base`. Mantener `@import "./components.css"` **temporalmente** (se borra en Grupo 7).
+- **`assets/css/tokens.css`** — origen del mapeo; se vacía/borra cuando todo migró a `@theme`.
 - Mapeo de espaciado: grid 4px = escala default Tailwind (`--s-4`=16px → `p-4`, `--s-2`=8px → `gap-2`); documentar, sin escala custom.
 
 ## Grupo 1 — Capa de datos y utils (DIP/SRP, antes de tocar UI)
 
-- **`web/src/utils/format.ts`** (nuevo) — `formatMoney()` único (hoy duplicado como `money()` en `InsumosView` y otras vistas). Posible `formatDate()`.
-- **`web/src/composables/useStockLevel.ts`** (nuevo) — extraer `getNivel()`, umbrales y `nivelMeta` hoy embebidos en `InsumosView` (líneas 34-73). Testeable de forma aislada.
-- **`web/src/stores/insumos.ts`** y pares (`productos`, `clientes`, `finanzas`, `presupuestos`) — **absorber el `del()`**: que `remove(id)` haga `await del(...)` + filtro local, en vez de filtrar solo y dejar la llamada a la vista. Las vistas dejan de importar `services/api`.
-- **`web/src/services/api.ts`** — ya es un adapter funcional limpio; sin cambios salvo que sea el único punto que conozca `ofetch`.
-- Composables existentes (`useToast`, `useEditorMode`, `useCreateTrigger`, `useDirty`) — OK; `useEditorMode`/`useCreateTrigger` son singletons globales (event-bus): se mantienen, anotado como deuda menor.
+- **`shared/lib/format.ts`** (nuevo) — `formatMoney()` único (hoy duplicado como `money()` en `InsumosView` y otras vistas). Posible `formatDate()`.
+- **`modules/insumos/stock.ts`** (nuevo) — extraer `getNivel()`, umbrales y `nivelMeta` hoy embebidos en `InsumosView` (líneas 34-73). Testeable de forma aislada.
+- **`modules/<dominio>/store.ts`** (insumos, productos, clientes, finanzas, presupuestos) — **absorber el `del()`**: que `remove(id)` haga `await del(...)` + filtro local, en vez de filtrar solo y dejar la llamada a la vista. Las vistas dejan de importar `shared/api`.
+- **`shared/api/client.ts`** (desde `services/api.ts`) — ya es un adapter funcional limpio; sin cambios salvo que sea el único punto que conozca `ofetch`.
+- Composables existentes (`useToast`, `useEditorMode`, `useCreateTrigger`, `useDirty`) — OK; `useEditorMode`/`useCreateTrigger` son singletons globales (event-bus): se mantienen, anotado como deuda menor. Se reubican en `app/state/`.
 
 ## Grupo 2 — Primitivos hoja (orden de implementación)
 
-1. **`components/ui/ToggleSwitch.vue`** (31) — clase `.toggle-switch`→Tailwind; migrar a `defineModel`. Bajo riesgo, fija convención de switch.
-2. **`components/layout/PageHead.vue`** (18) — clases `.page-head/.title/.sub`→utilidades; slot de acciones intacto.
-3. **`components/ui/SegmentedControl.vue`** (61) — `.segmented/.seg-btn`→Tailwind con mapa activo/inactivo; conservar a11y (radiogroup, flechas).
-4. **`components/ui/FloatingSelect.vue`** (90) y **`components/ui/FloatingField.vue`** (130) — comparten la animación "wave" del label (`components.css` ~3231-3382). Migrar control/estado a Tailwind; **la animación escalonada del label queda como `<style scoped>` mínimo o `@utility`** (es la excepción justificada). Unificar la lógica de estado compartida si conviene.
-5. **`components/ui/ConfirmDialog.vue`** (102) — cuerpo→Tailwind; botones via `BaseButton` (Grupo 3). Conservar `Teleport`+transición `confirm`. **Tiene test** → mantener API/props.
-6. **`components/ui/ToastContainer.vue`** (117) — `.toast*`→Tailwind con mapa por `type` (success/error/info) (OCP); conservar `TransitionGroup`.
-7. **`components/ui/DrawerShell.vue`** (151) — layout `grid-rows: auto 1fr auto`→Tailwind; conservar transición `drawer`. Es la base de los 3 drawers pesados → migrarlo antes que ellos.
+1. **`shared/ui/ToggleSwitch.vue`** (31) — clase `.toggle-switch`→Tailwind; migrar a `defineModel`. Bajo riesgo, fija convención de switch.
+2. **`shared/ui/PageHead.vue`** (18) — clases `.page-head/.title/.sub`→utilidades; slot de acciones intacto.
+3. **`shared/ui/SegmentedControl.vue`** (61) — `.segmented/.seg-btn`→Tailwind con mapa activo/inactivo; conservar a11y (radiogroup, flechas).
+4. **`shared/ui/FloatingSelect.vue`** (90) y **`shared/ui/FloatingField.vue`** (130) — comparten la animación "wave" del label (`components.css` ~3231-3382). Migrar control/estado a Tailwind; **la animación escalonada del label queda como `<style scoped>` mínimo o `@utility`** (es la excepción justificada). Unificar la lógica de estado compartida si conviene.
+5. **`shared/ui/ConfirmDialog.vue`** (102) — cuerpo→Tailwind; botones via `BaseButton` (Grupo 3). Conservar `Teleport`+transición `confirm`. **Tiene test** → mantener API/props.
+6. **`shared/ui/ToastContainer.vue`** (117) — `.toast*`→Tailwind con mapa por `type` (success/error/info) (OCP); conservar `TransitionGroup`.
+7. **`shared/ui/DrawerShell.vue`** (151) — layout `grid-rows: auto 1fr auto`→Tailwind; conservar transición `drawer`. Es la base de los 3 drawers pesados → migrarlo antes que ellos.
 
 ## Grupo 3 — Componentes base nuevos + shell
 
-- **`components/ui/BaseButton.vue`** (nuevo) — variantes `primary|secondary|ghost|danger` + `icon` via mapa de estrategia; estados hover/press/disabled. Reemplaza `.btn*` global en toda la app.
-- **`components/ui/StatusBadge.vue`** (nuevo) — `{ label, tone }`, pastel + override por mapa. Reemplaza `.badge`/badges inline.
-- **`components/ui/BaseCard.vue`**, **`BaseKpi.vue`** (nuevos) — surface/border/shadow.
-- **`components/layout/TheSidebar.vue`** (110) — `.sidebar*`/`.nav-item`→Tailwind con mapa activo; quitar `:style` inline del botón logout (línea 101).
-- **`components/layout/AppHeader.vue`** (79) — `.app-header`/`.search`→Tailwind; quitar `:style` inline del botón guardar (usar `disabled:` + `BaseButton`). Nota: el `<input>` de búsqueda no tiene binding — confirmar si se cablea al search existente o queda fuera de alcance.
-- **`App.vue`** (105) — `.app/.main` shell→Tailwind (grid sidebar 240px + main). Sin lógica nueva.
+- **`shared/ui/BaseButton.vue`** (nuevo) — variantes `primary|secondary|ghost|danger` + `icon` via mapa de estrategia; estados hover/press/disabled. Reemplaza `.btn*` global en toda la app.
+- **`shared/ui/StatusBadge.vue`** (nuevo) — `{ label, tone }`, pastel + override por mapa. Reemplaza `.badge`/badges inline.
+- **`shared/ui/BaseCard.vue`**, **`BaseKpi.vue`** (nuevos) — surface/border/shadow.
+- **`app/shell/AppSidebar.vue`** (desde `components/layout/TheSidebar.vue`, 110) — `.sidebar*`/`.nav-item`→Tailwind con mapa activo; quitar `:style` inline del botón logout (línea 101).
+- **`app/shell/AppHeader.vue`** (desde `components/layout/AppHeader.vue`, 79) — `.app-header`/`.search`→Tailwind; quitar `:style` inline del botón guardar (usar `disabled:` + `BaseButton`). Nota: el `<input>` de búsqueda no tiene binding — confirmar si se cablea al search existente o queda fuera de alcance.
+- **`app/App.vue`** (105) — `.app/.main` shell→Tailwind (grid sidebar 240px + main). Sin lógica nueva.
 
 ## Grupo 4 — Componentes medianos
 
-- **`components/ui/CategoriaPills.vue`** (350) — pills + edición inline de categorías→Tailwind; extraer subpartes si hay repetición (≥3 usos). Usado por Insumos y Productos.
-- **`components/ui/CategoriaDeleteDialog.vue`** (200) — diálogo de borrado/reasignación→Tailwind sobre `ConfirmDialog`/`DrawerShell`.
-- **`components/presupuestos/PresupuestoDoc.vue`** (158) — documento preview (`components.css` ~1760-2007)→Tailwind; presentacional puro.
+- **`modules/insumos/components/CategoriaPills.vue`** y **`modules/productos/components/CategoriaPills.vue`** (350) — pills + edición inline de categorías→Tailwind; extraer subpartes si hay repetición (≥3 usos). Cada módulo tiene su propia copia porque cada uno tiene su store/api de categorías.
+- **`modules/insumos/components/CategoriaDeleteDialog.vue`** y **`modules/productos/components/CategoriaDeleteDialog.vue`** (200) — diálogo de borrado/reasignación→Tailwind sobre `ConfirmDialog`/`DrawerShell`.
+- **`modules/presupuestos/PresupuestoDoc.vue`** (158) — documento preview (`components.css` ~1760-2007)→Tailwind; presentacional puro.
 
 ## Grupo 5 — Vistas (small→large; cada una se audita al llegar)
 
 Aplican el checklist universal + extracción de tabla/cards a componentes. Smell común esperado: `money()` duplicado (→ `formatMoney`), inline `var()`, posible CRUD que llama API directo (→ store).
 
-- **`views/DashboardView.vue`** (207) — KPIs + gráfico semanal + recientes → `BaseKpi`/`BaseCard`; revisar `services/dashboard.ts`.
-- **`views/ClientesView.vue`** (216) — tabla + avatars → `DataTable` (nuevo, con slots) + `Avatar` si reaparece.
-- **`views/ProductosView.vue`** (253) — grid/lista + `CategoriaPills` → `ProductCard`/`DataTable`.
-- **`views/InsumosView.vue`** (337) — **piloto del enfoque end-to-end**: queda como orquestador delgado usando `DataTable`, `StockBar` (nuevo, `{stock,minimo}`), `StatusBadge`, `RowActions` (nuevo), `formatMoney`, `useStockLevel`; sin `services/api`, sin scoped, sin inline.
-- **`views/PresupuestosView.vue`** (353) — filtros + tabla + chips de estado (FSM) → `DataTable` + `StatusBadge` con mapa de estados.
-- **`views/FinanzasView.vue`** (380) — KPIs mes + libro + tabs → `BaseKpi` + `DataTable`.
-- **`features/auth/LoginView.vue`** (386) — ruta bare; logo + form → Tailwind + `FloatingField`/`BaseButton`.
-- **`features/public/PublicPresupuestoView.vue`** (208) — vista pública; reusa `PresupuestoDoc`.
-- **`views/AjustesView.vue`** (702) — 5 bloques con dirty-tracking → extraer cada bloque a su propio componente (SRP); `useDirty` por bloque ya existe.
+- **`modules/dashboard/DashboardPage.vue`** (desde `views/DashboardView.vue`, 207) — KPIs + gráfico semanal + recientes → `BaseKpi`/`BaseCard`; revisar `stats-api.ts`.
+- **`modules/clientes/ClientesPage.vue`** (desde `views/ClientesView.vue`, 216) — tabla + avatars → `DataTable` (nuevo, con slots) + `Avatar` si reaparece.
+- **`modules/productos/ProductosPage.vue`** (desde `views/ProductosView.vue`, 253) — grid/lista + `CategoriaPills` → `ProductCard`/`DataTable`.
+- **`modules/insumos/InsumosPage.vue`** (desde `views/InsumosView.vue`, 337) — **piloto del enfoque end-to-end**: queda como orquestador delgado usando `DataTable`, `StockBar` (nuevo, `{stock,minimo}`), `StatusBadge`, `RowActions` (nuevo), `formatMoney`, `stock.ts`; sin `shared/api`, sin scoped, sin inline.
+- **`modules/presupuestos/PresupuestosPage.vue`** (desde `views/PresupuestosView.vue`, 353) — filtros + tabla + chips de estado (FSM) → `DataTable` + `StatusBadge` con mapa de estados.
+- **`modules/finanzas/FinanzasPage.vue`** (desde `views/FinanzasView.vue`, 380) — KPIs mes + libro + tabs → `BaseKpi` + `DataTable`.
+- **`modules/auth/LoginPage.vue`** (desde `features/auth/LoginView.vue`, 386) — ruta bare; logo + form → Tailwind + `FloatingField`/`BaseButton`.
+- **`modules/presupuestos/PublicPresupuestoPage.vue`** (desde `features/public/PublicPresupuestoView.vue`, 208) — vista pública; reusa `PresupuestoDoc`.
+- **`modules/ajustes/AjustesPage.vue`** (desde `views/AjustesView.vue`, 702) — 5 bloques con dirty-tracking → extraer cada bloque a su propio componente (SRP); `useDirty` por bloque ya existe.
 
 ## Grupo 6 — Pesados (drawers/overlays/editor; detalle al llegar)
 
 Estos concentran la mayor parte de `components.css` y de la deuda de responsabilidad. Cada uno recibe su **sub-plan detallado al momento de implementarlo** (división de secciones en subcomponentes, extracción de lógica a composables, props segregadas). Se hacen al final porque dependen de todos los primitivos ya migrados.
 
-- **`components/drawers/ClienteDrawer.vue`** (506) — form + contactos (replace pattern). Extraer `ContactosEditor`.
-- **`components/drawers/MovimientoDrawer.vue`** (530) y **`ImprentaDrawer.vue`** (534) — sobre `DrawerShell` + `FloatingField`/`FloatingSelect`/`BaseButton`.
-- **`components/overlays/ProductoDetalle.vue`** (984) — overlay fullscreen + BOM. Extraer `BomEditor` y secciones; reglas de costeo a composable.
-- **`components/overlays/InsumoDetalle.vue`** (1.344) — overlay fullscreen + proveedores + costeo + flip switch. Extraer secciones (proveedores, costeo, stock) a subcomponentes; lógica a composables; reusar `useStockLevel`.
-- **`components/editors/PresupuestoEditor.vue`** (1.421) — el más grande; editor split form+preview, spreadsheet de líneas, totales, FSM, Teleport del badge de estado. Sub-plan propio: `LinesSpreadsheet`, `EditorTotals`, `EditorHeader` como subcomponentes; cálculos a composable; usa `PresupuestoDoc` para el preview.
+- **`modules/clientes/ClienteDrawer.vue`** (506) — form + contactos (replace pattern). Extraer `ContactosEditor`.
+- **`modules/finanzas/MovimientoDrawer.vue`** (530) y **`ImprentaDrawer.vue`** (534) — sobre `DrawerShell` + `FloatingField`/`FloatingSelect`/`BaseButton`.
+- **`modules/productos/ProductoDetalle.vue`** (984) — overlay fullscreen + BOM. Extraer `BomEditor` y secciones; reglas de costeo a composable.
+- **`modules/insumos/InsumoDetalle.vue`** (1.344) — overlay fullscreen + proveedores + costeo + flip switch. Extraer secciones (proveedores, costeo, stock) a subcomponentes; lógica a composables; reusar `stock.ts`.
+- **`modules/presupuestos/PresupuestoEditor.vue`** (1.421) — el más grande; editor split form+preview, spreadsheet de líneas, totales, FSM, Teleport del badge de estado. Sub-plan propio: `LinesSpreadsheet`, `EditorTotals`, `EditorHeader` como subcomponentes; cálculos a composable; usa `PresupuestoDoc` para el preview.
 
 ## Grupo 7 — Limpieza final
 
-- Borrar **`web/src/assets/css/components.css`** y su `@import` en `main.css`.
-- Borrar **`web/src/style.css`** (huérfano; `main.ts` no lo importa).
+- Borrar **`components.css`** y su `@import` en `main.css`.
+- Borrar **`style.css`** (huérfano; `main.ts` no lo importa).
 - Borrar **`tokens.css`** una vez todo en `@theme`.
 - Eliminar `<style scoped>` y `money()`/`getNivel` residuales que quedaron centralizados.
 - Búsqueda de clases globales huérfanas: confirmar que ninguna referencia sobrevive.
+- Borrar carpetas legacy vacías tras la relocalización (`views/`, `components/`, `stores/`, `services/`, `composables/`, `utils/`, `schemas/`, `types/` si quedaron sin contenido).
 
 ---
 
 ## Archivos críticos
-`web/src/assets/css/main.css` · `tokens.css` · `components.css` · `web/src/utils/format.ts` (nuevo) · `web/src/composables/useStockLevel.ts` (nuevo) · `web/src/stores/*.ts` · `web/src/components/ui/*` · `web/src/components/layout/*` · `web/src/views/*` · `drawers/` · `overlays/` · `editors/`.
+`app/styles/main.css` · `tokens.css` · `components.css` · `shared/lib/format.ts` (nuevo) · `modules/insumos/stock.ts` (nuevo) · `modules/<dominio>/store.ts` · `shared/ui/*` · `app/shell/*` · `modules/<dominio>/*Page.vue` · `modules/<dominio>/*Drawer.vue` · `modules/<dominio>/*Detalle.vue` · `modules/presupuestos/PresupuestoEditor.vue`.
 
 ## Verificación
 - **Typecheck:** `cd web && npx vue-tsc -b` sin errores (correr tras cada grupo).

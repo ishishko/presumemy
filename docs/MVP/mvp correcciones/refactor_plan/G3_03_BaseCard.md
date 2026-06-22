@@ -1,15 +1,15 @@
-# G3.3 — `components/ui/BaseCard.vue` (nuevo)
+# G3.3 — `shared/ui/BaseCard.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/BaseCard.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/BaseCard.vue` |
+| **Ruta destino** | `web/src/shared/ui/BaseCard.vue` |
 | **Grupo / orden** | G3 (base + shell) · 3º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
 | **Dependencias** | G0 |
-| **Consumidores** | `DashboardView`, `FinanzasView`, login, estados de carga, etc. |
+| **Consumidores** | `DashboardPage`, `FinanzasPage`, login, estados de carga, etc. |
 
 ## Estado actual
 No existe como componente. Clase global `.card` (`components.css` ~371-408): `bg surface`, `border 1px border`, `rounded-lg`, `shadow-1`. Se usa suelta en muchos templates (ej. `InsumosView` línea 199 `<div class="card">`).

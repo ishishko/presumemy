@@ -1,15 +1,15 @@
-# G3.2 — `components/ui/StatusBadge.vue` (nuevo)
+# G3.2 — `shared/ui/StatusBadge.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** componente genérico → `shared/ui/StatusBadge.vue` (`@/shared/ui`). Su mapa `Record<EstadoPresupuesto, Tone>` vive en `modules/presupuestos/estado.ts`, no acá.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/StatusBadge.vue` |
+| **Ruta destino** | `web/src/shared/ui/StatusBadge.vue` |
 | **Grupo / orden** | G3 (base + shell) · 2º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
 | **Dependencias** | G0 |
-| **Consumidores** | `InsumosView` (nivel), `PresupuestosView` (FSM), `FinanzasView`, overlays |
+| **Consumidores** | `InsumosPage` (nivel), `PresupuestosPage` (FSM), `FinanzasPage`, overlays |
 
 ## Estado actual
 No existe. Hoy los badges se arman inline con estilos `:style="{ background, color }"` y clases globales `.badge*` (`components.css` ~526-587). Ej. `InsumosView` (líneas 264-270) pinta el badge con `nivelMeta[...].bg/color` (colores crudos). Cada vista repite el patrón pastel+texto.

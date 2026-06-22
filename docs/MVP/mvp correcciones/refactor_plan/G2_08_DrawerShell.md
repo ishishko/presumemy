@@ -1,10 +1,10 @@
-# G2.8 — `components/ui/DrawerShell.vue`
+# G2.8 — `shared/ui/DrawerShell.vue`
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/DrawerShell.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/DrawerShell.vue` |
+| **Ruta destino** | `web/src/shared/ui/DrawerShell.vue` |
 | **Grupo / orden** | G2 (primitivos) · 8º (último del grupo) |
 | **LOC actuales** | 151 |
 | **Tipo** | migrar |

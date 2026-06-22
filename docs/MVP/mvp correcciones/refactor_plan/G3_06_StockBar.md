@@ -1,15 +1,16 @@
-# G3.6 — `components/ui/StockBar.vue` (nuevo)
+# G3.6 — `modules/insumos/components/StockBar.vue` (nuevo)
 
-> **Ubicación (modular, rev.2):** presentacional **con dominio** → `modules/insumos/components/StockBar.vue` (no `shared`) · barrel `@/modules/insumos`.
+> **Ubicación (modular, rev.2):** destino `modules/insumos/components/StockBar.vue` · barrel `@/modules/insumos`. Es dominio insumo, no `shared`.
+
+> **Dependencias** | G0; G1.2 (`modules/insumos/stock.ts`) |
+| **Consumidores** | `InsumosPage` (G5.4), `InsumoDetalle` (G6.5) |
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/StockBar.vue` |
+| **Ruta destino** | `web/src/modules/insumos/components/StockBar.vue` |
 | **Grupo / orden** | G3 (base + shell) · 6º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
-| **Dependencias** | G0; G1.2 (`utils/stock.ts`) |
-| **Consumidores** | `InsumosView` (G5.4), `InsumoDetalle` (G6.5) |
 
 ## Estado actual
 No existe. `InsumosView` (líneas 259-263) arma la barra inline:

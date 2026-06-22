@@ -204,7 +204,7 @@ Cada `modules/<x>/index.ts` exporta la API pública del módulo; se consume **so
 **`app/`** — arranque + shell + glue (no-dominio)
 - `app/styles/main.css` ← G0.1 · `app/App.vue` ← G3.10 · `app/router.ts` + `app/pinia.ts` ← (router actual)
 - `app/shell/AppSidebar.vue` ← G3.8 · `app/shell/AppHeader.vue` ← G3.9
-- `app/state/{editorMode,createTrigger}.ts` ← composables singleton · scaffolding: G0.0
+- `app/state/{editorMode,createTrigger}.ts` ← singletons globales (event-bus, sin reactividad propia; deuda anotada en rev.1) · scaffolding: G0.0
 
 **`shared/ui/`** — UI kit sin dominio
 - G3.1 BaseButton · G3.2 StatusBadge · G3.3 BaseCard · G3.4 BaseKpi · G3.5 DataTable · G3.7 RowActions · G3.11 FilterChips · G3.12 OverlayShell
@@ -213,14 +213,15 @@ Cada `modules/<x>/index.ts` exporta la API pública del módulo; se consume **so
 **`shared/lib|api|config/`**
 - `shared/lib/format.ts` ← G1.1 · `shared/lib/{useToast,useDirty}` · `shared/api/client.ts` ← `services/api` · `shared/config/` ← tipos genéricos de `types/index.ts`
 
-**`modules/insumos/`** — InsumosPage ← G5.4 · InsumoDetalle ← G6.5 · components/StockBar ← G3.6 · `stock.ts` ← G1.2 · `store.ts` ← G1.3(insumos) · `costeo.ts` (useInsumoCosteo) · ProveedoresEditor · schema
-**`modules/productos/`** — ProductosPage ← G5.3 · ProductoDetalle ← G6.4 · components/{ProductCard,BomEditor} · `pricing.ts` (useProductoPricing) · `store.ts` ← G1.3(productos) · schema
-**`modules/clientes/`** — ClientesPage ← G5.2 · ClienteDrawer ← G6.1 · components/{Avatar,ContactosEditor} · `store.ts` ← G1.3(clientes) · schema
-**`modules/presupuestos/`** — PresupuestosPage ← G5.5 · PresupuestoEditor ← G6.6 · PresupuestoDoc ← G4.3 · `estado.ts` (FSM + `Record<Estado,Tone>`) · `calc.ts` (usePresupuestoCalc) · components/{LinesSpreadsheet,EstadoDropdown} · `store.ts` ← G1.3(presupuestos) · schema
-**`modules/finanzas/`** — FinanzasPage ← G5.6 · MovimientoDrawer ← G6.2 · ImprentaDrawer ← G6.3 · components/{FinTabs,SignedAmountInput} · `tipos.ts` (catálogo movimientos) · `store.ts` ← G1.3(finanzas) · schema
-**`modules/categorias/`** — CategoriaPills ← G4.1 · CategoriaDeleteDialog ← G4.2 · `store.ts` + `api.ts` (CRUD categorías insumo+producto)
+**`modules/insumos/`** — InsumosPage ← G5.4 · InsumoDetalle ← G6.5 · components/{StockBar ← G3.6, ProveedoresEditor, InsumosTable, CategoriaPills ← G4.1, CategoriaDeleteDialog ← G4.2} · `stock.ts` ← G1.2 · `store.ts` ← G1.3(insumos, incluye CRUD categorías insumo) · `api.ts` (requests insumo + categorías insumo) · `costeo.ts` (useInsumoCosteo) · schema
+**`modules/productos/`** — ProductosPage ← G5.3 · ProductoDetalle ← G6.4 · components/{ProductCard, BomEditor, CategoriaPills ← G4.1, CategoriaDeleteDialog ← G4.2} · `pricing.ts` (useProductoPricing) · `store.ts` ← G1.3(productos, incluye CRUD categorías producto) · schema
+**`modules/clientes/`** — ClientesPage ← G5.2 · ClienteDrawer ← G6.1 · components/{Avatar, ContactosEditor} · `store.ts` ← G1.3(clientes) · schema
+**`modules/presupuestos/`** — PresupuestosPage ← G5.5 · PresupuestoEditor ← G6.6 · PresupuestoDoc ← G4.3 · PublicPresupuestoPage ← G5.8 · `public-api.ts` (fetch público para Puppeteer) · `estado.ts` (FSM + `Record<Estado,Tone>`) · `calc.ts` (usePresupuestoCalc) · components/{LinesSpreadsheet, EstadoDropdown, EditorTotals} · `store.ts` ← G1.3(presupuestos) · schema
+**`modules/finanzas/`** — FinanzasPage ← G5.6 · MovimientoDrawer ← G6.2 · ImprentaDrawer ← G6.3 · components/{FinTabs, SignedAmountInput} · `tipos.ts` (catálogo movimientos) · `store.ts` ← G1.3(finanzas) · schema
 **`modules/ajustes/`** — AjustesPage ← G5.9 · components/SettingsBlock · `store.ts` (**nuevo**)
-**`modules/dashboard/`** — DashboardPage ← G5.1 · components/WeeklyChart · `stats-api.ts` ← `services/dashboard`
-**`modules/auth/`** — LoginPage ← G5.7 · PublicPresupuestoPage ← G5.8 · `public-api.ts` (`services/public.ts`) · session
+**`modules/dashboard/`** — DashboardPage ← G5.1 · components/WeeklyChart · `stats-api.ts` ← `services/dashboard` (lógica de agregación propia, no solo orquestación)
+**`modules/auth/`** — LoginPage ← G5.7 · session-store
 
-**Cross-cutting:** G0.0 (scaffolding) · G7.1 (limpieza CSS) · G7.2 (enforcement).
+**Nota sobre categorías:** No existe módulo `categorias/`. Las categorías de insumo y producto viven en sus respectivos módulos (`modules/insumos/` y `modules/productos/`), cada uno con su propio store/api de categorías. Los componentes de UI (`CategoriaPills`, `CategoriaDeleteDialog`) se duplican en cada módulo. Si en el futuro se detecta que la lógica es idéntica y vale la pena extraer, se puede crear un módulo compartido (Regla de Tres).
+
+**Cross-cutting:** G0.0 (scaffolding) · G7.1 (limpieza CSS + carpetas legacy) · G7.2 (enforcement).

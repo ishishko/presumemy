@@ -1,15 +1,15 @@
-# G3.5 — `components/ui/DataTable.vue` (nuevo)
+# G3.5 — `shared/ui/DataTable.vue` (nuevo)
 
 > **Ubicación (modular, rev.2):** destino `shared/ui/DataTable.vue` · import `@/shared/ui`.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/ui/DataTable.vue` |
+| **Ruta destino** | `web/src/shared/ui/DataTable.vue` |
 | **Grupo / orden** | G3 (base + shell) · 5º |
 | **LOC actuales** | 0 (nuevo) |
 | **Tipo** | crear |
 | **Dependencias** | G0 |
-| **Consumidores** | `InsumosView`, `ProductosView`, `ClientesView`, `PresupuestosView`, `FinanzasView` |
+| **Consumidores** | `InsumosPage`, `ProductosPage`, `ClientesPage`, `PresupuestosPage`, `FinanzasPage` |
 
 ## Estado actual
 No existe. Cada vista repite `<table class="data-table …">` con `thead`/`tbody` y estilos globales `.data-table`/`.table-wrap` (`components.css` ~752-827). Reglas DS: headers uppercase 11px `ink-muted` `tracking .06em`; celdas 13px; hover de fila `page-bg`; números `tabular-nums`.

@@ -1,15 +1,15 @@
-# G6.4 — `components/overlays/ProductoDetalle.vue`
+# G6.4 — `modules/productos/ProductoDetalle.vue`
 
 > **Ubicación (modular, rev.2):** destino `modules/productos/ProductoDetalle.vue` · `BomEditor` → `modules/productos/components` · `pricing.ts` (useProductoPricing) → `modules/productos`. Insumos para el BOM vía `@/modules/insumos` (barrel).
 
 | | |
 |---|---|
-| **Ruta** | `web/src/components/overlays/ProductoDetalle.vue` |
+| **Ruta destino** | `web/src/modules/productos/ProductoDetalle.vue` |
 | **Grupo / orden** | G6 (pesados) · 4º |
 | **LOC actuales** | 984 (≈460 de `<style scoped>`) |
 | **Tipo** | migrar (+ extracción fuerte) |
 | **Dependencias** | G2.1/2.3/2.4/2.5, G3.1, G2.6, G1.1, G1.3, G3.12 (`OverlayShell`); nuevos `BomEditor`, `useProductoPricing` |
-| **Consumidores** | `ProductosView` (G5.3) |
+| **Consumidores** | `ProductosPage` (G5.3) |
 
 ## Estado actual
 Overlay fullscreen (`pd-overlay`: `fixed top:56 left:240`, grid `1fr auto`) con secciones **Fotos / Identidad / Precios / Receta(BOM) / footer**. Integra el "modo editor" del topbar (`update:header` + `editorDirty` de `useEditorMode`), togglea `body.no-scroll`. Smells:
@@ -25,8 +25,8 @@ Overlay fullscreen (`pd-overlay`: `fixed top:56 left:240`, grid `1fr auto`) con 
 Overlay delgado: shell reutilizable + secciones, con el BOM y el costeo extraídos, datos vía stores, sin CSS duplicado/muerto, sin `:style` inline, Tailwind.
 
 ## Plan de acción paso a paso
-1. **(SRP)** Extraer `components/productos/BomEditor.vue`: v-model de `bomLineas[]`, maneja add/remove/`onInsumoChange`, recibe `insumosList`, calcula subtotales. Encapsula la tabla BOM + `add-line-btn`.
-2. **(SRP)** Extraer composable `useProductoPricing` (de `bomTotal`/`costoProducto`/`precioCalculado` + sync precio↔manual). Lógica de negocio testeable, fuera del componente.
+1. **(SRP)** Extraer `modules/productos/components/BomEditor.vue`: v-model de `bomLineas[]`, maneja add/remove/`onInsumoChange`, recibe `insumosList`, calcula subtotales. Encapsula la tabla BOM + `add-line-btn`.
+2. **(SRP)** Extraer composable `modules/productos/pricing.ts` (useProductoPricing) (de `bomTotal`/`costoProducto`/`precioCalculado` + sync precio↔manual). Lógica de negocio testeable, fuera del componente.
 3. **(DIP)** `get/post/put/del` → `useProductosStore` (incluye categorías) + `useInsumosStore` (lista de insumos). El overlay no toca `services/api`.
 4. **(DRY)** `money` → `formatMoney`; eliminar `.segmented`/`.seg-btn`/`.pd-switch` scoped (ya cubiertos por los componentes importados).
 5. **(reuso — DECIDIDO rev.1)** Usar `OverlayShell` (**G3.12**, ya con doc propio) como shell fullscreen; no reimplementar el overlay ni su transición/`no-scroll`.
@@ -34,12 +34,12 @@ Overlay delgado: shell reutilizable + secciones, con el BOM y el costeo extraíd
 7. **(C6)** Conservar `@keyframes overlay-in/out` (excepción).
 
 ## Componentes/utils que crea
-`BomEditor.vue`, `useProductoPricing`, posible `OverlayShell.vue`.
+`modules/productos/components/BomEditor.vue`, `modules/productos/pricing.ts`, posible `OverlayShell.vue`.
 
 ## Criterios de aceptación
 - `vue-tsc` ok; secciones, costeo (BOM→costo→precio calc→final, warning bajo sugerido), modo editor del topbar, `no-scroll`, guardar/eliminar/exit funcionan igual.
 - Sin `services/api` directo; sin CSS duplicado/muerto; sin `:style` inline.
-- `useProductoPricing` con test unitario (costeo es regla de negocio).
+- `modules/productos/pricing.ts` con test unitario (costeo es regla de negocio).
 
 ## Riesgos / notas
 - **Integración con `useEditorMode`/topbar** (`update:header`, `editorDirty`, Teleport-like): mantenerla intacta — el header del shell muestra guardar/cerrar y el badge.

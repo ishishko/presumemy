@@ -1,14 +1,14 @@
-# G5.4 — `views/InsumosView.vue` (PILOTO)
+# G5.4 — `modules/insumos/InsumosPage.vue` (PILOTO)
 
-> **Ubicación (modular, rev.2):** destino `modules/insumos/InsumosPage.vue`. Es el **piloto también de la estructura modular**: valida barrels (`@/modules/insumos`, `@/shared/ui`, `@/modules/categorias`) y la regla de dependencia antes de propagar.
+> **Ubicación (modular, rev.2):** destino `modules/insumos/InsumosPage.vue`. Es el **piloto también de la estructura modular**: valida barrels (`@/modules/insumos`, `@/shared/ui`) y la regla de dependencia antes de propagar.
 
 | | |
 |---|---|
-| **Ruta** | `web/src/views/InsumosView.vue` |
+| **Ruta destino** | `web/src/modules/insumos/InsumosPage.vue` |
 | **Grupo / orden** | G5 (vistas) · 4º — **piloto del enfoque end-to-end** |
 | **LOC actuales** | 337 |
 | **Tipo** | migrar |
-| **Dependencias** | G1.1 (`formatMoney`), G1.2 (`utils/stock.ts`), G1.3 (store `del`), G3.5 (`DataTable`), G3.6 (`StockBar`), G3.2 (`StatusBadge`), G3.7 (`RowActions`), G3.11 (`FilterChips`), G4.1/4.2 (categorías) |
+| **Dependencias** | G1.1 (`formatMoney`), G1.2 (`modules/insumos/stock.ts`), G1.3 (store `del`), G3.5 (`DataTable`), G3.6 (`StockBar`), G3.2 (`StatusBadge`), G3.7 (`RowActions`), G3.11 (`FilterChips`), G4.1/4.2 (categorías) |
 | **Consumidores** | ruta `/insumos` |
 
 ## Estado actual (la "God view" testigo)
