@@ -69,6 +69,7 @@ async function saveConfig() {
       contactoValor: config.value.contactoValor,
       cancelacionAuto: config.value.cancelacionAuto,
       diasEspera: config.value.diasEspera,
+      formatoFechaDashboard: config.value.formatoFechaDashboard,
     })
     configDirty.value = false
   } catch (e: any) {
@@ -141,6 +142,17 @@ onMounted(async () => {
                     @update:model-value="updateConfig('moneda', String($event))"
                   >
                     <option v-for="m in MONEDAS" :key="m.id" :value="m.id">{{ m.label }}</option>
+                  </FloatingSelect>
+                </div>
+                <div class="aj-field">
+                  <FloatingSelect
+                    id="aj-formato-fecha"
+                    label="Fecha en dashboard"
+                    :model-value="config.formatoFechaDashboard"
+                    @update:model-value="updateConfig('formatoFechaDashboard', String($event))"
+                  >
+                    <option value="relativo">Relativo (ej. Entrega hoy)</option>
+                    <option value="absoluto">Absoluto (ej. 24 Jun 2026)</option>
                   </FloatingSelect>
                 </div>
               </div>

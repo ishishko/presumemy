@@ -13,15 +13,16 @@ generator client {
 // CONFIG (1)
 // =========================================================
 model ConfiguracionNegocio {
-  id                Int     @id @default(1)
-  nombre            String  @default("MemyDeni")
-  logoUrl           String? @map("logo_url")
-  domicilio         Json?
-  contactoCanal     String? @map("contacto_canal")
-  contactoValor     String? @map("contacto_valor")
-  moneda            String  @default("ARS")
-  cancelacionAuto   Boolean @default(false) @map("cancelacion_auto")
-  diasEspera        Int     @default(0) @map("dias_espera")
+  id                    Int     @id @default(1)
+  nombre                String  @default("MemyDeni")
+  logoUrl               String? @map("logo_url")
+  domicilio             Json?
+  contactoCanal         String? @map("contacto_canal")
+  contactoValor         String? @map("contacto_valor")
+  moneda                String  @default("ARS")
+  cancelacionAuto       Boolean @default(false) @map("cancelacion_auto")
+  diasEspera            Int     @default(0) @map("dias_espera")
+  formatoFechaDashboard String  @default("relativo") @map("formato_fecha_dashboard")
 
   @@map("configuracion_negocio")
 }

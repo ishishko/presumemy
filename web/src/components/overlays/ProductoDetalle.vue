@@ -949,22 +949,22 @@ defineExpose({ loadProducto })
 .pd-left-block {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  /* gap: 20px; */
 }
 
 .pd-left-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
   align-items: start;
 }
 
 .pd-name-header-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  /* background: var(--surface); */
+  /* border: 1px solid var(--border); */
   border-radius: var(--r-lg);
   padding: 16px 20px;
-  box-shadow: var(--shadow-1);
+  /* box-shadow: var(--shadow-1); */
 }
 
 .pd-right-block {
@@ -974,14 +974,22 @@ defineExpose({ loadProducto })
 }
 
 .pd-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  /* background: var(--surface); */
+  /* border: 1px solid var(--border); */
+  /* border-radius: var(--r-lg); */
   padding: 20px;
-  box-shadow: var(--shadow-1);
+  /* box-shadow: var(--shadow-1); */
   display: flex;
   flex-direction: column;
+  /* gap: 16px; */
+}
+
+.pd-left-grid .pd-card:first-of-type {
   gap: 16px;
+}
+
+.pd-left-grid .pd-card:last-of-type {
+  gap: 26px;
 }
 
 .pd-card-head {

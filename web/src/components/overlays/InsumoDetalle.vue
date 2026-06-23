@@ -1161,11 +1161,11 @@ defineExpose({ loadInsumo })
 }
 
 .id-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  /* background: var(--surface); */
+  /* border: 1px solid var(--border); */
   border-radius: var(--r-lg);
   padding: 20px;
-  box-shadow: var(--shadow-1);
+  /* box-shadow: var(--shadow-1); */
   display: flex;
   flex-direction: column;
   gap: 18px;

@@ -25,6 +25,7 @@ const configSchema = z.object({
   moneda: z.string().optional(),
   cancelacionAuto: z.boolean().optional(),
   diasEspera: z.coerce.number().int().min(0).optional(),
+  formatoFechaDashboard: z.enum(['relativo', 'absoluto']).optional(),
 })
 
 // =========================================================

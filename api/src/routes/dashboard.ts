@@ -19,35 +19,36 @@ route.get('/stats', async (c) => {
 
   const [
     presupuestosRecientes,
-    insumosBajos,
+    proximosEntregar,
     statsPresupuestos,
     statsFinanzas,
   ] = await Promise.all([
     prisma.presupuesto.findMany({
-      where: { activo: true },
+      where: {
+        activo: true,
+        estado: { notIn: ['facturado', 'cancelado'] },
+      },
       include: {
         cliente: {
           select: { id: true, nombre: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       take: 5,
     }),
-    prisma.insumo.findMany({
+    prisma.presupuesto.findMany({
       where: {
         activo: true,
-        stock: { lt: prisma.insumo.fields.stockMinimo },
+        fechaEntrega: { not: null },
+        estado: { notIn: ['facturado', 'cancelado'] },
       },
-      select: {
-        id: true,
-        nombre: true,
-        codigo: true,
-        stock: true,
-        stockMinimo: true,
-        unidad: true,
+      include: {
+        cliente: {
+          select: { id: true, nombre: true },
+        },
       },
-      orderBy: { stock: 'asc' },
-      take: 10,
+      orderBy: { fechaEntrega: 'asc' },
+      take: 3,
     }),
     prisma.presupuesto.groupBy({
       by: ['estado'],
@@ -96,10 +97,9 @@ route.get('/stats', async (c) => {
         egresosMes,
         utilidadMes: ingresosMes - egresosMes,
         porCobrar,
-        insumosBajosCount: insumosBajos.length,
       },
       presupuestosRecientes,
-      insumosBajos,
+      proximosEntregar,
       statsPorEstado: statsPresupuestos,
     },
   })

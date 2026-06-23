@@ -15,6 +15,7 @@ async function main() {
       moneda: 'ARS',
       cancelacionAuto: false,
       diasEspera: 0,
+      formatoFechaDashboard: 'relativo',
     },
   })
   console.log('✅ ConfiguracionNegocio')

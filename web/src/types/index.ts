@@ -206,6 +206,7 @@ export interface ConfiguracionNegocio {
   moneda: string
   cancelacionAuto: boolean
   diasEspera: number
+  formatoFechaDashboard: 'relativo' | 'absoluto'
 }
 
 export interface DashboardStats {
@@ -214,10 +215,9 @@ export interface DashboardStats {
     egresosMes: number
     utilidadMes: number
     porCobrar: number
-    insumosBajosCount: number
   }
   presupuestosRecientes: Presupuesto[]
-  insumosBajos: Pick<Insumo, 'id' | 'nombre' | 'codigo' | 'stock' | 'stockMinimo' | 'unidad'>[]
+  proximosEntregar: Presupuesto[]
   statsPorEstado: Array<{
     estado: string
     _count: { id: number }

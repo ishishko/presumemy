@@ -44,7 +44,7 @@ const statusTones: Record<string, { tone: string; label: string }> = {
 const TRANSITIONS: Record<string, string[]> = {
   borrador: ['en_curso', 'cancelado'],
   en_curso: ['cerrado', 'cancelado'],
-  cerrado: ['facturado'],
+  cerrado: ['facturado', 'en_curso'],
   facturado: [],
   cancelado: [],
   enviado: ['en_curso', 'cancelado'], // Legacy fallback
@@ -64,9 +64,30 @@ function closeDropdown() {
   dropdownOpen.value = false
 }
 
+const showConfirmReopen = ref(false)
+
 function handleStatusChange(newStatus: string) {
+  if (props.presupuesto?.estado === 'cerrado' && newStatus === 'en_curso') {
+    showConfirmReopen.value = true
+    return
+  }
   estado.value = newStatus
   toast(`Estado cambiado localmente a ${statusTones[newStatus]?.label || newStatus}. Guardá para persistir.`, 'info')
+}
+
+async function confirmReopen() {
+  showConfirmReopen.value = false
+  if (!props.presupuesto) return
+  try {
+    const updated = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: 'en_curso' })
+    estado.value = updated.estado
+    originalFormSnapshot.value = getFormSnapshot()
+    emit('saved', updated)
+    await loadPresupuesto()
+    toast('Presupuesto reabierto. Ahora podés editar los campos.')
+  } catch (e: any) {
+    toast(e.message || 'Error al reabrir el presupuesto', 'error')
+  }
 }
 
 const clientes = ref<Cliente[]>([])
@@ -1048,6 +1069,16 @@ defineExpose({ loadPresupuesto })
     variant="danger"
     @confirm="showConfirmExit = false; closeEditor()"
     @cancel="showConfirmExit = false"
+  />
+
+  <ConfirmDialog
+    :open="showConfirmReopen"
+    title="Reabrir presupuesto"
+    message="Este presupuesto ya está cerrado. Al reabrirlo, volverá al estado 'En curso' para que puedas modificar sus datos y se borrará la fecha de finalización. ¿Deseas continuar?"
+    confirm-label="Reabrir"
+    variant="default"
+    @confirm="confirmReopen"
+    @cancel="showConfirmReopen = false"
   />
 </template>
 

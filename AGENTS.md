@@ -18,6 +18,7 @@
 ```bash
 cd api
 npm run dev          # tsx watch src/index.ts
+npx tsx src/index.ts # RECOMENDADO PARA AGENTES (evita colisiones y bloqueos de TTY de watch)
 npm run db:migrate   # prisma migrate dev
 npm run db:studio    # prisma studio
 npm run db:seed      # prisma db seed
