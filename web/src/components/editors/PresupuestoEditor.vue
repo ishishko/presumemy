@@ -8,7 +8,6 @@ import type { Presupuesto, Cliente, Producto, PaginationResult, ConfiguracionNeg
 import { presupuestoSchema } from '@/schemas/presupuestos'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import FloatingField from '@/components/ui/FloatingField.vue'
-import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import PresupuestoDoc from '@/components/presupuestos/PresupuestoDoc.vue'
 
 const props = defineProps<{
@@ -844,12 +843,17 @@ defineExpose({ loadPresupuesto })
                     <h4>Entrega</h4>
                     <span id="ed-envio-label" class="form-subhead">Método de envío</span>
                   </div>
-                  <SegmentedControl
-                    v-model="tipoEntrega"
-                    :options="[{ value: 'retira', label: 'Retira' }, { value: 'envio', label: 'Envío' }]"
-                    :disabled="!isEditable"
-                    aria-labelledby="ed-envio-label"
-                  />
+                  <div class="segmented" style="margin-top: 4px;">
+                    <input
+                      type="checkbox"
+                      id="cb-envio-tipo"
+                      class="tgl tgl-flip"
+                      :checked="tipoEntrega === 'envio'"
+                      @change="tipoEntrega = ($event.target as HTMLInputElement).checked ? 'envio' : 'retira'"
+                      :disabled="!isEditable"
+                    />
+                    <label for="cb-envio-tipo" data-tg-on="Envío" data-tg-off="Retira" class="tgl-btn" style="margin: 0;"></label>
+                  </div>
                 </div>
                 <div v-if="tipoEntrega === 'envio'" class="field">
                   <FloatingField
@@ -1227,6 +1231,7 @@ defineExpose({ loadPresupuesto })
 }
 .form-row-envio .segmented {
   width: auto;
+  align-self: center;
 }
 .envio-head {
   display: flex;
@@ -1248,36 +1253,6 @@ defineExpose({ loadPresupuesto })
 
 .date-input { padding-left: 36px; }
 
-.segmented {
-  display: inline-flex;
-  padding: 3px;
-  background: var(--page-bg);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  height: 40px;
-  width: 100%;
-}
-
-.seg-btn {
-  flex: 1;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  padding: 0 18px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-muted);
-  border-radius: 999px;
-  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
-}
-
-.seg-btn:hover { color: var(--ink); }
-.seg-btn.active {
-  background: var(--surface);
-  color: var(--violet-700);
-  box-shadow: var(--shadow-1);
-}
 
 .money-wrap { position: relative; }
 .money-prefix {

@@ -694,22 +694,18 @@ defineExpose({ loadProducto })
                   </div>
 
                   <div class="pd-field">
-                    <label class="pd-label-group">Medidas</label>
-                    <div class="medidas-toggle-group">
-                      <button
-                        type="button"
-                        :class="['medidas-toggle-btn', medidasTipo === 'plano' && 'active']"
-                        @click="medidasTipo = 'plano'"
-                      >
-                        Plano (2D)
-                      </button>
-                      <button
-                        type="button"
-                        :class="['medidas-toggle-btn', medidasTipo === 'cuerpo' && 'active']"
-                        @click="medidasTipo = 'cuerpo'"
-                      >
-                        Cuerpo (3D)
-                      </button>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                      <label class="pd-label-group" style="margin-bottom: 0;">Medidas</label>
+                      <div class="medidas-toggle-group" style="margin-bottom: 0;">
+                        <input
+                          type="checkbox"
+                          id="cb-medidas-tipo"
+                          class="tgl tgl-flip"
+                          :checked="medidasTipo === 'cuerpo'"
+                          @change="medidasTipo = ($event.target as HTMLInputElement).checked ? 'cuerpo' : 'plano'"
+                        />
+                        <label for="cb-medidas-tipo" data-tg-on="Cuerpo" data-tg-off="Plano" class="tgl-btn" style="margin: 0;"></label>
+                      </div>
                     </div>
                     
                     <div class="medidas-inputs-row">
@@ -1508,33 +1504,6 @@ defineExpose({ loadProducto })
   line-height: 1.4;
 }
 
-.medidas-toggle-group {
-  display: flex;
-  background: var(--page-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 2px;
-  margin-bottom: 8px;
-}
-
-.medidas-toggle-btn {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: var(--r-sm);
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: all 120ms ease;
-}
-
-.medidas-toggle-btn.active {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow-1);
-}
 
 .medidas-inputs-row {
   display: flex;

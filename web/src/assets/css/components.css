@@ -1027,14 +1027,18 @@
   background: transparent;
 }
 
-/* --- Flip Switch para InsumoDetalle (Pack / Simple) --- */
-.checkbox-wrapper-10 {
+/* --- Flip Switch para InsumoDetalle (Pack / Simple), medidas-toggle-group y segmented --- */
+.checkbox-wrapper-10,
+.medidas-toggle-group,
+.segmented {
   display: inline-block;
   vertical-align: middle;
   position: relative;
 }
 
-.checkbox-wrapper-10 .tgl {
+.checkbox-wrapper-10 .tgl,
+.medidas-toggle-group .tgl,
+.segmented .tgl {
   position: absolute;
   top: 0;
   left: 0;
@@ -1048,7 +1052,11 @@
 }
 
 .checkbox-wrapper-10 .tgl:focus + .tgl-btn,
-.checkbox-wrapper-10 .tgl:focus-visible + .tgl-btn {
+.checkbox-wrapper-10 .tgl:focus-visible + .tgl-btn,
+.medidas-toggle-group .tgl:focus + .tgl-btn,
+.medidas-toggle-group .tgl:focus-visible + .tgl-btn,
+.segmented .tgl:focus + .tgl-btn,
+.segmented .tgl:focus-visible + .tgl-btn {
   outline: none;
   box-shadow: var(--focus-ring);
   border-radius: 8px;
@@ -1060,11 +1068,27 @@
 .checkbox-wrapper-10 .tgl *,
 .checkbox-wrapper-10 .tgl *:after,
 .checkbox-wrapper-10 .tgl *:before,
-.checkbox-wrapper-10 .tgl + .tgl-btn {
+.checkbox-wrapper-10 .tgl + .tgl-btn,
+.medidas-toggle-group .tgl,
+.medidas-toggle-group .tgl:after,
+.medidas-toggle-group .tgl:before,
+.medidas-toggle-group .tgl *,
+.medidas-toggle-group .tgl *:after,
+.medidas-toggle-group .tgl *:before,
+.medidas-toggle-group .tgl + .tgl-btn,
+.segmented .tgl,
+.segmented .tgl:after,
+.segmented .tgl:before,
+.segmented .tgl *,
+.segmented .tgl *:after,
+.segmented .tgl *:before,
+.segmented .tgl + .tgl-btn {
   box-sizing: border-box;
 }
 
-.checkbox-wrapper-10 .tgl + .tgl-btn {
+.checkbox-wrapper-10 .tgl + .tgl-btn,
+.medidas-toggle-group .tgl + .tgl-btn,
+.segmented .tgl + .tgl-btn {
   outline: 0;
   display: block;
   width: 90px;
@@ -1075,7 +1099,11 @@
 }
 
 .checkbox-wrapper-10 .tgl + .tgl-btn:after,
-.checkbox-wrapper-10 .tgl + .tgl-btn:before {
+.checkbox-wrapper-10 .tgl + .tgl-btn:before,
+.medidas-toggle-group .tgl + .tgl-btn:after,
+.medidas-toggle-group .tgl + .tgl-btn:before,
+.segmented .tgl + .tgl-btn:after,
+.segmented .tgl + .tgl-btn:before {
   position: relative;
   display: block;
   content: "";
@@ -1083,7 +1111,9 @@
   height: 100%;
 }
 
-.checkbox-wrapper-10 .tgl-flip + .tgl-btn {
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn,
+.medidas-toggle-group .tgl-flip + .tgl-btn,
+.segmented .tgl-flip + .tgl-btn {
   padding: 2px;
   transition: all 0.2s ease;
   font-family: var(--font-sans);
@@ -1091,7 +1121,11 @@
 }
 
 .checkbox-wrapper-10 .tgl-flip + .tgl-btn:after,
-.checkbox-wrapper-10 .tgl-flip + .tgl-btn:before {
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:before,
+.medidas-toggle-group .tgl-flip + .tgl-btn:after,
+.medidas-toggle-group .tgl-flip + .tgl-btn:before,
+.segmented .tgl-flip + .tgl-btn:after,
+.segmented .tgl-flip + .tgl-btn:before {
   display: inline-block;
   transition: all 0.4s ease;
   width: 100%;
@@ -1109,32 +1143,44 @@
   border-radius: 6px;
 }
 
-.checkbox-wrapper-10 .tgl-flip + .tgl-btn:after {
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:after,
+.medidas-toggle-group .tgl-flip + .tgl-btn:after,
+.segmented .tgl-flip + .tgl-btn:after {
   content: attr(data-tg-on);
   background: var(--teal-500);
   transform: rotateY(-180deg);
 }
 
-.checkbox-wrapper-10 .tgl-flip + .tgl-btn:before {
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:before,
+.medidas-toggle-group .tgl-flip + .tgl-btn:before,
+.segmented .tgl-flip + .tgl-btn:before {
   background: var(--violet-700);
   content: attr(data-tg-off);
 }
 
-.checkbox-wrapper-10 .tgl-flip + .tgl-btn:active:before {
+.checkbox-wrapper-10 .tgl-flip + .tgl-btn:active:before,
+.medidas-toggle-group .tgl-flip + .tgl-btn:active:before,
+.segmented .tgl-flip + .tgl-btn:active:before {
   transform: rotateY(-20deg);
 }
 
-.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:before {
+.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:before,
+.medidas-toggle-group .tgl-flip:checked + .tgl-btn:before,
+.segmented .tgl-flip:checked + .tgl-btn:before {
   transform: rotateY(180deg);
 }
 
-.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:after {
+.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:after,
+.medidas-toggle-group .tgl-flip:checked + .tgl-btn:after,
+.segmented .tgl-flip:checked + .tgl-btn:after {
   transform: rotateY(0);
   left: 0;
   background: var(--teal-500);
 }
 
-.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:active:after {
+.checkbox-wrapper-10 .tgl-flip:checked + .tgl-btn:active:after,
+.medidas-toggle-group .tgl-flip:checked + .tgl-btn:active:after,
+.segmented .tgl-flip:checked + .tgl-btn:active:after {
   transform: rotateY(20deg);
 }
 
@@ -1535,52 +1581,7 @@ button {
   font-family: var(--font-sans);
 }
 
-/* --- Segmented toggle (Retira / Envío) --- */
-.segmented {
-  display: inline-flex;
-  padding: 3px;
-  background: var(--page-bg);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  height: 40px;
-  width: 100%;
-}
 
-.seg-btn {
-  flex: 1;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  padding: 0 18px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-muted);
-  border-radius: 999px;
-  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
-}
-
-.seg-btn:hover {
-  color: var(--ink);
-}
-
-.seg-btn.active {
-  background: var(--violet-700);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: var(--shadow-2);
-}
-
-.seg-btn.active:hover {
-  color: #fff;
-}
-
-/* foco nítido: outline teal inset (visible sobre la pill violeta y sobre el track) */
-.seg-btn:focus-visible {
-  outline: 2px solid var(--teal-500);
-  outline-offset: -2px;
-  box-shadow: none;
-}
 
 /* --- Money input --- */
 .money-wrap {

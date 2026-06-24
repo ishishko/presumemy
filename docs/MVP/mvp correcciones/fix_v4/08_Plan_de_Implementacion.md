@@ -140,7 +140,7 @@ Estrategia: **client-side sobre datos ya filtrados en memoria** (los filtros/ord
 
 #### [MODIFY] [ProductoDetalle.vue](file:///d:/Desarrollando/presumemy/web/src/components/overlays/ProductoDetalle.vue)
 * **Edición (UX/accesibilidad excelentes):**
-  * Control segmentado accesible **"Plano (2D) / Cuerpo (3D)"** (`role="radiogroup"`, navegable por teclado).
+  * Interruptor flip switch accesible **"Plano / Cuerpo"** usando la clase `.medidas-toggle-group` ajustada a las reglas de estilo de `.checkbox-wrapper-10`.
   * Inputs numéricos para Base, Altura y —solo en cuerpo— Profundidad: `<label>` real asociado, `inputmode="decimal"`, sufijo de unidad (`cm`), focus ring teal del DS, validación de positivos.
   * Al cambiar de plano a cuerpo se revela Profundidad; al volver a plano se preserva/limpia coherentemente.
 * **Display:** render "30 × 20 cm" (plano) o "30 × 20 × 15 cm" (cuerpo) con ícono dimensional Lucide, respetando `tabular-nums`.
@@ -155,6 +155,16 @@ Estrategia: **client-side sobre datos ya filtrados en memoria** (los filtros/ord
 
 #### [MODIFY] [AjustesView.vue](file:///d:/Desarrollando/presumemy/web/src/views/AjustesView.vue)
 * Ajustar los campos del formulario de domicilio para que coincidan exactamente con el set canónico de claves del Zod, eliminando el desajuste `ciudad`/`localidad`.
+
+---
+
+### P10 — Reemplazo de SegmentedControl por Flip Switch en Entrega de Presupuestos
+
+#### [MODIFY] [PresupuestoEditor.vue](file:///d:/Desarrollando/presumemy/web/src/components/editors/PresupuestoEditor.vue)
+* Reemplazar el `SegmentedControl` (Retira/Envío) por un flip switch con la clase `.segmented` alineada al centro (`align-self: center`) de forma vertical para optimizar el espacio horizontal del campo contiguo `ed-lugar-envio`.
+
+#### [MODIFY] [components.css](file:///d:/Desarrollando/presumemy/web/src/assets/css/components.css)
+* Unificar la clase `.segmented` agregándola a todos los selectores de `.checkbox-wrapper-10` y `.medidas-toggle-group` globales para compatibilidad total de diseño y comportamiento, removiendo las clases de segmented antiguas.
 
 ---
 
