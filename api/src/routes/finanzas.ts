@@ -10,6 +10,7 @@ import {
   ordenImprentaUpdateSchema,
   distribucionSchema,
   paginationSchema,
+  esEgreso,
 } from '../types/finanzas.js'
 
 const route = new Hono()
@@ -81,7 +82,7 @@ route.post('/', zValidator('json', transaccionSchema), async (c) => {
     data: {
       tipo: data.tipo,
       cuenta: data.cuenta,
-      monto: data.monto,
+      monto: Math.abs(data.monto),
       fecha: new Date(data.fecha),
       referencia: data.referencia || null,
       detalle: data.detalle || null,
@@ -113,9 +114,14 @@ route.put('/:id', zValidator('json', transaccionUpdateSchema), async (c) => {
     throw notFound('Transaccion no encontrada')
   }
 
+  const updateData = { ...data }
+  if (updateData.monto !== undefined) {
+    updateData.monto = Math.abs(updateData.monto)
+  }
+
   const transaccion = await prisma.transaccion.update({
     where: { id },
-    data,
+    data: updateData,
     include: {
       presupuesto: {
         select: { id: true, folio: true },
@@ -324,22 +330,12 @@ async function getKpisForPeriod(mes?: number | null, anio?: number | null) {
     select: { tipo: true, monto: true },
   })
 
-  const tiposIngreso = [
-    'venta_producto', 'venta_presupuesto', 'cobro_cliente',
-    'deposito', 'ajuste_positivo',
-  ]
-
-  const tiposEgreso = [
-    'compra_insumo', 'pago_servicio', 'pago_imprenta',
-    'pago_alquiler', 'pago_sueldo', 'retiro_socio', 'ajuste_negativo',
-  ]
-
   const ingresos = transacciones
-    .filter((t) => tiposIngreso.includes(t.tipo))
+    .filter((t) => !esEgreso(t.tipo))
     .reduce((sum, t) => sum + Number(t.monto), 0)
 
   const egresos = transacciones
-    .filter((t) => tiposEgreso.includes(t.tipo))
+    .filter((t) => esEgreso(t.tipo))
     .reduce((sum, t) => sum + Number(t.monto), 0)
 
   return {

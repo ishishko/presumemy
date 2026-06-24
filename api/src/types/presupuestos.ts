@@ -28,7 +28,7 @@ export const estadoChangeSchema = z.object({
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(1000).default(20),
   estado: z.enum(['borrador', 'enviado', 'en_curso', 'cerrado', 'facturado', 'cancelado', 'todos']).default('todos'),
   clienteId: z.coerce.number().int().positive().optional(),
 })

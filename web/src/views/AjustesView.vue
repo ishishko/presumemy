@@ -44,7 +44,10 @@ function updateConfig(field: string, value: any) {
 }
 
 function updateDomicilio(field: string, value: string) {
-  if (config.value?.domicilio) {
+  if (config.value) {
+    if (!config.value.domicilio) {
+      config.value.domicilio = {}
+    }
     (config.value.domicilio as any)[field] = value
     configDirty.value = true
   }
@@ -166,7 +169,7 @@ onMounted(async () => {
                   <FloatingField id="aj-numero" label="Número" :model-value="domicilio?.numero || ''" @update:model-value="updateDomicilio('numero', String($event))" />
                 </div>
                 <div class="aj-field">
-                  <FloatingField id="aj-ciudad" label="Ciudad" :model-value="domicilio?.ciudad || ''" @update:model-value="updateDomicilio('ciudad', String($event))" />
+                  <FloatingField id="aj-localidad" label="Localidad" :model-value="domicilio?.localidad || ''" @update:model-value="updateDomicilio('localidad', String($event))" />
                 </div>
                 <div class="aj-field">
                   <FloatingField id="aj-provincia" label="Provincia" :model-value="domicilio?.provincia || ''" @update:model-value="updateDomicilio('provincia', String($event))" />

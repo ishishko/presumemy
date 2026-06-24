@@ -15,10 +15,11 @@ const api = ofetch.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
-export function get<T>(url: string, query?: Record<string, any>) {
+export function get<T>(url: string, query?: Record<string, any>, options?: any) {
   return api<T>(url, {
     query,
     headers: createHeaders(),
+    ...options,
   })
 }
 

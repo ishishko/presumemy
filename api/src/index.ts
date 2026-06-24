@@ -16,6 +16,7 @@ import finanzasRoutes from './routes/finanzas.js'
 import dashboardRoutes from './routes/dashboard.js'
 import ajustesRoutes from './routes/ajustes.js'
 import publicRoutes from './routes/public.js'
+import searchRoutes from './routes/search.js'
 import { verifySupabaseToken, authMiddleware } from './middleware/auth.js'
 
 // Asegurar que la carpeta de subidas existe localmente
@@ -119,6 +120,7 @@ app.route('/api/presupuestos', presupuestosRoutes)
 app.route('/api/finanzas', finanzasRoutes)
 app.route('/api/dashboard', dashboardRoutes)
 app.route('/api/ajustes', ajustesRoutes)
+app.route('/api/search', searchRoutes)
 app.route('/api/public', publicRoutes) // sin auth: acceso por token aleatorio
 
 // 404 handler

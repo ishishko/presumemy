@@ -18,13 +18,28 @@ export const productoSchema = z.object({
     cantidad: z.coerce.number().min(0),
     costoUnitario: z.coerce.number().min(0),
   })).optional(),
+  medidas: z.object({
+    tipo: z.enum(['plano', 'cuerpo']),
+    base: z.coerce.number().positive('La base debe ser mayor a 0'),
+    altura: z.coerce.number().positive('La altura debe ser mayor a 0'),
+    profundidad: z.coerce.number().positive('La profundidad debe ser mayor a 0').optional().nullable(),
+    unidad: z.string().default('cm'),
+  }).optional().nullable().superRefine((data, ctx) => {
+    if (data && data.tipo === 'cuerpo' && (data.profundidad === undefined || data.profundidad === null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'La profundidad es requerida para objetos 3D (cuerpo)',
+        path: ['profundidad']
+      })
+    }
+  }),
 })
 
 export const productoUpdateSchema = productoSchema.partial()
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(1000).default(20),
   categoriaId: z.coerce.number().int().positive().optional(),
 })
 

@@ -55,8 +55,17 @@ const cuentas = [
   { id: 'billetera', label: 'Billetera' },
 ]
 
+const TIPOS_EGRESO = [
+  'compra_insumo', 'pago_servicio', 'pago_imprenta',
+  'pago_alquiler', 'pago_sueldo', 'retiro_socio', 'ajuste_negativo'
+]
+
+function esEgreso(t: string): boolean {
+  return TIPOS_EGRESO.includes(t)
+}
+
 const tipoMeta = computed(() => tipoMovs.find(t => t.id === tipo.value))
-const monto = computed(() => (signo.value === 'in' ? 1 : -1) * (parseFloat(String(valor.value)) || 0))
+const monto = computed(() => parseFloat(String(valor.value)) || 0)
 
 const moneyAbs = computed(() => {
   return `$ ${(parseFloat(String(valor.value)) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -72,8 +81,8 @@ const dirty = computed(() => {
       fecha.value !== t.fecha.slice(0, 10) ||
       tipo.value !== t.tipo ||
       cuenta.value !== t.cuenta ||
-      signo.value !== (Number(t.monto) >= 0 ? 'in' : 'out') ||
-      Number(valor.value) !== Math.abs(Number(t.monto)) ||
+      signo.value !== (esEgreso(t.tipo) ? 'out' : 'in') ||
+      Number(valor.value) !== Number(t.monto) ||
       detalle.value !== (t.detalle || '') ||
       nroFactura.value !== (t.nroFactura || '') ||
       presupuestoId.value !== (t.presupuestoId ? String(t.presupuestoId) : '')
@@ -118,8 +127,8 @@ function loadTransaccion() {
     fecha.value = t.fecha.slice(0, 10)
     tipo.value = t.tipo
     cuenta.value = t.cuenta
-    signo.value = Number(t.monto) >= 0 ? 'in' : 'out'
-    valor.value = Math.abs(Number(t.monto))
+    signo.value = esEgreso(t.tipo) ? 'out' : 'in'
+    valor.value = Number(t.monto)
     detalle.value = t.detalle || ''
     nroFactura.value = t.nroFactura || ''
     presupuestoId.value = t.presupuestoId ? String(t.presupuestoId) : ''
@@ -164,8 +173,7 @@ async function handleSave() {
 }
 
 watch(() => tipo.value, (val) => {
-  const meta = tipoMovs.find(t => t.id === val)
-  if (meta) signo.value = meta.sign > 0 ? 'in' : 'out'
+  signo.value = esEgreso(val) ? 'out' : 'in'
 })
 
 watch(() => props.open, (open) => {

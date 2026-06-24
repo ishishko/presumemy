@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Pencil, Trash2, Star } from '@lucide/vue'
 import { del, patch } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
@@ -15,6 +16,7 @@ const emit = defineEmits<{
   'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
 }>()
 
+const route = useRoute()
 const store = useProductosStore()
 const { toast } = useToast()
 
@@ -178,6 +180,19 @@ async function handleDeleteCatConfirm(reasignarA?: number) {
 }
 
 onMounted(loadProductos)
+
+watch(
+  [() => route.query.edit, () => store.hasFetched],
+  ([editVal, hasFetched]) => {
+    if (editVal && hasFetched) {
+      const p = store.data.find(item => item.codigo === editVal || String(item.id) === editVal)
+      if (p) {
+        handleEdit(p)
+      }
+    }
+  },
+  { immediate: true }
+)
 
 watch(createTrigger, (val) => {
   if (val === 'productos') {

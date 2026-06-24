@@ -109,6 +109,7 @@ model Producto {
   ganancia      Decimal             @db.Decimal(10, 2) @default(0)
   precio        Decimal             @db.Decimal(10, 2) @default(0)
   activo        Boolean             @default(true)
+  medidas       Json?               @map("medidas")
 
   bomLineas     CostoProductoInsumo[]
   detalles      DetallePresupuesto[]

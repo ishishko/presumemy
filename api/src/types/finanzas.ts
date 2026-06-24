@@ -48,7 +48,7 @@ export const distribucionSchema = z.object({
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(1000).default(20),
   tipo: z.string().optional(),
   cuenta: z.string().optional(),
   mes: z.coerce.number().int().min(1).max(12).optional(),
@@ -57,3 +57,13 @@ export const paginationSchema = z.object({
 
 export type TransaccionCreate = z.infer<typeof transaccionSchema>
 export type OrdenImprentaCreate = z.infer<typeof ordenImprentaSchema>
+
+export const TIPOS_EGRESO = [
+  'compra_insumo', 'pago_servicio', 'pago_imprenta',
+  'pago_alquiler', 'pago_sueldo', 'retiro_socio', 'ajuste_negativo'
+] as const;
+
+export const esEgreso = (tipo: string): boolean => {
+  return (TIPOS_EGRESO as readonly string[]).includes(tipo);
+};
+

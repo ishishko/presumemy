@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
-import { ArrowLeft, Check, Trash2, X, Plus, Lock, Image, GripVertical } from '@lucide/vue'
+import { ArrowLeft, Check, Trash2, X, Plus, Lock, Image, GripVertical, Ruler } from '@lucide/vue'
 import { editorDirty } from '@/composables/useEditorMode'
 import { get, post, put, del } from '@/services/api'
 import { useToast } from '@/composables/useToast'
@@ -31,9 +31,32 @@ const insumosList = ref<Insumo[]>([])
 
 const nombre = ref('')
 const categoriaId = ref(0)
-const medida = ref('')
 const descripcion = ref('')
 const activo = ref(true)
+
+const medidasTipo = ref<'plano' | 'cuerpo'>('plano')
+const medidasBase = ref<number | ''>('')
+const medidasAltura = ref<number | ''>('')
+const medidasProfundidad = ref<number | ''>('')
+
+const medidasPayload = computed(() => {
+  if (medidasBase.value === '' || medidasAltura.value === '') {
+    return null
+  }
+  return {
+    tipo: medidasTipo.value,
+    base: Number(medidasBase.value),
+    altura: Number(medidasAltura.value),
+    profundidad: medidasTipo.value === 'cuerpo' && medidasProfundidad.value !== '' ? Number(medidasProfundidad.value) : null,
+    unidad: 'cm',
+  }
+})
+
+const localMedidasFormatted = computed(() => {
+  if (medidasBase.value === '' || medidasAltura.value === '') return ''
+  const suffix = medidasTipo.value === 'cuerpo' && medidasProfundidad.value !== '' ? ` × ${medidasProfundidad.value}` : ''
+  return `${medidasBase.value} × ${medidasAltura.value}${suffix} cm`
+})
 const tieneBom = ref(true)
 const precioManual = ref(false)
 const tipoGanancia = ref<'porcentaje' | 'fijo'>('porcentaje')
@@ -78,7 +101,7 @@ const dirty = computed(() => {
   return (
     nombre.value !== p.nombre ||
     categoriaId.value !== p.categoriaId ||
-    medida.value !== (p.descripcion || '') ||
+    JSON.stringify(p.medidas || null) !== JSON.stringify(medidasPayload.value) ||
     descripcion.value !== (p.descripcion || '') ||
     activo.value !== p.activo ||
     precioManual.value !== p.precioManual ||
@@ -108,7 +131,6 @@ function money(n: number): string {
 function reset() {
   nombre.value = ''
   categoriaId.value = 0
-  medida.value = ''
   descripcion.value = ''
   activo.value = true
   tieneBom.value = true
@@ -118,6 +140,10 @@ function reset() {
   precio.value = 0
   imagenes.value = ['', '', '']
   bomLineas.value = []
+  medidasTipo.value = 'plano'
+  medidasBase.value = ''
+  medidasAltura.value = ''
+  medidasProfundidad.value = ''
 }
 
 function syncBomLineasCosts() {
@@ -142,7 +168,6 @@ function loadProducto() {
     const p = props.producto
     nombre.value = p.nombre
     categoriaId.value = p.categoriaId
-    medida.value = ''
     descripcion.value = p.descripcion || ''
     activo.value = p.activo
     tieneBom.value = true
@@ -161,6 +186,17 @@ function loadProducto() {
       costoUnitario: b.costoUnitario,
     }))
     syncBomLineasCosts()
+    if (p.medidas) {
+      medidasTipo.value = p.medidas.tipo
+      medidasBase.value = p.medidas.base
+      medidasAltura.value = p.medidas.altura
+      medidasProfundidad.value = p.medidas.profundidad ?? ''
+    } else {
+      medidasTipo.value = 'plano'
+      medidasBase.value = ''
+      medidasAltura.value = ''
+      medidasProfundidad.value = ''
+    }
   }
   if (tieneBom.value && bomLineas.value.length === 0) {
     addBomLinea()
@@ -201,6 +237,21 @@ async function handleSave() {
     return
   }
 
+  if (medidasBase.value !== '' || medidasAltura.value !== '' || (medidasTipo.value === 'cuerpo' && medidasProfundidad.value !== '')) {
+    if (medidasBase.value === '' || Number(medidasBase.value) <= 0) {
+      toast('La base debe ser mayor a 0 y ser numérica', 'error')
+      return
+    }
+    if (medidasAltura.value === '' || Number(medidasAltura.value) <= 0) {
+      toast('La altura debe ser mayor a 0 y ser numérica', 'error')
+      return
+    }
+    if (medidasTipo.value === 'cuerpo' && (medidasProfundidad.value === '' || Number(medidasProfundidad.value) <= 0)) {
+      toast('La profundidad es requerida para objetos 3D (cuerpo) y debe ser mayor a 0', 'error')
+      return
+    }
+  }
+
   const cleanedImagenes = imagenes.value.filter(img => img.trim() !== '')
 
   const payload: any = {
@@ -213,6 +264,7 @@ async function handleSave() {
     tipoGanancia: tipoGanancia.value,
     ganancia: parseFloat(String(ganancia.value)) || 0,
     precio: parseFloat(String(precio.value)) || 0,
+    medidas: medidasPayload.value,
   }
 
   if (tieneBom.value) {
@@ -554,7 +606,10 @@ defineExpose({ loadProducto })
                       @keydown.enter.prevent="focusCategory"
                     />
                   </div>
-                  <div v-if="isEdit" style="padding-bottom: 8px;">
+                  <div v-if="isEdit" style="padding-bottom: 8px; display: flex; gap: 6px; align-items: center;">
+                    <span v-if="localMedidasFormatted" class="pd-code-badge" title="Medidas" style="flex-shrink: 0; background: var(--violet-50); color: var(--violet-700)">
+                      <Ruler :size="10" /> {{ localMedidasFormatted }}
+                    </span>
                     <span class="pd-code-badge" title="Código autogenerado" style="flex-shrink: 0;">
                       <Lock :size="10" /> {{ producto!.codigo }}
                     </span>
@@ -639,7 +694,59 @@ defineExpose({ loadProducto })
                   </div>
 
                   <div class="pd-field">
-                    <FloatingField id="pd-medida" label="Medida" v-model="medida" placeholder="Ej. 15×15 cm" />
+                    <label class="pd-label-group">Medidas</label>
+                    <div class="medidas-toggle-group">
+                      <button
+                        type="button"
+                        :class="['medidas-toggle-btn', medidasTipo === 'plano' && 'active']"
+                        @click="medidasTipo = 'plano'"
+                      >
+                        Plano (2D)
+                      </button>
+                      <button
+                        type="button"
+                        :class="['medidas-toggle-btn', medidasTipo === 'cuerpo' && 'active']"
+                        @click="medidasTipo = 'cuerpo'"
+                      >
+                        Cuerpo (3D)
+                      </button>
+                    </div>
+                    
+                    <div class="medidas-inputs-row">
+                      <div class="medida-input-col">
+                        <FloatingField
+                          id="pd-base"
+                          label="Base (cm)"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          v-model.number="medidasBase"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div class="medida-input-col">
+                        <FloatingField
+                          id="pd-altura"
+                          label="Altura (cm)"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          v-model.number="medidasAltura"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div v-if="medidasTipo === 'cuerpo'" class="medida-input-col">
+                        <FloatingField
+                          id="pd-profundidad"
+                          label="Profundidad (cm)"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          v-model.number="medidasProfundidad"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div class="pd-field">
@@ -1399,5 +1506,53 @@ defineExpose({ loadProducto })
   border-radius: 8px;
   margin-top: 10px;
   line-height: 1.4;
+}
+
+.medidas-toggle-group {
+  display: flex;
+  background: var(--page-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 2px;
+  margin-bottom: 8px;
+}
+
+.medidas-toggle-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--r-sm);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.medidas-toggle-btn.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+
+.medidas-inputs-row {
+  display: flex;
+  gap: 8px;
+}
+
+.medida-input-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-label-group {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  font-weight: 500;
+  margin-bottom: 6px;
 }
 </style>

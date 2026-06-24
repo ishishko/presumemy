@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Pencil, Trash2 } from '@lucide/vue'
 import { del } from '@/services/api'
 import { createTrigger } from '@/composables/useCreateTrigger'
@@ -9,6 +10,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import type { Cliente, ClienteContacto } from '@/types'
 
+const route = useRoute()
 const store = useClientesStore()
 const { toast } = useToast()
 
@@ -20,10 +22,10 @@ const deletingCliente = ref<Cliente | null>(null)
 const showLoading = computed(() => !store.hasFetched)
 
 const canalColors: Record<string, string> = {
-  instagram: '#D7548C',
-  whatsapp: '#1F8A5B',
-  mail: '#2E6F70',
-  otros: '#6B6270',
+  instagram: 'var(--canal-instagram)',
+  whatsapp: 'var(--canal-whatsapp)',
+  mail: 'var(--canal-mail)',
+  otros: 'var(--canal-otros)',
 }
 
 const canalLabels: Record<string, string> = {
@@ -35,9 +37,9 @@ const canalLabels: Record<string, string> = {
 
 const avatarPalette = [
   { bg: 'var(--lavender)', ink: 'var(--violet-700)' },
-  { bg: 'var(--teal-100)', ink: '#2E6F70' },
-  { bg: 'var(--pink-soft)', ink: '#8B2570' },
-  { bg: 'var(--mint)', ink: '#1F5A3E' },
+  { bg: 'var(--teal-100)', ink: 'var(--canal-mail)' },
+  { bg: 'var(--pink-soft)', ink: 'var(--violet-700)' },
+  { bg: 'var(--mint)', ink: 'var(--green-700)' },
   { bg: 'var(--violet-100)', ink: 'var(--violet-700)' },
 ]
 
@@ -102,6 +104,19 @@ async function handleDeleteConfirm() {
 }
 
 onMounted(loadClientes)
+
+watch(
+  [() => route.query.edit, () => store.hasFetched],
+  ([editVal, hasFetched]) => {
+    if (editVal && hasFetched) {
+      const c = store.data.find(item => item.codigo === editVal || String(item.id) === editVal)
+      if (c) {
+        handleEdit(c)
+      }
+    }
+  },
+  { immediate: true }
+)
 
 watch(createTrigger, (val) => {
   if (val === 'clientes') {

@@ -12,7 +12,7 @@ export const usePresupuestosStore = defineStore('presupuestos', () => {
   async function fetch() {
     loading.value = !hasFetched.value
     try {
-      const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 100 })
+      const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 1000 })
       data.value = res.data
       hasFetched.value = true
       lastFetched.value = Date.now()

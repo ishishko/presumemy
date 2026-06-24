@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma.js'
+import { Prisma } from '@prisma/client'
 import { authMiddleware } from '../middleware/auth.js'
 import { notFound, badRequest, conflict } from '../utils/errors.js'
 import { productoSchema, productoUpdateSchema, paginationSchema, categoriaSchema, categoriaDeleteSchema } from '../types/productos.js'
@@ -321,6 +322,7 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
       tipoGanancia: data.tipoGanancia,
       ganancia: data.ganancia,
       precio: calculatedPrecio,
+      medidas: data.medidas === null ? Prisma.JsonNull : data.medidas,
       bomLineas: data.bomLineas ? {
         create: data.bomLineas.map((linea) => ({
           tipoLinea: linea.tipoLinea,
@@ -374,6 +376,7 @@ route.put('/:id', zValidator('json', productoUpdateSchema), async (c) => {
       ...productoData,
       tieneBom: true, // Force to true since BOM is always active
       precio: calculatedPrecio,
+      medidas: data.medidas === undefined ? undefined : (data.medidas === null ? Prisma.JsonNull : data.medidas),
       bomLineas: bomLineas ? {
         deleteMany: {},
         create: bomLineas.map((linea) => ({

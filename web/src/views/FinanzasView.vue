@@ -8,6 +8,8 @@ import MovimientoDrawer from '@/components/drawers/MovimientoDrawer.vue'
 import ImprentaDrawer from '@/components/drawers/ImprentaDrawer.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/ui/Pagination.vue'
 import type { Transaccion, OrdenImprenta } from '@/types'
 
 const store = useFinanzasStore()
@@ -25,19 +27,28 @@ const deleteTarget = ref<{ type: 'mov' | 'imprenta'; item: Transaccion | OrdenIm
 
 const showLoading = computed(() => !store.hasFetched)
 
+const TIPOS_EGRESO = [
+  'compra_insumo', 'pago_servicio', 'pago_imprenta',
+  'pago_alquiler', 'pago_sueldo', 'retiro_socio', 'ajuste_negativo'
+]
+
+function esEgreso(t: string): boolean {
+  return TIPOS_EGRESO.includes(t)
+}
+
 const tipoMovs = [
-  { id: 'venta_producto', label: 'Venta producto', color: '#2E6F70' },
-  { id: 'venta_presupuesto', label: 'Venta presupuesto', color: '#2E6F70' },
-  { id: 'cobro_cliente', label: 'Cobro cliente', color: '#2E6F70' },
-  { id: 'compra_insumo', label: 'Compra insumo', color: '#EA5F3C' },
-  { id: 'pago_servicio', label: 'Pago servicio', color: '#EA5F3C' },
-  { id: 'pago_imprenta', label: 'Pago imprenta', color: '#EA5F3C' },
-  { id: 'pago_alquiler', label: 'Pago alquiler', color: '#EA5F3C' },
-  { id: 'pago_sueldo', label: 'Pago sueldo', color: '#EA5F3C' },
-  { id: 'retiro_socio', label: 'Retiro socio', color: '#EA5F3C' },
-  { id: 'deposito', label: 'Deposito', color: '#2E6F70' },
-  { id: 'ajuste_positivo', label: 'Ajuste positivo', color: '#2E6F70' },
-  { id: 'ajuste_negativo', label: 'Ajuste negativo', color: '#EA5F3C' },
+  { id: 'venta_producto', label: 'Venta producto', color: 'var(--teal-ink)' },
+  { id: 'venta_presupuesto', label: 'Venta presupuesto', color: 'var(--teal-ink)' },
+  { id: 'cobro_cliente', label: 'Cobro cliente', color: 'var(--teal-ink)' },
+  { id: 'compra_insumo', label: 'Compra insumo', color: 'var(--coral-500)' },
+  { id: 'pago_servicio', label: 'Pago servicio', color: 'var(--coral-500)' },
+  { id: 'pago_imprenta', label: 'Pago imprenta', color: 'var(--coral-500)' },
+  { id: 'pago_alquiler', label: 'Pago alquiler', color: 'var(--coral-500)' },
+  { id: 'pago_sueldo', label: 'Pago sueldo', color: 'var(--coral-500)' },
+  { id: 'retiro_socio', label: 'Retiro socio', color: 'var(--coral-500)' },
+  { id: 'deposito', label: 'Deposito', color: 'var(--teal-ink)' },
+  { id: 'ajuste_positivo', label: 'Ajuste positivo', color: 'var(--teal-ink)' },
+  { id: 'ajuste_negativo', label: 'Ajuste negativo', color: 'var(--coral-500)' },
 ]
 
 const cuentas = [
@@ -51,8 +62,8 @@ function money(v: number): string {
   return `$ ${v.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function signedMoney(v: number): string {
-  return (v >= 0 ? '+ ' : '− ') + money(Math.abs(v))
+function signedMoney(v: number, tipo: string): string {
+  return (esEgreso(tipo) ? '− ' : '+ ') + money(Math.abs(v))
 }
 
 function formatDate(d: string): string {
@@ -66,6 +77,18 @@ const filteredMovs = computed(() => {
     return true
   })
 })
+
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  paginatedItems,
+  startIndex,
+  endIndex,
+  prevPage,
+  nextPage,
+} = usePagination(filteredMovs, 10)
 
 async function loadData() {
   try {
@@ -99,10 +122,12 @@ function handleEditOrden(o: OrdenImprenta) {
 
 function handleSavedMov(transaccion: Transaccion) {
   store.upsertTransaccion(transaccion)
+  store.fetch()
 }
 
 function handleSavedOrden(orden: OrdenImprenta) {
   store.upsertOrden(orden)
+  store.fetch()
 }
 
 function handleDeleteClick(type: 'mov' | 'imprenta', item: Transaccion | OrdenImprenta) {
@@ -113,12 +138,13 @@ function handleDeleteClick(type: 'mov' | 'imprenta', item: Transaccion | OrdenIm
 async function handleDeleteConfirm() {
   if (!deleteTarget.value) return
   const { type, item } = deleteTarget.value
-    const endpoint = type === 'mov' ? '/finanzas' : '/finanzas/ordenes-imprenta'
+  const endpoint = type === 'mov' ? '/finanzas' : '/finanzas/ordenes-imprenta'
   const label = type === 'mov' ? 'Movimiento' : 'Orden'
   try {
     await del(endpoint, item.id)
     if (type === 'mov') store.removeTransaccion(item.id)
     else store.removeOrden(item.id)
+    await store.fetch()
     toast(`${label} eliminado`, 'info')
   } catch (e: any) {
     toast(e.message || 'Error al eliminar', 'error')
@@ -146,7 +172,7 @@ watch(createTrigger, (val) => {
       <div class="card">
         <div class="eyebrow">Ingresos</div>
         <div class="kpi" style="margin-top: 6px">
-          <div class="value" style="color: #2E6F70">{{ money(store.kpis.ingresos) }}</div>
+          <div class="value" style="color: var(--teal-ink)">{{ money(store.kpis.ingresos) }}</div>
         </div>
       </div>
       <div class="card">
@@ -228,13 +254,13 @@ watch(createTrigger, (val) => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="m in filteredMovs" :key="m.id">
+            <tr v-for="m in paginatedItems" :key="m.id">
               <td style="color: var(--ink-muted); font-variant-numeric: tabular-nums">{{ formatDate(m.fecha) }}</td>
               <td>
                 <span
                   class="fin-tipo-badge"
                   :style="{
-                    background: tipoMovs.find(t => t.id === m.tipo)?.color === '#2E6F70' ? 'var(--teal-100)' : 'var(--coral-50)',
+                    background: tipoMovs.find(t => t.id === m.tipo)?.color === 'var(--teal-ink)' ? 'var(--teal-100)' : 'var(--coral-50)',
                     color: tipoMovs.find(t => t.id === m.tipo)?.color || 'var(--ink-muted)'
                   }"
                 >
@@ -247,8 +273,8 @@ watch(createTrigger, (val) => {
               <td style="color: var(--ink-muted); font-family: var(--font-mono); font-size: 12px">
                 {{ m.nroFactura || '—' }}
               </td>
-              <td :class="['num', Number(m.monto) >= 0 ? 'fin-monto-pos' : 'fin-monto-neg']">
-                {{ signedMoney(Number(m.monto)) }}
+              <td :class="['num', esEgreso(m.tipo) ? 'fin-monto-neg' : 'fin-monto-pos']">
+                {{ signedMoney(Number(m.monto), m.tipo) }}
               </td>
               <td>
                 <div class="row-actions">
@@ -268,6 +294,17 @@ watch(createTrigger, (val) => {
             </tr>
           </tbody>
         </table>
+        <Pagination
+          v-if="filteredMovs.length > 0"
+          v-model:currentPage="currentPage"
+          v-model:pageSize="pageSize"
+          :totalPages="totalPages"
+          :totalItems="totalItems"
+          :startIndex="startIndex"
+          :endIndex="endIndex"
+          @prev="prevPage"
+          @next="nextPage"
+        />
       </div>
     </template>
 

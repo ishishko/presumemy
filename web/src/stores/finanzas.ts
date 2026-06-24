@@ -23,10 +23,10 @@ export const useFinanzasStore = defineStore('finanzas', () => {
     try {
       const [transRes, ordRes, distRes] = await Promise.all([
         get<PaginationResult<Transaccion> & { kpis: FinanzasKPIs }>('/finanzas', {
-          page: 1, limit: 100, mes: p.month, anio: p.year,
+          page: 1, limit: 1000, mes: p.month, anio: p.year,
         }),
         get<PaginationResult<OrdenImprenta>>('/finanzas/ordenes-imprenta', {
-          page: 1, limit: 100, mes: p.month, anio: p.year,
+          page: 1, limit: 1000, mes: p.month, anio: p.year,
         }),
         get<{ data: DistribucionGanancia[] }>('/finanzas/distribucion'),
       ])

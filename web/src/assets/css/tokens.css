@@ -6,8 +6,16 @@
 :root {
   /* -------- Brand / semantic colors -------- */
   --violet-700:   #8B2570;   /* headings, sidebar bg, active borders   (text: #fff) */
+  --teal-50:      #ECF8F8;   /* soft tint hover/fill */
   --teal-500:     #75CCCE;   /* primary CTAs, links, interactive       (text: #fff) */
   --coral-500:    #EA5F3C;   /* error / danger only                     (text: #fff) */
+
+  /* -------- Channel colors -------- */
+  --canal-instagram: #D7548C;
+  --canal-whatsapp:  #1F8A5B;
+  --canal-mail:      #2E6F70;
+  --canal-otros:     var(--ink-muted);
+  --teal-ink:        #2E6F70;
 
   /* -------- Neutrals (text + surfaces) -------- */
   --ink:          #1C1A1E;   /* body text, table content, labels */

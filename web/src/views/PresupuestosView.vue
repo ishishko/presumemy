@@ -8,6 +8,8 @@ import { usePresupuestosStore } from '@/stores/presupuestos'
 import PresupuestoEditor from '@/components/editors/PresupuestoEditor.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/ui/Pagination.vue'
 import type { Presupuesto } from '@/types'
 
 const emit = defineEmits<{
@@ -30,6 +32,18 @@ const filtered = computed(() => {
   if (filter.value === 'todos') return store.data
   return store.data.filter((p) => p.estado === filter.value)
 })
+
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  paginatedItems,
+  startIndex,
+  endIndex,
+  prevPage,
+  nextPage,
+} = usePagination(filtered, 10)
 
 function money(v: number): string {
   return `$ ${v.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -240,7 +254,7 @@ watch(createTrigger, (val) => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in filtered" :key="p.id" @dblclick="handleEdit(p)">
+          <tr v-for="p in paginatedItems" :key="p.id" @dblclick="handleEdit(p)">
             <td style="color: var(--ink-muted); font-family: var(--font-mono)">{{ p.folio }}</td>
             <td style="font-weight: 500">{{ p.cliente?.nombre || 'Sin cliente' }}</td>
             <td>
@@ -294,6 +308,17 @@ watch(createTrigger, (val) => {
           </tr>
         </tbody>
       </table>
+      <Pagination
+        v-if="filtered.length > 0"
+        v-model:currentPage="currentPage"
+        v-model:pageSize="pageSize"
+        :totalPages="totalPages"
+        :totalItems="totalItems"
+        :startIndex="startIndex"
+        :endIndex="endIndex"
+        @prev="prevPage"
+        @next="nextPage"
+      />
     </div>
 
     <PresupuestoEditor

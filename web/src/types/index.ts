@@ -63,6 +63,13 @@ export interface Producto {
   precio: number
   activo: boolean
   bomLineas?: CostoProductoInsumo[]
+  medidas?: {
+    tipo: 'plano' | 'cuerpo'
+    base: number
+    altura: number
+    profundidad?: number | null
+    unidad: string
+  } | null
 }
 
 export interface CategoriaProducto {
