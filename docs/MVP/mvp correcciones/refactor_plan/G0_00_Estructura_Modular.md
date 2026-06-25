@@ -17,7 +17,7 @@ Estructura `package-by-layer`: `views/`, `components/{ui,layout,drawers,overlays
 Esqueleto modular por dominio creado y arranque reubicado, listo para que cada Grupo escriba en su destino (Opción A).
 
 ## Plan de acción paso a paso
-1. **Crear carpetas** vacías: `app/`, `app/{shell,state,styles}`, `shared/{ui,lib,api,config}`, `modules/{insumos,productos,clientes,presupuestos,finanzas,ajustes,dashboard,auth}/` (cada módulo con `components/` cuando aplique). **Nota:** no se crea `modules/categorias/`; las categorías viven en sus respectivos módulos de dominio.
+1. **Crear carpetas** vacías: `app/`, `app/{shell,state,styles}`, `shared/{ui,lib,api,config}`, `modules/{insumos,productos,clientes,presupuestos,finanzas,ajustes,dashboard,search,auth}/` (cada módulo con `components/` cuando aplique). **Nota:** no se crea `modules/categorias/`; las categorías viven en sus respectivos módulos de dominio. `search/` es módulo propio (búsqueda global multi-entidad, Epic D — ver G3.14).
 2. **Mover arranque a `app/`:**
    - `src/main.ts` → `app/main.ts` (ajustar `index.html`/entry de Vite si referencia la ruta).
    - `src/App.vue` → `app/App.vue`.
@@ -26,7 +26,9 @@ Esqueleto modular por dominio creado y arranque reubicado, listo para que cada G
 3. **Singletons de orquestación a `app/state/`:** `composables/useEditorMode.ts` → `app/state/editorMode.ts`; `composables/useCreateTrigger.ts` → `app/state/createTrigger.ts`. **Nota:** estos singletons son estado global mutable (event-bus) sin reactividad propia (no usan `ref`/`reactive` de Vue). Se ubican en `app/state` porque son glue de orquestación entre el shell (`app/shell`) y los módulos; no son dominio ni UI reusable. (C15: `app` puede importar de todo; nadie de `modules`/`shared` importa de `app`.)
 4. **Política de barrels (C14):** cada `modules/<x>/index.ts` exporta la API pública del módulo; `shared` se consume por segmento (`@/shared/ui`, `@/shared/lib`, `@/shared/api`).
 5. **Alias:** confirmado que `@`→`./src` ya existe (vite+tsconfig); `@/app`, `@/modules/...`, `@/shared/...` resuelven sin config nueva. Opcional: agregar alias explícitos por claridad de review (no obligatorio).
-6. **No mover todavía** el contenido de dominio (eso ocurre grupo por grupo, Opción A). Este paso solo crea el esqueleto y mueve el arranque.
+6. **Config y tests (no mover):** `vitest.config.ts` se queda en la raíz de `web/`; `src/test/setup.ts` se queda en `src/test/` (el `setupFiles` sigue apuntando a `./src/test/setup.ts`, no cambia). Los tests **co-localizan** con su sujeto al migrarlo (`__tests__/` junto al componente en `shared/ui` o dentro del módulo, ej. `modules/insumos/__tests__/`). El test existente `components/ui/__tests__/ConfirmDialog.test.ts` viaja con `ConfirmDialog` a `shared/ui/__tests__/`.
+7. **Assets:** `assets/hero.png` (hero del login) viaja con `auth` o pasa a `public/`; `vite.svg`/`vue.svg` son scaffolding muerto de Vite → se borran en G7.1. El logo MemyDeni vive en `public/`.
+8. **No mover todavía** el contenido de dominio (eso ocurre grupo por grupo, Opción A). Este paso solo crea el esqueleto y mueve el arranque.
 
 ## Criterios de aceptación
 - `npm run dev` levanta con el entry en `app/main.ts`.

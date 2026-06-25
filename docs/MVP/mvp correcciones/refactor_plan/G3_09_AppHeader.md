@@ -8,7 +8,7 @@
 | **Grupo / orden** | G3 (base + shell) · 9º |
 | **LOC actuales** | 79 |
 | **Tipo** | migrar |
-| **Dependencias** | G0; G3.1 (`BaseButton`) |
+| **Dependencias** | G0; G3.1 (`BaseButton`); G3.14 (`modules/search` si se cablea el input) |
 | **Consumidores** | `app/App.vue` |
 
 ## Estado actual
@@ -22,7 +22,7 @@ Topbar 100% Tailwind, botones via `BaseButton`, sin `:style` inline. Resolver el
 2. **(reuso/G3.1)** Botón crear y los `icon-btn` (guardar/cerrar/campana) → `BaseButton variant="ghost" icon` / `variant="primary" icon`.
 3. **(Tailwind)** Quitar `:style` inline del guardar → usar `:disabled="!editorDirty"` + `disabled:opacity-40 disabled:cursor-not-allowed` (que ya cubre `BaseButton`).
 4. **(C6)** `#editor-header-status` con `:empty { display:none }` → se conserva como `<style scoped>` mínimo (selector `:empty` no existe en Tailwind) o `class="empty:hidden"` si la variante `empty:` está disponible en v4. Verificar; si no, scoped mínimo.
-5. **(decisión abierta)** **Search input:** decidir — (a) cablearlo al search existente (memoria menciona composable de búsqueda con debounce) o (b) dejarlo fuera de alcance y solo migrar estilos. Anotar la decisión aquí al implementar. Por defecto: **solo migrar estilos**, no cambiar funcionalidad en este refactor (YAGNI respecto al objetivo del refactor).
+5. **(decisión abierta)** **Search input:** existe `useGlobalSearch` (Epic D, debounce 300ms + dropdown) que en la arquitectura modular pasa a `modules/search/` (**G3.14**). Decidir — (a) cablear el input a `useGlobalSearch` del barrel `@/modules/search` o (b) solo migrar estilos. Por defecto: **solo migrar estilos**, no cambiar funcionalidad en este refactor (YAGNI). Si ya estaba cableado en código y el inventario lo reportó "sin binding", reconciliar al implementar. **(C15) Import permitido `app → module`:** si se cablea, `AppHeader` importa `{ useGlobalSearch, type SearchResult } from '@/modules/search'` — único caso del shell que importa un módulo; el enforcement (G7.2) lo trata como excepción esperada, no como import lateral.
 
 ## Mapeo Tailwind
 | Antes | Después |

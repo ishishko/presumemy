@@ -30,6 +30,7 @@ Eliminar todo el CSS vanilla y el código muerto, dejando solo `@theme` + `@laye
 5. **(scoped)** Revisar cada `<style scoped>` restante: debe ser solo animación irreductible (wave de `FloatingField`/`FloatingSelect`, transiciones `drawer`/`toast`/`confirm`/`overlay`, `card-appear` login, `aj-grow`, `@page`/`@media print` de la vista pública). Borrar cualquier otro.
 6. **(duplicados)** Confirmar que `money()`/`getNivel`/`nivelMeta`/`statusTones`/`TRANSITIONS`/`formatDate` locales fueron eliminados de todas las vistas (centralizados en `shared/lib`/`modules/<dominio>/`).
 7. **(carpetas legacy)** Borrar carpetas vacías tras la relocalización modular: `views/`, `components/`, `stores/`, `services/`, `composables/`, `utils/`, `schemas/`, `types/` (si quedaron sin contenido). Verificar que no queden archivos huérfanos antes de borrar.
+8. **(assets muertos)** Borrar `src/assets/vite.svg` y `src/assets/vue.svg` (scaffolding de Vite sin uso real — verificar que ningún componente los importe). `hero.png` **no** se borra: viaja a `modules/auth`/`public/` (G0.0).
 
 ## Criterios de aceptación
 - `cd web && npx vue-tsc -b` sin errores.

@@ -30,6 +30,8 @@
 - **Reubicaciones clave:** `views/`→`modules/<x>/*Page.vue`; `stores/`→`modules/<x>/store.ts`; `services/api`→`shared/api/client.ts`; UI kit→`shared/ui`; `utils/stock`→`modules/insumos/stock.ts`; `login`/`public`→`modules/auth`; singletons→`app/state`.
 - **Convenciones nuevas:** C13 (árbol de decisión), C14 (barrels), C15 (regla de dependencia + cross-module por barrel), C16 (enforcement).
 - **DIP reforzado por construcción:** la UI de un módulo no importa `shared/api`; pasa por su `store.ts`/`api.ts`.
+- **DRY como principio rector (C17):** se revierte la duplicación de `CategoriaPills`/`CategoriaDeleteDialog` — son presentacionales puros (sin store/api) → **una** copia en `shared/ui`. Solo el *dominio* de categorías (CRUD/endpoints) sigue en el store/api de cada módulo. Corrige la decisión previa de duplicar (basada en suponer, erróneamente, que los componentes conocían el dominio).
+- **Integración Epic D (archivos que el inventario original no contemplaba):** `usePagination` → `shared/lib` (G1.4); `Pagination.vue` → `shared/ui` (G3.13); `useGlobalSearch` → nuevo `modules/search/` con `search-api.ts` (deja de tocar `services/api` directo) (G3.14). Documentada también la ubicación de assets/config/tests (ver "Ubicación modular por archivo").
 
 ## Orden de construcción corregido (gobierna la ejecución)
 
@@ -67,6 +69,7 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G1.1 | `G1_01_utils-format.md` | `utils/format.ts` | crear | ⬜ |
 | G1.2 | `G1_02_stock-util.md` | `utils/stock.ts` | crear | ⬜ |
 | G1.3 | `G1_03_stores-dip-del.md` | `stores/{insumos,productos,clientes,finanzas,presupuestos}.ts` | migrar | ⬜ |
+| G1.4 | `G1_04_usePagination.md` | `composables/usePagination.ts` → `shared/lib/usePagination.ts` | migrar | ⬜ |
 | **G3.1** | `G3_01_BaseButton.md` | `components/ui/BaseButton.vue` | crear (**build primero**) | ⬜ |
 | G2.1 | `G2_01_ToggleSwitch.md` | `components/ui/ToggleSwitch.vue` | migrar | ⬜ |
 | G2.2 | `G2_02_PageHead.md` | `components/layout/PageHead.vue` | migrar | ⬜ |
@@ -87,8 +90,10 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G3.10 | `G3_10_App.md` | `App.vue` | migrar | ⬜ |
 | G3.11 | `G3_11_FilterChips.md` | `components/ui/FilterChips.vue` | crear | ⬜ |
 | G3.12 | `G3_12_OverlayShell.md` | `components/ui/OverlayShell.vue` | crear | ⬜ |
-| G4.1 | `G4_01_CategoriaPills.md` | `components/ui/CategoriaPills.vue` | migrar | ⬜ |
-| G4.2 | `G4_02_CategoriaDeleteDialog.md` | `components/ui/CategoriaDeleteDialog.vue` | migrar | ⬜ |
+| G3.13 | `G3_13_Pagination.md` | `components/ui/Pagination.vue` → `shared/ui/Pagination.vue` | migrar | ⬜ |
+| G3.14 | `G3_14_GlobalSearch.md` | `composables/useGlobalSearch.ts` → `modules/search/` | migrar | ⬜ |
+| G4.1 | `G4_01_CategoriaPills.md` | `components/ui/CategoriaPills.vue` → `shared/ui/` (una copia) | migrar | ⬜ |
+| G4.2 | `G4_02_CategoriaDeleteDialog.md` | `components/ui/CategoriaDeleteDialog.vue` → `shared/ui/` (una copia) | migrar | ⬜ |
 | G4.3 | `G4_03_PresupuestoDoc.md` | `components/presupuestos/PresupuestoDoc.vue` | migrar | ⬜ |
 | — | **Checkpoint PDF/Puppeteer** | (verificar tras G4.3, antes de G5.8) | gate | ⬜ |
 | G5.1 | `G5_01_DashboardView.md` | `views/DashboardView.vue` | migrar | ⬜ |
@@ -184,13 +189,16 @@ Antes de migrar G5/G6, barrido de catálogos repetidos para centralizarlos en `u
 - Revisar también: `cuentas`, `metodosPago`, `canalLabels`/`canalColors`, `MONEDAS`, `tipoHoja` default.
 
 ### C13 — Árbol de decisión de ubicación (rev.2)
-Primer "sí" gana: (1) ¿genérico sin negocio? → `shared`. (2) ¿arranque/shell/router/estilos/estado global? → `app`. (3) ¿pertenece a un dominio? → `modules/<dominio>` (segmento: UI, `store`, `api`, regla `<dominio>.ts`, `types`, `schema`). (4) ¿lo comparten dos dominios y tiene negocio? → módulo propio (ej. `categorias`). Detalle en `00_Arquitectura_Modular.md`.
+Primer "sí" gana: (1) ¿genérico sin negocio? → `shared`. (2) ¿arranque/shell/router/estilos/estado global? → `app`. (3) ¿pertenece a un dominio? → `modules/<dominio>` (segmento: UI, `store`, `api`, regla `<dominio>.ts`, `types`, `schema`). (4) ¿cruza varios dominios con datos/agregación propia? → módulo propio (ej. `dashboard`, `search`). Detalle en `00_Arquitectura_Modular.md`. **Nota:** las categorías **no** son módulo propio — su *dominio* (store/api) vive en `insumos`/`productos`, pero los *componentes* `CategoriaPills`/`CategoriaDeleteDialog` (presentacionales puros) viven una sola vez en `shared/ui` (DRY).
 
 ### C14 — Public API por barrel (rev.2)
 Cada `modules/<x>/index.ts` exporta la API pública del módulo; se consume **solo** por el barrel (`@/modules/insumos`), nunca por path profundo (`@/modules/insumos/store`). `shared` se consume por segmento (`@/shared/ui`, `@/shared/lib`).
 
 ### C15 — Regla de dependencia (rev.2)
 `app → modules → shared` (nunca al revés). **Cross-module solo por barrel** (`presupuestos`→`@/modules/clientes`). La **UI de un módulo no importa `shared/api`**; el dato pasa por `store.ts`/`api.ts` del módulo → DIP por construcción. (Reemplaza/realiza C4.)
+
+### C17 — DRY como principio rector (rev.2)
+Cada conocimiento (UI, regla, catálogo, tipo, estilo) tiene **una sola** representación canónica. Antes de duplicar, clasificar: ¿es *conocimiento de dominio*? → su módulo. ¿es *forma reutilizable sin dominio* (componente presentacional puro, util genérico)? → `shared`, **una** copia, aunque hoy lo usen varios dominios. Solo se admite duplicación cuando dos piezas se parecen *por coincidencia* y evolucionarán por separado (falso DRY). La "Regla de Tres" frena abstracciones especulativas; **no** habilita conservar duplicación literal ya existente. Materializaciones en el plan: semáforo único (C8), catálogos centralizados (C12), shells reutilizados (`Drawer/Overlay/ConfirmDialog`), `format`/`useDirty`/`useToast` en `shared/lib`, y `CategoriaPills`/`CategoriaDeleteDialog` **no duplicados** (a `shared/ui`).
 
 ### C16 — Enforcement (rev.2)
 `eslint-plugin-boundaries` / `no-restricted-imports` configurados por módulo (G7.2): prohíben import hacia arriba, lateral por path profundo, y `shared/api` desde UI de módulo. **Steiger no aplica** (es de capas FSD). Correr en CI junto a `vue-tsc`.
@@ -207,21 +215,27 @@ Cada `modules/<x>/index.ts` exporta la API pública del módulo; se consume **so
 - `app/state/{editorMode,createTrigger}.ts` ← singletons globales (event-bus, sin reactividad propia; deuda anotada en rev.1) · scaffolding: G0.0
 
 **`shared/ui/`** — UI kit sin dominio
-- G3.1 BaseButton · G3.2 StatusBadge · G3.3 BaseCard · G3.4 BaseKpi · G3.5 DataTable · G3.7 RowActions · G3.11 FilterChips · G3.12 OverlayShell
+- G3.1 BaseButton · G3.2 StatusBadge · G3.3 BaseCard · G3.4 BaseKpi · G3.5 DataTable · G3.7 RowActions · G3.11 FilterChips · G3.12 OverlayShell · G3.13 Pagination
 - G2.1 ToggleSwitch · G2.2 PageHead · G2.3 SegmentedControl · G2.4 FloatingField · G2.5 FloatingSelect · G2.6 ConfirmDialog · G2.7 ToastContainer · G2.8 DrawerShell
+- G4.1 CategoriaPills · G4.2 CategoriaDeleteDialog _(presentacionales puros sin dominio — una sola copia, la consumen insumos y productos)_
 
 **`shared/lib|api|config/`**
 - `shared/lib/format.ts` ← G1.1 · `shared/lib/{useToast,useDirty}` · `shared/api/client.ts` ← `services/api` · `shared/config/` ← tipos genéricos de `types/index.ts`
 
-**`modules/insumos/`** — InsumosPage ← G5.4 · InsumoDetalle ← G6.5 · components/{StockBar ← G3.6, ProveedoresEditor, InsumosTable, CategoriaPills ← G4.1, CategoriaDeleteDialog ← G4.2} · `stock.ts` ← G1.2 · `store.ts` ← G1.3(insumos, incluye CRUD categorías insumo) · `api.ts` (requests insumo + categorías insumo) · `costeo.ts` (useInsumoCosteo) · schema
-**`modules/productos/`** — ProductosPage ← G5.3 · ProductoDetalle ← G6.4 · components/{ProductCard, BomEditor, CategoriaPills ← G4.1, CategoriaDeleteDialog ← G4.2} · `pricing.ts` (useProductoPricing) · `store.ts` ← G1.3(productos, incluye CRUD categorías producto) · schema
+**`modules/insumos/`** — InsumosPage ← G5.4 · InsumoDetalle ← G6.5 · components/{StockBar ← G3.6, ProveedoresEditor, InsumosTable} · `stock.ts` ← G1.2 · `store.ts` ← G1.3(insumos, incluye CRUD categorías insumo) · `api.ts` (requests insumo + categorías insumo) · `costeo.ts` (useInsumoCosteo) · schema · _(usa `CategoriaPills`/`CategoriaDeleteDialog` de `shared/ui`)_
+**`modules/productos/`** — ProductosPage ← G5.3 · ProductoDetalle ← G6.4 · components/{ProductCard, BomEditor} · `pricing.ts` (useProductoPricing) · `store.ts` ← G1.3(productos, incluye CRUD categorías producto) · schema · _(usa `CategoriaPills`/`CategoriaDeleteDialog` de `shared/ui`)_
 **`modules/clientes/`** — ClientesPage ← G5.2 · ClienteDrawer ← G6.1 · components/{Avatar, ContactosEditor} · `store.ts` ← G1.3(clientes) · schema
 **`modules/presupuestos/`** — PresupuestosPage ← G5.5 · PresupuestoEditor ← G6.6 · PresupuestoDoc ← G4.3 · PublicPresupuestoPage ← G5.8 · `public-api.ts` (fetch público para Puppeteer) · `estado.ts` (FSM + `Record<Estado,Tone>`) · `calc.ts` (usePresupuestoCalc) · components/{LinesSpreadsheet, EstadoDropdown, EditorTotals} · `store.ts` ← G1.3(presupuestos) · schema
 **`modules/finanzas/`** — FinanzasPage ← G5.6 · MovimientoDrawer ← G6.2 · ImprentaDrawer ← G6.3 · components/{FinTabs, SignedAmountInput} · `tipos.ts` (catálogo movimientos) · `store.ts` ← G1.3(finanzas) · schema
 **`modules/ajustes/`** — AjustesPage ← G5.9 · components/SettingsBlock · `store.ts` (**nuevo**)
 **`modules/dashboard/`** — DashboardPage ← G5.1 · components/WeeklyChart · `stats-api.ts` ← `services/dashboard` (lógica de agregación propia, no solo orquestación)
+**`modules/search/`** — `useGlobalSearch` ← G3.14 · `search-api.ts` (← deja de usar `services/api` directo) · `types.ts` (`SearchResult`) · index. Lo consume `app/shell/AppHeader` vía barrel (único caso `app`→`module`)
 **`modules/auth/`** — LoginPage ← G5.7 · session-store
 
-**Nota sobre categorías:** No existe módulo `categorias/`. Las categorías de insumo y producto viven en sus respectivos módulos (`modules/insumos/` y `modules/productos/`), cada uno con su propio store/api de categorías. Los componentes de UI (`CategoriaPills`, `CategoriaDeleteDialog`) se duplican en cada módulo. Si en el futuro se detecta que la lógica es idéntica y vale la pena extraer, se puede crear un módulo compartido (Regla de Tres).
+**`shared` (ampliado):** `shared/ui/Pagination.vue` ← G3.13 · `shared/lib/usePagination.ts` ← G1.4 (paginación client-side genérica, sin dominio)
+
+**Assets / config / tests:** `index.html` → entry `/src/app/main.ts` (G0.0) · `vitest.config.ts` + `src/test/setup.ts` se quedan en su sitio · tests **co-localizados** (`__tests__/` junto al componente o dentro del módulo) · `assets/hero.png` → `modules/auth` o `public/` · `vite.svg`/`vue.svg` muertos → borrar en G7
+
+**Nota sobre categorías (DRY):** No existe módulo `categorias/`. El **dominio** de categorías (CRUD + endpoints) vive en el store/api de cada módulo (`insumos`, `productos`) — son entidades distintas con su propio backend. Pero los **componentes** `CategoriaPills`/`CategoriaDeleteDialog` son **presentacionales puros** (props + emits, sin store/api) → viven **una sola vez** en `shared/ui`; **no se duplican**. Cada página los instancia con las categorías de su store. Detalle en `00_Arquitectura_Modular.md` §5.
 
 **Cross-cutting:** G0.0 (scaffolding) · G7.1 (limpieza CSS + carpetas legacy) · G7.2 (enforcement).

@@ -15,7 +15,7 @@ Que un import "hacia arriba", lateral por path profundo, o un acceso a `shared/a
 
 ## Plan de acción paso a paso
 1. **`eslint-plugin-boundaries`** (o `import/no-restricted-paths`): definir los elementos `app`, `shared`, `modules/*` y las reglas:
-   - `app` puede importar `modules` y `shared`.
+   - `app` puede importar `modules` y `shared`. **Caso esperado:** `app/shell/AppHeader` importa `@/modules/search` (búsqueda global del topbar) — es un import `app → module` válido, no lateral; no debe marcarse como violación.
    - `modules/<x>` puede importar `shared` y **otros `modules/<y>` solo por su barrel** (`@/modules/<y>` exacto; prohibir `@/modules/<y>/**`).
    - `shared` **no** importa `modules` ni `app`.
    - Prohibir importar `@/shared/api` (cliente `ofetch`) desde archivos de UI de módulo (`*.vue`, `*Page.vue`); el acceso a datos pasa por `store.ts`/`api.ts`.

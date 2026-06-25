@@ -12,6 +12,7 @@ Además del refactor de estilado/componentización, el frontend se **reorganiza 
 
 ## Convenciones globales del refactor
 
+- **DRY (principio rector):** cada conocimiento —UI, regla, catálogo, tipo, estilo— tiene **una** representación canónica. Antes de duplicar: ¿es *dominio*? → su módulo; ¿es *forma sin dominio*? → `shared`, una copia (aunque hoy lo usen varios dominios). Detalle y matices (Regla de Tres vs duplicación literal) en `00_Arquitectura_Modular.md` §1 y C17 del índice. Es el motor de casi todas las extracciones de abajo (`formatMoney`, `getNivel` único, catálogos centralizados, shells reutilizados, `CategoriaPills`/`Dialog` no duplicados).
 - **Tokens → `@theme`** en `main.css` (Tailwind v4): los design tokens de `tokens.css` se vuelven la fuente de verdad dentro de Tailwind (genera `bg-violet-700`, `text-ink-muted`, `rounded-lg`, `shadow-2`…). No es CSS vanilla; lo vanilla a borrar es `components.css`.
 - **Variantes → mapa de estrategia** (OCP): `Record<Variant, string>` de clases, nunca cadenas `if/else`/inline.
 - **Props segregadas** (ISP): cada componente recibe lo mínimo (`{ stock, minimo }`, no el `Insumo` entero).
@@ -63,8 +64,8 @@ Además del refactor de estilado/componentización, el frontend se **reorganiza 
 
 ## Grupo 4 — Componentes medianos
 
-- **`modules/insumos/components/CategoriaPills.vue`** y **`modules/productos/components/CategoriaPills.vue`** (350) — pills + edición inline de categorías→Tailwind; extraer subpartes si hay repetición (≥3 usos). Cada módulo tiene su propia copia porque cada uno tiene su store/api de categorías.
-- **`modules/insumos/components/CategoriaDeleteDialog.vue`** y **`modules/productos/components/CategoriaDeleteDialog.vue`** (200) — diálogo de borrado/reasignación→Tailwind sobre `ConfirmDialog`/`DrawerShell`.
+- **`shared/ui/CategoriaPills.vue`** (350, **una copia** — DRY/C17) — pills + edición inline de categorías→Tailwind; presentacional puro (props + emits, sin store/api), por eso vive en `shared/ui` y la consumen insumos y productos. Generalizar `variant`→`allLabel`. Extraer el input inline si hay repetición.
+- **`shared/ui/CategoriaDeleteDialog.vue`** (200, **una copia** — DRY/C17) — diálogo de borrado/reasignación→Tailwind sobre `ConfirmDialog`; presentacional puro. El borrado/reasignación los ejecuta el store de cada módulo (el diálogo solo emite `confirm`/`cancel`).
 - **`modules/presupuestos/PresupuestoDoc.vue`** (158) — documento preview (`components.css` ~1760-2007)→Tailwind; presentacional puro.
 
 ## Grupo 5 — Vistas (small→large; cada una se audita al llegar)
