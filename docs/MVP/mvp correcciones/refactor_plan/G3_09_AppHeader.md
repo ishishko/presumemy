@@ -40,5 +40,5 @@ Topbar 100% Tailwind, botones via `BaseButton`, sin `:style` inline. Resolver el
 - Backdrop blur y altura 56px idénticos; sin `:style` inline.
 
 ## Riesgos / notas
-- **(C11, rev.1) Contrato del Teleport:** el id del slot se define como constante compartida `EDITOR_STATUS_SLOT_ID = 'editor-header-status'` (importada por `AppHeader` y por `PresupuestoEditor` G6.6), para que el acoplamiento sea explícito y refactor-safe. El `<div :id="EDITOR_STATUS_SLOT_ID">` debe seguir existiendo en el header; `PresupuestoEditor` teletransporta ahí su badge.
+- **(C11, rev.1; ubicación rev.2) Contrato del Teleport:** el id del slot se define como constante compartida `EDITOR_STATUS_SLOT_ID = 'editor-header-status'` **en `shared/lib`** (junto a `editorMode.ts`), importada por `AppHeader` (`app/shell`) y por `PresupuestoEditor` (G6.6, módulo). No se define en `AppHeader`: como la importa un módulo y `modules` no puede importar `app`, debe vivir en `shared/lib`. El `<div :id="EDITOR_STATUS_SLOT_ID">` debe seguir existiendo en el header; `PresupuestoEditor` teletransporta ahí su badge.
 - Registrar la decisión sobre el search (cuestión abierta del plan maestro).

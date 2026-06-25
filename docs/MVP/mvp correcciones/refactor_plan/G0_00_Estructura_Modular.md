@@ -17,13 +17,13 @@ Estructura `package-by-layer`: `views/`, `components/{ui,layout,drawers,overlays
 Esqueleto modular por dominio creado y arranque reubicado, listo para que cada Grupo escriba en su destino (Opción A).
 
 ## Plan de acción paso a paso
-1. **Crear carpetas** vacías: `app/`, `app/{shell,state,styles}`, `shared/{ui,lib,api,config}`, `modules/{insumos,productos,clientes,presupuestos,finanzas,ajustes,dashboard,search,auth}/` (cada módulo con `components/` cuando aplique). **Nota:** no se crea `modules/categorias/`; las categorías viven en sus respectivos módulos de dominio. `search/` es módulo propio (búsqueda global multi-entidad, Epic D — ver G3.14).
+1. **Crear carpetas** vacías: `app/`, `app/{shell,styles}`, `shared/{ui,lib,api,config}`, `modules/{insumos,productos,clientes,presupuestos,finanzas,ajustes,dashboard,search,auth}/` (cada módulo con `components/` cuando aplique). **Nota:** no se crea `app/state` (los singletons de orquestación van a `shared/lib` — ver paso 3). No se crea `modules/categorias/`; las categorías viven en sus respectivos módulos de dominio. `search/` es módulo propio (búsqueda global multi-entidad, Epic D — ver G3.14).
 2. **Mover arranque a `app/`:**
    - `src/main.ts` → `app/main.ts` (ajustar `index.html`/entry de Vite si referencia la ruta).
    - `src/App.vue` → `app/App.vue`.
    - `router/index.ts` → `app/router.ts`.
    - crear `app/pinia.ts` (setup de Pinia hoy implícito en `main.ts`).
-3. **Singletons de orquestación a `app/state/`:** `composables/useEditorMode.ts` → `app/state/editorMode.ts`; `composables/useCreateTrigger.ts` → `app/state/createTrigger.ts`. **Nota:** estos singletons son estado global mutable (event-bus) sin reactividad propia (no usan `ref`/`reactive` de Vue). Se ubican en `app/state` porque son glue de orquestación entre el shell (`app/shell`) y los módulos; no son dominio ni UI reusable. (C15: `app` puede importar de todo; nadie de `modules`/`shared` importa de `app`.)
+3. **Singletons de orquestación a `shared/lib/`:** `composables/useEditorMode.ts` → `shared/lib/editorMode.ts`; `composables/useCreateTrigger.ts` → `shared/lib/createTrigger.ts`. **Por qué `shared/lib` y no `app`:** hoy los consumen vistas y overlays que pasarán a `modules/*` (`views/InsumosView.vue`, `views/ProductosView.vue`, `components/overlays/ProductoDetalle.vue`, etc. importan `createTrigger`/`editorDirty`). Como `modules` **no** puede importar `app` (regla `app → modules → shared`), ubicarlos en `app/state` haría imposible la regla de dependencia. Son mecanismos transversales **sin dominio** (estado global mutable tipo event-bus, sin `ref`/`reactive` propio), misma categoría que `useToast`/`useDirty` → `shared/lib`, importable por `app/shell` **y** por los módulos. (Deuda: su naturaleza singleton event-bus se anota pero no se refactoriza ahora.)
 4. **Política de barrels (C14):** cada `modules/<x>/index.ts` exporta la API pública del módulo; `shared` se consume por segmento (`@/shared/ui`, `@/shared/lib`, `@/shared/api`).
 5. **Alias:** confirmado que `@`→`./src` ya existe (vite+tsconfig); `@/app`, `@/modules/...`, `@/shared/...` resuelven sin config nueva. Opcional: agregar alias explícitos por claridad de review (no obligatorio).
 6. **Config y tests (no mover):** `vitest.config.ts` se queda en la raíz de `web/`; `src/test/setup.ts` se queda en `src/test/` (el `setupFiles` sigue apuntando a `./src/test/setup.ts`, no cambia). Los tests **co-localizan** con su sujeto al migrarlo (`__tests__/` junto al componente en `shared/ui` o dentro del módulo, ej. `modules/insumos/__tests__/`). El test existente `components/ui/__tests__/ConfirmDialog.test.ts` viaja con `ConfirmDialog` a `shared/ui/__tests__/`.
@@ -37,5 +37,5 @@ Esqueleto modular por dominio creado y arranque reubicado, listo para que cada G
 
 ## Riesgos / notas
 - El entry de Vite/`index.html` apunta a `/src/main.ts`; actualizarlo a `/src/app/main.ts` (único punto frágil del movimiento de arranque).
-- `useEditorMode`/`useCreateTrigger` son estado global mutable (deuda anotada en rev.1); se ubican en `app/state` sin refactorizar su naturaleza singleton ahora.
+- `useEditorMode`/`useCreateTrigger` son estado global mutable (deuda anotada en rev.1); se ubican en `shared/lib` (no `app`) sin refactorizar su naturaleza singleton ahora.
 - Hacer este paso **antes** de G0.1 (tokens `@theme`), que ya escribe en `app/styles/main.css`.

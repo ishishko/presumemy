@@ -28,8 +28,8 @@ Ser la **fuente de verdad del design system dentro de Tailwind**: declarar todos
 2. **(Tailwind/C1)** Agregar bloque `@theme { … }` con todos los tokens migrados desde `tokens.css` usando los nombres que Tailwind reconoce (`--color-*`, `--radius-*`, `--shadow-*`, `--text-*`, `--font-sans`). Ver tabla C1 del índice.
 3. **(C2)** No declarar escala de espaciado custom — se usa la default (4px). Documentar el mapeo en comentario.
 4. **(base)** Migrar los estilos base de elementos hoy en `tokens.css` (headings violeta peso 500 + `letter-spacing`, `body`, `a`, `label`, `hr`, `::selection`, `.num`/`.text-mono`) a `@layer base { … }` en este archivo. Pueden quedar como CSS plano dentro del layer (no es "componente").
-5. **(transición)** **Conservar** `@import "./components.css";` por ahora — se elimina en G7 cuando ninguna vista lo use.
-6. Eliminar `@import "./tokens.css";` una vez que su contenido fue absorbido (ver G0.2).
+5. **(transición — ⚠️ ruta relativa, rev.2)** **Conservar** el import de `components.css` por ahora (se elimina en G7), pero **el archivo se movió a `app/styles/main.css`** y `components.css` sigue en `assets/css/` hasta G7 → el `@import "./components.css"` **ya no resuelve**. Corregir la ruta a **`@import "../../assets/css/components.css";`** (relativa desde `app/styles/`). *Alternativa:* mover también `components.css` a `app/styles/` en G0.0 y mantener `./components.css`; se descarta por más churn (igual se borra en G7). Documentar la ruta elegida.
+6. Eliminar `@import "./tokens.css";` (su contenido se absorbe en `@theme`/`@layer base` aquí mismo, ver G0.2) — al absorberse no necesita corrección de ruta, simplemente desaparece.
 7. **(rev.1 / C9)** Agregar los tokens **faltantes** `--color-teal-600` y `--color-violet-600` (hoy usados por `ToastContainer` pero **inexistentes** en `tokens.css` → resuelven a color heredado) **o** decidir remapear esos usos a `teal-700`/`violet-700`. Confirmar además que `--orange-*` (ya presentes en `tokens.css`) queden mapeados en `@theme`.
 
 ## Antes → Después
@@ -50,7 +50,7 @@ Ser la **fuente de verdad del design system dentro de Tailwind**: declarar todos
   h1,h2,h3,h4,h5,h6 { color: var(--color-violet-700); font-weight: 500; letter-spacing: -.01em; }
   /* … */
 }
-@import "./components.css"; /* TEMP — borrar en G7 */
+@import "../../assets/css/components.css"; /* TEMP — borrar en G7; ruta relativa desde app/styles/ */
 ```
 
 ## Componentes/utils que crea o consume
@@ -67,3 +67,4 @@ Ver tabla **C1** y **C2** del índice (es exactamente este archivo el que las im
 ## Riesgos / notas
 - Tailwind v4 exige nombres con namespace (`--color-`, `--radius-`, `--text-`…) para generar utilidades; un token mal nombrado simplemente no genera utilidad (no rompe, pero no aparece).
 - No borrar `components.css` aquí: rompería todas las vistas no migradas.
+- **(rev.2)** Al mover `main.css` a `app/styles/`, verificar que `main.ts` (ahora `app/main.ts`) lo importe por la ruta nueva y que el `@import` del legacy resuelva (paso 5). Un `@import` roto en Tailwind v4 falla el build, no es silencioso.

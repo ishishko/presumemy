@@ -1,6 +1,6 @@
 # G5.3 — `modules/productos/ProductosPage.vue`
 
-> **Ubicación (modular, rev.2):** destino `modules/productos/ProductosPage.vue` · `ProductCard` → `modules/productos/components` · `CategoriaPills`/`CategoriaDeleteDialog` viven en `modules/productos/components/` (no hay módulo `categorias/`).
+> **Ubicación (modular, rev.2):** destino `modules/productos/ProductosPage.vue` · `ProductCard` → `modules/productos/components` · `CategoriaPills`/`CategoriaDeleteDialog` viven en **`shared/ui`** (presentacionales puros, una sola copia — DRY/C17); esta página los importa de `@/shared/ui` y les pasa las categorías de su store.
 
 | | |
 |---|---|
@@ -28,11 +28,11 @@ Grid con `ProductCard` reutilizable, chips de estado compartidos, sin `services/
 2. **(SRP)** Extraer `modules/productos/components/ProductCard.vue` (props `producto`; emits `edit/delete/toggle-favorite`). Mueve el markup + `<style scoped>` de la card y su hover de acciones.
 3. **(DS)** Reemplazar amber crudo por tokens: favorito/warning → `--yellow`/`--yellow-ink` (o agregar tokens `amber-*` a `@theme` si el DS realmente quiere ese tono; **decisión a anotar** — preferir tokens existentes).
 4. **(DRY)** Chips de estado → usar `FilterChips` (**G3.11**, ya con doc propio; compartido con Insumos/Finanzas). El toggle-deselect de esta vista se cubre con la prop `deselectable` del componente.
-5. **(reuso)** `money` → `formatMoney`. `CategoriaPills`/`CategoriaDeleteDialog` ya migrados (G4) y viven en `modules/productos/components/`.
+5. **(reuso)** `money` → `formatMoney`. `CategoriaPills`/`CategoriaDeleteDialog` ya migrados (G4) y viven en **`shared/ui`** (una copia); importarlos de `@/shared/ui` y pasar `allLabel="Todos"` (no `variant`).
 6. **(Tailwind)** `.prod-grid` → `grid grid-cols-[repeat(auto-fill,minmax(...))] gap-4`.
 
 ## Componentes que crea/consume
-Crea `modules/productos/components/ProductCard.vue`. Consume `FilterChips` (G3.11), `formatMoney`, `CategoriaPills`, `CategoriaDeleteDialog`, store con `toggleFavorito`.
+Crea `modules/productos/components/ProductCard.vue`. Consume `FilterChips` (G3.11), `formatMoney`, `CategoriaPills`/`CategoriaDeleteDialog` (de `@/shared/ui`), store con `toggleFavorito`.
 
 ## Criterios de aceptación
 - `vue-tsc` ok; grid, favorito (toggle optimista o vía store), warning, filtros idénticos.

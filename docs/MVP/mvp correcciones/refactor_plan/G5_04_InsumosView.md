@@ -25,17 +25,17 @@ Hace: fetch, CRUD de insumos + de categorías, filtros (estado + categoría), c�
 
 ## Plan de acción paso a paso
 1. **(DIP)** Quitar `import { del }`; `handleDeleteConfirm` → `await store.remove(i.id)`.
-2. **(SRP/C8)** Borrar `getNivel`/`nivelMeta`/`Nivel` locales → importar de `utils/stock.ts` (G1.2). `counts` se recalcula con `getNivel`; como la tabla mantiene 3 chips, usar `nivelColapsado()` (mapea `sin_unidades`→`critico`).
+2. **(SRP/C8)** Borrar `getNivel`/`nivelMeta`/`Nivel` locales → importar de `modules/insumos/stock.ts` vía barrel `@/modules/insumos` (G1.2). `counts` se recalcula con `getNivel`; como la tabla mantiene 3 chips, usar `nivelColapsado()` (mapea `sin_unidades`→`critico`).
 3. **(DRY)** `money` → `formatMoney`.
 4. **(reuso)** Tabla → `DataTable` (slot `row`): celdas usan `StockBar` (`:stock :minimo`), `StatusBadge` (`:tone="NIVEL_META[nivel].tone"`), `RowActions` (`@edit @delete`).
 5. **(DRY)** Chips de estado → `FilterChips` (G3.11). **El piloto fija la API de `FilterChips` y de `DataTable` (opción A) antes de propagar.**
 6. **(Tailwind)** Eliminar todos los inline `style="..."` y `<style scoped>`.
-7. **(categorías)** `CategoriaPills` + `CategoriaDeleteDialog` ya migrados; el `CategoriaDeleteDialog` reemplaza el `ConfirmDialog` de categoría actual (hoy usa un `ConfirmDialog` con mensaje condicional — homogeneizar con Productos que ya usa `CategoriaDeleteDialog`).
+7. **(categorías)** `CategoriaPills` + `CategoriaDeleteDialog` ya migrados y en **`shared/ui`** (una copia — DRY); importarlos de `@/shared/ui` y pasar `all-label="Todas"` (no `variant`). El `CategoriaDeleteDialog` reemplaza el `ConfirmDialog` de categoría actual (hoy usa un `ConfirmDialog` con mensaje condicional — homogeneizar con Productos que ya usa `CategoriaDeleteDialog`).
 
 ## Antes → Después (esqueleto del template)
 ```vue
 <FilterChips v-model="stateFilter" :chips="stateChips" />
-<CategoriaPills v-model="catFilter" variant="insumos" :categorias="store.categorias" @create @rename @remove />
+<CategoriaPills v-model="catFilter" all-label="Todas" :categorias="store.categorias" @create @rename @remove />
 <DataTable :columns="cols" :rows="filtered">
   <template #row="{ item }">
     <td>… nombre/código …</td>

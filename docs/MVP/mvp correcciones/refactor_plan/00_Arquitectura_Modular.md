@@ -21,15 +21,15 @@ web/src/
 │   ├── main.ts · App.vue
 │   ├── router.ts · pinia.ts
 │   ├── styles/main.css            (@theme + @layer base)
-│   ├── shell/   AppSidebar.vue · AppHeader.vue
-│   └── state/   editorMode.ts · createTrigger.ts   (singletons de orquestación)
+│   └── shell/   AppSidebar.vue · AppHeader.vue
 │
-├── shared/     # SIN dominio, reutilizable por cualquier módulo
+├── shared/     # SIN dominio, reutilizable por cualquier módulo (app Y modules)
 │   ├── ui/     BaseButton, BaseCard, BaseKpi, StatusBadge, DataTable, RowActions,
 │   │           FilterChips, ConfirmDialog, DrawerShell, OverlayShell, ToggleSwitch,
 │   │           SegmentedControl, FloatingField, FloatingSelect, ToastContainer, PageHead, Pagination,
 │   │           CategoriaPills, CategoriaDeleteDialog   (presentacionales puros sin dominio)
 │   ├── lib/    format.ts (formatMoney/formatDate) · useToast · useDirty · usePagination
+│   │           · editorMode.ts · createTrigger.ts   (singletons de orquestación transversal — los consumen app/shell Y modules)
 │   ├── api/    client.ts (ofetch — ÚNICO que lo conoce)
 │   └── config/ tipos genéricos (PaginationResult…) · env
 │
@@ -85,8 +85,8 @@ Un módulo se organiza por **propósito técnico** (nombres que describen el pro
 ## 5. Árbol de decisión (dónde va cada cosa)
 
 Primer "sí" gana:
-1. ¿Genérico, sin negocio? (botón, input, `formatMoney`, cliente `ofetch`) → **`shared`**.
-2. ¿Arranque, shell, router/pinia, estilos globales o estado de orquestación global? → **`app`**.
+1. ¿Genérico, sin negocio? (botón, input, `formatMoney`, cliente `ofetch`, **singleton de orquestación transversal** como `editorMode`/`createTrigger`) → **`shared`**.
+2. ¿Arranque, shell, router/pinia, estilos globales? → **`app`**. ⚠️ **Solo si lo consume *exclusivamente* `app`.** Si un módulo también lo importa, **no puede vivir en `app`** (rompería `app → modules → shared`, porque `modules` no importa `app`) → va a `shared/lib`. Por eso `editorMode`/`createTrigger`, que los consumen vistas/overlays de módulos, están en `shared/lib`, no en `app`.
 3. ¿Pertenece a un dominio (insumo, cliente, presupuesto…)? → **`modules/<dominio>`** (en el segmento que corresponda: UI, `store`, `api`, regla, `types`).
 4. ¿Es un agregador con lógica de stats/agregación propia? → **módulo propio** (ej. `dashboard` tiene `stats-api.ts` con queries de agregación; no es solo orquestación).
 

@@ -22,12 +22,12 @@ No existe. `InsumosView` (líneas 259-263) arma la barra inline:
 Clase global `.stock-bar` + `.low/.warn/.ok` (`components.css` ~994-1019). El cálculo del % y la clase de color están en la vista.
 
 ## Objetivo (SRP/ISP)
-Componente que recibe **solo** `{ stock, minimo }` (ISP), calcula el % y el color internamente (vía `useStockLevel`), y renderiza la barra. Saca ese cálculo de la vista.
+Componente que recibe **solo** `{ stock, minimo }` (ISP), calcula el % y el color internamente (vía `getNivel` de `modules/insumos/stock.ts`), y renderiza la barra. Saca ese cálculo de la vista.
 
 ## Plan de acción paso a paso
 1. **(ISP)** Props: `stock: number`, `minimo: number`. Nada más.
 2. **(SRP/DIP)** `const nivel = computed(() => getNivel(stock, minimo))` (de G1.2). `const pct = computed(() => Math.min(100, (stock / Math.max(minimo,1)) * 100))`.
-3. **(OCP/C3 + C8)** Mapa `nivel → color de relleno` (4 niveles canónicos): `{ sin_unidades:'bg-coral-700', critico:'bg-coral-500', bajo:'bg-yellow', ok:'bg-teal-500' }`. `getNivel` y los niveles vienen de `utils/stock.ts` (G1.2).
+3. **(OCP/C3 + C8)** Mapa `nivel → color de relleno` (4 niveles canónicos): `{ sin_unidades:'bg-coral-700', critico:'bg-coral-500', bajo:'bg-yellow', ok:'bg-teal-500' }`. `getNivel` y los niveles vienen de `modules/insumos/stock.ts` (G1.2), vía barrel `@/modules/insumos`.
 4. **(Tailwind)** Track `h-1.5 w-full rounded-pill bg-page-bg overflow-hidden`; relleno `h-full rounded-pill` + color + `:style="{ width: pct+'%' }"`.
 
 ## Antes → Después

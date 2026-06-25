@@ -1,6 +1,6 @@
 # G6.6 — `modules/presupuestos/PresupuestoEditor.vue`
 
-> **Ubicación (modular, rev.2):** destino `modules/presupuestos/PresupuestoEditor.vue` · `LinesSpreadsheet`/`EstadoDropdown` → `modules/presupuestos/components` · `calc.ts`/`estado.ts` → `modules/presupuestos`. Clientes y productos (autocomplete) vía `@/modules/clientes` y `@/modules/productos` (barrels). `EDITOR_STATUS_SLOT_ID` desde `app/state` (C11).
+> **Ubicación (modular, rev.2):** destino `modules/presupuestos/PresupuestoEditor.vue` · `LinesSpreadsheet`/`EstadoDropdown` → `modules/presupuestos/components` · `calc.ts`/`estado.ts` → `modules/presupuestos`. Clientes y productos (autocomplete) vía `@/modules/clientes` y `@/modules/productos` (barrels). `EDITOR_STATUS_SLOT_ID` desde `shared/lib` (C11; **no** `app/shell`, porque lo importa este módulo).
 
 | | |
 |---|---|
@@ -43,7 +43,7 @@ Crea `modules/presupuestos/components/LinesSpreadsheet.vue`, `modules/presupuest
 
 ## Riesgos / notas
 - **El refactor de mayor superficie.** Hacerlo último, con todos los primitivos y `modules/presupuestos/estado.ts` ya estables.
-- **(C11, rev.1)** No romper el **Teleport del badge**: usar la constante compartida `EDITOR_STATUS_SLOT_ID` (definida en G3.9) en vez del string literal `'editor-header-status'`, para que el contrato con `AppHeader` sea explícito y refactor-safe. Mantener la integración con `useEditorMode` (guardar/cerrar desde el topbar).
+- **(C11, rev.1)** No romper el **Teleport del badge**: usar la constante compartida `EDITOR_STATUS_SLOT_ID` (definida en **`shared/lib`**, junto a `editorMode.ts`) en vez del string literal `'editor-header-status'`, para que el contrato con `AppHeader` sea explícito y refactor-safe. Vive en `shared/lib` (no en `AppHeader`/`app/shell`) porque tanto el header (`app`) como este módulo la importan, y `modules` no puede importar `app`. Mantener la integración con `useEditorMode` (guardar/cerrar desde el topbar).
 - `presupuestoSchema` (zod) de validación se conserva.
 - El cambio de estado acá es **local** (se persiste al guardar), distinto del de `PresupuestosView` (persiste inmediato) — preservar esa diferencia.
 - Verificar acción de PDF/link público (coordinación con `PublicPresupuestoPage`/Puppeteer).

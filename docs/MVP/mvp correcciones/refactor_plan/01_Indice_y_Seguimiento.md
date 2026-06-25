@@ -1,11 +1,11 @@
 # Índice y seguimiento — Refactor frontend `web/`
 
 > Documento maestro de navegación. El plan global está en [`00_Plan_Refactor_Completo.md`](00_Plan_Refactor_Completo.md).
-> El análisis de revisión está en [`02_Primera_correccion.md`](02_Primera_correccion.md); los ajustes derivados están aplicados en este índice y en los docs (ver **Changelog rev.1**).
+> **Este índice es el único registro de cambios del plan** (changelogs + convenciones). Los ajustes provienen de dos rondas de revisión: una primera revisión SOLID/Vue (consolidada en el **Changelog rev.1** y en las convenciones C8–C12) y la reestructuración modular (**Changelog rev.2**, C13–C17). No hay documentos de revisión separados.
 > **Arquitectura de carpetas:** modular por dominio — ver [`00_Arquitectura_Modular.md`](00_Arquitectura_Modular.md) (**rev.2**). Cada Grupo escribe directamente en su destino modular (Opción A). La "Ubicación modular por archivo" está al final de este índice.
 > Cada archivo a modificar/crear/borrar tiene su propio doc de acción. Se ejecutan **en el orden de construcción corregido** (abajo).
 
-## Changelog rev.1 (incorpora `02_Primera_correccion.md`)
+## Changelog rev.1 (primera revisión SOLID/Vue — consolidada aquí)
 
 - **`useStockLevel` → `utils/stock.ts`** (era un util puro mal etiquetado como composable). Doc: `G1_02_stock-util.md`.
 - **Modelo único de semáforo de stock** (C8): se unifica el de 4 niveles (`InsumoDetalle`) como canónico; `InsumosView` lo consume colapsado. Resuelve el conflicto de umbrales (`0.2` vs `0.5`).
@@ -14,7 +14,7 @@
 - **Tokens faltantes** (C9): `--teal-600`/`--violet-600` (usados por `ToastContainer`) no existen → se agregan a `@theme` o se remapean en G0.1. (`--orange-*` ya fueron agregados al `tokens.css`.)
 - **`DataTable` se compromete con la opción A** (slots + `columns`).
 - **Store de ajustes: se CREA** (verificado: no existe ninguno) — destraba G5.9.
-- **`services/public.ts` obligatorio** en G5.8 (motivo: consistencia + testabilidad, no dogma DIP).
+- **Service de fetch público obligatorio** en G5.8 (motivo: consistencia + testabilidad, no dogma DIP). En la arquitectura modular es **`modules/presupuestos/public-api.ts`** (rev.2; antes `services/public.ts`).
 - **Convención de error handling** (C10): store re-lanza, vista hace try/catch + toast. **Sin** `useAsyncAction` por ahora (YAGNI).
 - **Dark mode de `LoginView`: se elimina** (dead code de facto; no hay estrategia dark global).
 - **Contrato del Teleport** `#editor-header-status` como **constante compartida** (C11).
@@ -27,10 +27,11 @@
 - **Estructura modular** (`app/ + shared/ + modules/<dominio>/`) reemplaza el `package-by-layer` y la adaptación FSD por capas (que dispersaba cada dominio). Fuente de verdad: `00_Arquitectura_Modular.md`. El marco FSD original se **eliminó** (absorbido).
 - **Convivencia Opción A** (relocalizar al tocar): cada Grupo escribe en su destino modular en la misma pasada. No cambia ninguna decisión de rev.1; solo *dónde vive* cada archivo.
 - **Nuevo `G0_00_Estructura_Modular.md`** (scaffolding, corre primero) y **`G7_02_Enforcement.md`** (ESLint boundaries por módulo; **Steiger no aplica**).
-- **Reubicaciones clave:** `views/`→`modules/<x>/*Page.vue`; `stores/`→`modules/<x>/store.ts`; `services/api`→`shared/api/client.ts`; UI kit→`shared/ui`; `utils/stock`→`modules/insumos/stock.ts`; `login`/`public`→`modules/auth`; singletons→`app/state`.
+- **Reubicaciones clave:** `views/`→`modules/<x>/*Page.vue`; `stores/`→`modules/<x>/store.ts`; `services/api`→`shared/api/client.ts`; UI kit→`shared/ui`; `utils/stock`→`modules/insumos/stock.ts`; `login`→`modules/auth`, vista pública de presupuesto→`modules/presupuestos`; singletons de orquestación (`useEditorMode`/`useCreateTrigger`)→`shared/lib` (los consumen módulos, así que **no** pueden ir a `app`).
 - **Convenciones nuevas:** C13 (árbol de decisión), C14 (barrels), C15 (regla de dependencia + cross-module por barrel), C16 (enforcement).
 - **DIP reforzado por construcción:** la UI de un módulo no importa `shared/api`; pasa por su `store.ts`/`api.ts`.
 - **DRY como principio rector (C17):** se revierte la duplicación de `CategoriaPills`/`CategoriaDeleteDialog` — son presentacionales puros (sin store/api) → **una** copia en `shared/ui`. Solo el *dominio* de categorías (CRUD/endpoints) sigue en el store/api de cada módulo. Corrige la decisión previa de duplicar (basada en suponer, erróneamente, que los componentes conocían el dominio).
+- **Correcciones de auditoría de consistencia (rev.2):** (1) **`useEditorMode`/`useCreateTrigger` y `EDITOR_STATUS_SLOT_ID` → `shared/lib`** (no `app/state`/`app/shell`): los consumen módulos y `modules` no puede importar `app`; `app/state` se elimina. (2) **`main.css`** en `app/styles` corrige el `@import` del `components.css` legacy a ruta relativa (`../../assets/css/...`) hasta G7. (3) **`stock.ts`** unificado a `modules/insumos/stock.ts` en C8/G5.4/G6.5/G3.6 (estaba como `utils/stock.ts`). (4) **`CategoriaPills`/`Dialog`** propagado a G5.3/G5.4 (`shared/ui` + `allLabel`, no `variant`). (5) **vista pública** unificada a `modules/presupuestos/public-api.ts` (C4 + changelog; antes 3 nombres). (6) **G7.2** ahora instala ESLint desde cero (no existía en `package.json`).
 - **Integración Epic D (archivos que el inventario original no contemplaba):** `usePagination` → `shared/lib` (G1.4); `Pagination.vue` → `shared/ui` (G3.13); `useGlobalSearch` → nuevo `modules/search/` con `search-api.ts` (deja de tocar `services/api` directo) (G3.14). Documentada también la ubicación de assets/config/tests (ver "Ubicación modular por archivo").
 
 ## Orden de construcción corregido (gobierna la ejecución)
@@ -67,7 +68,7 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G0.1 | `G0_01_main-css.md` | `assets/css/main.css` → `app/styles/main.css` | migrar | ⬜ |
 | G0.2 | `G0_02_tokens-css.md` | `assets/css/tokens.css` | migrar→borrar | ⬜ |
 | G1.1 | `G1_01_utils-format.md` | `utils/format.ts` | crear | ⬜ |
-| G1.2 | `G1_02_stock-util.md` | `utils/stock.ts` | crear | ⬜ |
+| G1.2 | `G1_02_stock-util.md` | `utils/stock.ts` → `modules/insumos/stock.ts` | crear | ⬜ |
 | G1.3 | `G1_03_stores-dip-del.md` | `stores/{insumos,productos,clientes,finanzas,presupuestos}.ts` | migrar | ⬜ |
 | G1.4 | `G1_04_usePagination.md` | `composables/usePagination.ts` → `shared/lib/usePagination.ts` | migrar | ⬜ |
 | **G3.1** | `G3_01_BaseButton.md` | `components/ui/BaseButton.vue` | crear (**build primero**) | ⬜ |
@@ -112,7 +113,7 @@ Leyenda: ⬜ pendiente · 🟦 en curso · ✅ hecho · 🔎 verificado (typeche
 | G6.5 | `G6_05_InsumoDetalle.md` | `components/overlays/InsumoDetalle.vue` | migrar | ⬜ |
 | G6.6 | `G6_06_PresupuestoEditor.md` | `components/editors/PresupuestoEditor.vue` | migrar | ⬜ |
 | G7.1 | `G7_01_Limpieza-Final.md` | `components.css`, `tokens.css`, `style.css` | borrar | ⬜ |
-| **G7.2** | `G7_02_Enforcement.md` | ESLint boundaries por módulo + barrido imports profundos | configurar | ⬜ |
+| **G7.2** | `G7_02_Enforcement.md` | instalar ESLint (no existe) + boundaries por módulo + barrido imports profundos | instalar+configurar | ⬜ |
 
 ---
 
@@ -151,7 +152,7 @@ const VARIANTS: Record<Variant, string> = {
 ```
 
 ### C4 — DIP (acceso a datos)
-Componentes y vistas **no importan `services/api`**. El store es el único que conoce el API. La vista pública (G5.8) usa `services/public.ts` (no `ofetch` crudo).
+Componentes y vistas **no importan `services/api`**. El store es el único que conoce el API. La vista pública (G5.8) usa **`modules/presupuestos/public-api.ts`** (no `ofetch` crudo; nombre canónico — antes citado como `services/public.ts`). Ver C15 (DIP por construcción reemplaza/realiza este punto en la arquitectura modular).
 
 ### C5 — Vue idiomático
 `<script setup lang="ts">`, props tipadas, `defineModel()` para v-model, `defineEmits<…>()`. Componentes presentacionales sin fetch propio. A11y existente intacta.
@@ -164,11 +165,11 @@ Solo animaciones irreductibles: wave del label (`FloatingField`/`FloatingSelect`
 - `npm run dev` → comparar con `docs/MVP/design-system/project/ui_kits/presumemi/index.html` (pixel-perfect).
 - Si el archivo tiene test (`ConfirmDialog`), mantener API y test verde.
 
-### C8 — Modelo único de semáforo de stock (rev.1)
-Fuente única en `utils/stock.ts`. **Modelo canónico de 4 niveles** (el de `InsumoDetalle`):
+### C8 — Modelo único de semáforo de stock (rev.1; ruta rev.2)
+Fuente única en **`modules/insumos/stock.ts`** (es dominio insumo; se consume vía barrel `@/modules/insumos`). **Modelo canónico de 4 niveles** (el de `InsumoDetalle`):
 `sin_unidades` (stock=0) · `critico` (stock ≤ min·0.2) · `bajo` (stock < min) · `ok`.
 - `getNivel(stock, minimo): Nivel` puro; `NIVEL_META: Record<Nivel,{ label; tone }>` con `tone` semántico (no color crudo).
-- `InsumosView` (lista) puede **colapsar** `sin_unidades`→`critico` si la UI de la tabla solo maneja 3 chips, vía un helper `nivelColapsado()`.
+- `InsumosPage` (lista) puede **colapsar** `sin_unidades`→`critico` si la UI de la tabla solo maneja 3 chips, vía un helper `nivelColapsado()`.
 - ⚠️ **Decisión a confirmar con producto:** hoy `InsumosView` usa umbral `0.5` y `InsumoDetalle` `0.2`. Se adopta `0.2` (más granular) como canónico; es un cambio de comportamiento menor en la lista — validar visualmente en el piloto (G5.4).
 
 ### C9 — Tokens a agregar/remapear en G0 (rev.1)
@@ -179,8 +180,8 @@ Fuente única en `utils/stock.ts`. **Modelo canónico de 4 niveles** (el de `Ins
 - La **vista** envuelve en `try/catch` y muestra el `toast` (decide la UX).
 - **No** se introduce `useAsyncAction` todavía (la duplicación es de ~3 líneas; aplica YAGNI / Regla de Tres). Reconsiderar solo si tras el piloto la repetición molesta.
 
-### C11 — Contrato del Teleport del badge de estado (rev.1)
-El id `#editor-header-status` (destino en `AppHeader`, origen en `PresupuestoEditor`) se define como **constante compartida** (`const EDITOR_STATUS_SLOT_ID = 'editor-header-status'`) importada por ambos, para que el acoplamiento sea explícito y refactor-safe. Documentar en G3.9 y G6.6.
+### C11 — Contrato del Teleport del badge de estado (rev.1; ubicación corregida rev.2)
+El id `#editor-header-status` (destino en `AppHeader` de `app/shell`, origen en `PresupuestoEditor` de `modules/presupuestos`) se define como **constante compartida** (`const EDITOR_STATUS_SLOT_ID = 'editor-header-status'`) importada por ambos. **Vive en `shared/lib`** (junto a `editorMode.ts`), **no** en `AppHeader`: como la importa un módulo y `modules` no puede importar `app`, ubicarla en `app/shell` violaría la regla de dependencia (mismo motivo que los singletons de orquestación). Documentar en G3.9 y G6.6.
 
 ### C12 — Audit de catálogos duplicados (rev.1)
 Antes de migrar G5/G6, barrido de catálogos repetidos para centralizarlos en `utils/`:
@@ -212,7 +213,7 @@ Cada conocimiento (UI, regla, catálogo, tipo, estilo) tiene **una sola** repres
 **`app/`** — arranque + shell + glue (no-dominio)
 - `app/styles/main.css` ← G0.1 · `app/App.vue` ← G3.10 · `app/router.ts` + `app/pinia.ts` ← (router actual)
 - `app/shell/AppSidebar.vue` ← G3.8 · `app/shell/AppHeader.vue` ← G3.9
-- `app/state/{editorMode,createTrigger}.ts` ← singletons globales (event-bus, sin reactividad propia; deuda anotada en rev.1) · scaffolding: G0.0
+- _(no hay `app/state`: los singletons de orquestación van a `shared/lib` — los consumen módulos y `app` no puede ser importado por módulos)_
 
 **`shared/ui/`** — UI kit sin dominio
 - G3.1 BaseButton · G3.2 StatusBadge · G3.3 BaseCard · G3.4 BaseKpi · G3.5 DataTable · G3.7 RowActions · G3.11 FilterChips · G3.12 OverlayShell · G3.13 Pagination
@@ -220,7 +221,7 @@ Cada conocimiento (UI, regla, catálogo, tipo, estilo) tiene **una sola** repres
 - G4.1 CategoriaPills · G4.2 CategoriaDeleteDialog _(presentacionales puros sin dominio — una sola copia, la consumen insumos y productos)_
 
 **`shared/lib|api|config/`**
-- `shared/lib/format.ts` ← G1.1 · `shared/lib/{useToast,useDirty}` · `shared/api/client.ts` ← `services/api` · `shared/config/` ← tipos genéricos de `types/index.ts`
+- `shared/lib/format.ts` ← G1.1 · `shared/lib/{useToast,useDirty,usePagination}` · `shared/lib/{editorMode,createTrigger}.ts` ← `composables/use{EditorMode,CreateTrigger}` (singletons de orquestación transversal; deuda de naturaleza event-bus anotada) · `shared/api/client.ts` ← `services/api` · `shared/config/` ← tipos genéricos de `types/index.ts`
 
 **`modules/insumos/`** — InsumosPage ← G5.4 · InsumoDetalle ← G6.5 · components/{StockBar ← G3.6, ProveedoresEditor, InsumosTable} · `stock.ts` ← G1.2 · `store.ts` ← G1.3(insumos, incluye CRUD categorías insumo) · `api.ts` (requests insumo + categorías insumo) · `costeo.ts` (useInsumoCosteo) · schema · _(usa `CategoriaPills`/`CategoriaDeleteDialog` de `shared/ui`)_
 **`modules/productos/`** — ProductosPage ← G5.3 · ProductoDetalle ← G6.4 · components/{ProductCard, BomEditor} · `pricing.ts` (useProductoPricing) · `store.ts` ← G1.3(productos, incluye CRUD categorías producto) · schema · _(usa `CategoriaPills`/`CategoriaDeleteDialog` de `shared/ui`)_

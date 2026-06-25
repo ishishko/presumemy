@@ -41,7 +41,7 @@ Además del refactor de estilado/componentización, el frontend se **reorganiza 
 - **`modules/insumos/stock.ts`** (nuevo) — extraer `getNivel()`, umbrales y `nivelMeta` hoy embebidos en `InsumosView` (líneas 34-73). Testeable de forma aislada.
 - **`modules/<dominio>/store.ts`** (insumos, productos, clientes, finanzas, presupuestos) — **absorber el `del()`**: que `remove(id)` haga `await del(...)` + filtro local, en vez de filtrar solo y dejar la llamada a la vista. Las vistas dejan de importar `shared/api`.
 - **`shared/api/client.ts`** (desde `services/api.ts`) — ya es un adapter funcional limpio; sin cambios salvo que sea el único punto que conozca `ofetch`.
-- Composables existentes (`useToast`, `useEditorMode`, `useCreateTrigger`, `useDirty`) — OK; `useEditorMode`/`useCreateTrigger` son singletons globales (event-bus): se mantienen, anotado como deuda menor. Se reubican en `app/state/`.
+- Composables existentes (`useToast`, `useEditorMode`, `useCreateTrigger`, `useDirty`) — OK; `useEditorMode`/`useCreateTrigger` son singletons globales (event-bus): se mantienen, anotado como deuda menor. Se reubican en **`shared/lib/`** (no `app`: los consumen vistas/overlays que pasan a `modules`, y `modules` no puede importar `app`).
 
 ## Grupo 2 — Primitivos hoja (orden de implementación)
 
