@@ -1,0 +1,148 @@
+@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* -------- Brand / semantic colors -------- */
+  --color-violet-700: #8B2570;   /* headings, sidebar bg, active borders */
+  --color-teal-50: #ECF8F8;      /* soft tint hover/fill */
+  --color-teal-500: #75CCCE;     /* primary CTAs, links, interactive */
+  --color-coral-500: #EA5F3C;    /* error / danger only */
+
+  /* -------- Channel colors -------- */
+  --color-canal-instagram: #D7548C;
+  --color-canal-whatsapp: #1F8A5B;
+  --color-canal-mail: #2E6F70;
+  --color-canal-otros: var(--color-ink-muted);
+  --color-teal-ink: #2E6F70;
+
+  /* -------- Neutrals (text + surfaces) -------- */
+  --color-ink: #1C1A1E;          /* body text, table content, labels */
+  --color-ink-muted: #6B6270;    /* secondary / muted */
+  --color-page-bg: #F7F5F3;      /* page background */
+  --color-surface: #FFFFFF;      /* cards, panels */
+  --color-border: rgba(28, 26, 30, 0.10);      /* hairline 0.5px feel */
+  --color-border-strong: rgba(28, 26, 30, 0.18);
+
+  /* -------- Pastels (backgrounds only, never text color) -------- */
+  --color-lavender: #DBA8CD;     /* highlighted card bg, tags */
+  --color-mint: #D0EADD;         /* success bg */
+  --color-pink-soft: #F9C2D2;    /* info / neutral bg */
+  --color-yellow: #F8D132;       /* warning bg — pair w/ --yellow-ink */
+  --color-yellow-ink: #7A5D00;   /* required dark text on yellow */
+
+  /* -------- Soft tints derived from brand (for hovers, fills) -------- */
+  --color-violet-50: #F6ECF2;
+  --color-violet-100: #ECD8E6;
+  --color-teal-100: #D6F0F1;
+  --color-coral-50: #FCEBE6;
+
+  /* -------- Strong / "ink" variants (legible como texto sobre claro) -------- */
+  --color-teal-700: #2E6F70;     /* celeste fuerte (texto/acento) */
+  --color-coral-700: #C24524;    /* coral fuerte (texto error) */
+  --color-violet-900: #6E1D59;   /* violeta oscuro (focus) */
+
+  /* -------- Green (success / valid) -------- */
+  --color-green-50: #E7F4EC;     /* fill suave */
+  --color-green-500: #34A56C;    /* acento / sombra de estado válido */
+  --color-green-700: #1B7A4B;    /* verde fuerte (texto label) */
+
+  /* -------- Orange (warning / low stock) -------- */
+  --color-orange-50: #FFF7ED;    /* fill suave */
+  --color-orange-500: #F97316;   /* acento / estado bajo stock */
+  --color-orange-ink: #C24F00;   /* naranja fuerte (legible para texto) */
+
+  /* -------- Toast missing colors -------- */
+  --color-violet-600: #9E2B7E;
+  --color-teal-600: #64B8BA;
+
+  /* -------- State helpers (rings) -------- */
+  --shadow-focus-ring: 0 0 0 3px rgba(117, 204, 206, 0.45);
+  --shadow-danger-ring: 0 0 0 3px rgba(234, 95, 60, 0.35);
+
+  /* -------- Type stack -------- */
+  --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* -------- Type scale (C1/Tokens mapping) -------- */
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-16: 16px;
+  --text-18: 18px;
+  --text-22: 22px;
+  --text-28: 28px;
+  --text-36: 36px;
+  --text-48: 48px;
+
+  /* -------- Radii -------- */
+  --radius-sm: 6px;
+  --radius-md: 8px;              /* default */
+  --radius-lg: 12px;             /* cards */
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* -------- Elevation -------- */
+  --shadow-1: 0 1px 0 rgba(28,26,30,0.04), 0 1px 2px rgba(28,26,30,0.04);
+  --shadow-2: 0 2px 6px rgba(28,26,30,0.06), 0 1px 2px rgba(28,26,30,0.04);
+  --shadow-pop: 0 8px 24px rgba(28,26,30,0.10), 0 2px 6px rgba(28,26,30,0.06);
+}
+
+@layer base {
+  html, body {
+    background: var(--color-page-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-14);
+    line-height: 1.50; /* normal */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* All headings: weight 500, violet, tight leading */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    color: var(--color-violet-700);
+    font-weight: 500;
+    line-height: 1.15; /* tight */
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  h1 { font-size: var(--text-36); letter-spacing: -0.02em; }
+  h2 { font-size: var(--text-28); letter-spacing: -0.015em; }
+  h3 { font-size: var(--text-22); }
+  h4 { font-size: var(--text-18); }
+  h5 { font-size: var(--text-16); }
+  h6 { font-size: var(--text-14); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  p { margin: 0; font-size: var(--text-14); color: var(--color-ink); }
+  small, .text-hint { font-size: var(--text-12); color: var(--color-ink-muted); }
+  .text-muted { color: var(--color-ink-muted); }
+  .text-mono  { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .num        { font-variant-numeric: tabular-nums; }
+
+  a {
+    color: var(--color-teal-500);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 120ms ease, color 120ms ease;
+  }
+  a:hover { border-bottom-color: currentColor; }
+  a:focus-visible { outline: none; box-shadow: var(--shadow-focus-ring); border-radius: 3px; }
+
+  label, .label {
+    font-size: var(--text-13);
+    font-weight: 500;
+    color: var(--color-ink);
+    letter-spacing: 0.005em;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--color-border);
+    margin: 24px 0; /* --s-6 = 24px */
+  }
+
+  ::selection { background: var(--color-teal-100); color: var(--color-ink); }
+}
+

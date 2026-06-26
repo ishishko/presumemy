@@ -1,0 +1,1 @@
+export { useFinanzasStore } from './store'

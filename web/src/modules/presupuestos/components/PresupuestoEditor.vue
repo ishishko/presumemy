@@ -1,0 +1,1335 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { GripVertical, Plus, Trash2, FileText, Download, Link2 } from '@lucide/vue'
+import { get, post, put, patch } from '@/shared/api/client'
+import { useToast } from '@/shared/lib/useToast'
+import { editorDirty } from '@/shared/lib/editorMode'
+import type { Presupuesto, Cliente, Producto, PaginationResult, ConfiguracionNegocio } from '@/types'
+import { presupuestoSchema } from '@/schemas/presupuestos'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
+import FloatingField from '@/shared/ui/FloatingField.vue'
+import PresupuestoDoc from './PresupuestoDoc.vue'
+import { formatMoney } from '@/shared/lib/format'
+
+const props = defineProps<{
+  open: boolean
+  presupuesto?: Presupuesto | null
+}>()
+
+const emit = defineEmits<{
+  close: []
+  saved: [presupuesto: Presupuesto]
+  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
+}>()
+
+const { toast } = useToast()
+
+const isNew = computed(() => !props.presupuesto)
+const docFolio = computed(() => props.presupuesto?.folio || 'P-...')
+const estado = ref('borrador')
+
+const isEditable = computed(() => {
+  return isNew.value || estado.value === 'borrador' || estado.value === 'en_curso'
+})
+
+const statusTones: Record<string, { tone: string; label: string }> = {
+  borrador: { tone: 'default', label: 'Borrador' },
+  en_curso: { tone: 'teal', label: 'En curso' },
+  cerrado: { tone: 'mint', label: 'Cerrado' },
+  facturado: { tone: 'lavender', label: 'Facturado' },
+  cancelado: { tone: 'coral', label: 'Cancelado' },
+  enviado: { tone: 'violet', label: 'Enviado' }, // Legacy fallback
+}
+
+const TRANSITIONS: Record<string, string[]> = {
+  borrador: ['en_curso', 'cancelado'],
+  en_curso: ['cerrado', 'cancelado'],
+  cerrado: ['facturado', 'en_curso'],
+  facturado: [],
+  cancelado: [],
+  enviado: ['en_curso', 'cancelado'], // Legacy fallback
+}
+
+function getAvailableTransitions(state: string): string[] {
+  return TRANSITIONS[state] || []
+}
+
+const dropdownOpen = ref(false)
+
+function toggleDropdown() {
+  dropdownOpen.value = !dropdownOpen.value
+}
+
+function closeDropdown() {
+  dropdownOpen.value = false
+}
+
+const showConfirmReopen = ref(false)
+
+function handleStatusChange(newStatus: string) {
+  if (props.presupuesto?.estado === 'cerrado' && newStatus === 'en_curso') {
+    showConfirmReopen.value = true
+    return
+  }
+  estado.value = newStatus
+  toast(`Estado cambiado localmente a ${statusTones[newStatus]?.label || newStatus}. Guardá para persistir.`, 'info')
+}
+
+async function confirmReopen() {
+  showConfirmReopen.value = false
+  if (!props.presupuesto) return
+  try {
+    const updated = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: 'en_curso' })
+    estado.value = updated.estado
+    originalFormSnapshot.value = getFormSnapshot()
+    emit('saved', updated)
+    await loadPresupuesto()
+    toast('Presupuesto reabierto. Ahora podés editar los campos.')
+  } catch (e: any) {
+    toast(e.message || 'Error al reabrir el presupuesto', 'error')
+  }
+}
+
+const clientes = ref<Cliente[]>([])
+const productos = ref<Producto[]>([])
+const config = ref<ConfiguracionNegocio | null>(null)
+
+const cliente = ref('')
+const clienteId = ref<number>(0)
+const tematica = ref('')
+const fechaFiesta = ref('')
+const fechaEntrega = ref('')
+const tipoEntrega = ref<'retira' | 'envio'>('retira')
+const direccionEntrega = ref('')
+const metodoPago = ref('')
+const sena = ref('')
+const notas = ref('')
+const includeNotes = ref(true)
+
+const showConfirmExit = ref(false)
+
+const selectedCliente = computed(() => {
+  return clientes.value.find(c => c.id === clienteId.value)
+})
+
+const mainContacto = computed(() => {
+  return selectedCliente.value?.contactos?.find(co => co.esPrincipal) || selectedCliente.value?.contactos?.[0]
+})
+
+const lineas = ref<Array<{ id: number; producto: string; productoId: number; qty: string; price: string }>>([])
+const activeRow = ref<number | null>(null)
+const cellDirty = ref(false)
+const dragId = ref<number | null>(null)
+const dragOverId = ref<number | null>(null)
+const idRef = ref(1)
+
+const mkId = () => ++idRef.value
+
+const snapshot = ref<any>(null)
+const savedAt = ref('')
+const errors = ref<Record<string, string>>({})
+
+const clienteInvalid = computed(() =>
+  !!errors.value.clienteId || (cliente.value.trim().length > 0 && clienteId.value === 0)
+)
+const senaInvalid = computed(() => {
+  const v = sena.value
+  if (v === '' || v == null) return false
+  const n = parseFloat(v)
+  return isNaN(n) || n < 0
+})
+
+const overlayEl = ref<HTMLElement | null>(null)
+let prevFocused: HTMLElement | null = null
+
+function getFocusable(): HTMLElement[] {
+  if (!overlayEl.value) return []
+  const sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  return Array.from(overlayEl.value.querySelectorAll<HTMLElement>(sel))
+    .filter(el => el.offsetParent !== null)
+}
+
+function onOverlayKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    triggerClose()
+    return
+  }
+  if (e.key === 'Tab') {
+    const f = getFocusable()
+    if (f.length === 0) return
+    const first = f[0]
+    const last = f[f.length - 1]
+    const active = document.activeElement as HTMLElement
+    if (e.shiftKey && active === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+}
+
+async function focusFirstField() {
+  prevFocused = document.activeElement as HTMLElement | null
+  await nextTick()
+  getFocusable()[0]?.focus()
+}
+
+function restoreFocus() {
+  prevFocused?.focus?.()
+  prevFocused = null
+}
+
+const subtotal = computed(() =>
+  lineas.value.reduce((s, l) => s + (parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0), 0)
+)
+
+const total = computed(() => subtotal.value)
+
+const restoCalc = computed(() => {
+  const senaVal = parseFloat(sena.value) || 0
+  return Math.max(0, total.value - senaVal)
+})
+
+function getFormSnapshot() {
+  return JSON.stringify({
+    estado: estado.value,
+    clienteId: clienteId.value,
+    cliente: cliente.value,
+    tematica: tematica.value,
+    fechaFiesta: fechaFiesta.value,
+    fechaEntrega: fechaEntrega.value,
+    tipoEntrega: tipoEntrega.value,
+    direccionEntrega: direccionEntrega.value,
+    metodoPago: metodoPago.value,
+    sena: parseFloat(sena.value) || 0,
+    notas: notas.value,
+    includeNotes: includeNotes.value,
+    lines: lineas.value
+      .filter(l => l.producto || l.qty || l.price)
+      .map(l => ({
+        producto: l.producto,
+        productoId: l.productoId,
+        qty: parseFloat(l.qty) || 0,
+        price: parseFloat(l.price) || 0
+      }))
+  })
+}
+
+const originalFormSnapshot = ref('')
+const isDirty = computed(() => {
+  return getFormSnapshot() !== originalFormSnapshot.value
+})
+
+function reset() {
+  cliente.value = ''
+  clienteId.value = 0
+  tematica.value = ''
+  fechaFiesta.value = ''
+  fechaEntrega.value = ''
+  tipoEntrega.value = 'retira'
+  direccionEntrega.value = ''
+  metodoPago.value = ''
+  sena.value = ''
+  notas.value = ''
+  includeNotes.value = true
+  lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
+  activeRow.value = null
+  dragId.value = null
+  dragOverId.value = null
+  snapshot.value = null
+  savedAt.value = ''
+  errors.value = {}
+  estado.value = 'borrador'
+}
+
+async function loadPresupuesto() {
+  reset()
+  if (props.presupuesto) {
+    let p = props.presupuesto
+    if (!p.detalles) {
+      try {
+        const res = await get<{ data: Presupuesto }>(`/presupuestos/${p.id}`)
+        p = res.data
+      } catch (e: any) {
+        toast('Error al cargar detalles del presupuesto', 'error')
+      }
+    }
+    cliente.value = p.cliente?.nombre || ''
+    clienteId.value = p.clienteId
+    tematica.value = p.tematica || ''
+    fechaFiesta.value = p.fechaFiesta ? p.fechaFiesta.slice(0, 10) : ''
+    fechaEntrega.value = p.fechaEntrega ? p.fechaEntrega.slice(0, 10) : ''
+    tipoEntrega.value = p.tipoEntrega
+    direccionEntrega.value = p.direccionEntrega || ''
+    metodoPago.value = p.metodoPago || ''
+    sena.value = p.sena ? p.sena.toString() : '0'
+    notas.value = p.notas || ''
+    includeNotes.value = p.notasPublicas ?? true
+    lineas.value = (p.detalles || []).map((d) => ({
+      id: mkId(),
+      producto: d.producto?.nombre || d.descripcion,
+      productoId: d.productoId,
+      qty: d.cantidad.toString(),
+      price: d.precioUnitario.toString(),
+    }))
+    if (lineas.value.length === 0) {
+      lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
+    }
+    estado.value = p.estado
+    snapshot.value = captureSnapshot(p.estado)
+  }
+  originalFormSnapshot.value = getFormSnapshot()
+}
+
+function updateLine(id: number, patch: Partial<{ producto: string; productoId: number; qty: string; price: string }>) {
+  lineas.value = lineas.value.map(l => l.id === id ? { ...l, ...patch } : l)
+}
+
+function onCellInput(id: number, patch: Partial<{ qty: string; price: string }>) {
+  cellDirty.value = true
+  updateLine(id, patch)
+}
+
+function onCellFocus(id: number) {
+  activeRow.value = id
+  cellDirty.value = false
+}
+
+function removeLine(id: number) {
+  lineas.value = lineas.value.filter(l => l.id !== id)
+  if (lineas.value.length === 0) {
+    lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
+  }
+}
+
+function handleProductChange(id: number, val: string) {
+  cellDirty.value = true
+  const line = lineas.value.find(l => l.id === id)
+  const p = productos.value.find(p => p.nombre === val)
+  const patch: any = { producto: val }
+  if (p) {
+    patch.productoId = p.id
+    patch.price = p.precio.toString()
+    if (line && line.qty.trim() === '') patch.qty = '1'
+  } else {
+    patch.productoId = 0
+  }
+  updateLine(id, patch)
+}
+
+const isRowEmpty = (l: { producto: string; qty: string; price: string }) =>
+  !l.producto.trim() && !l.qty.trim() && !l.price.trim()
+
+const isRowInvalid = (l: { producto: string; qty: string; price: string }) =>
+  !isRowEmpty(l) && (!l.producto.trim() || !(parseFloat(l.qty) > 0))
+
+function focusRowFirstCell(rowId: number) {
+  nextTick(() => {
+    const row = document.querySelector(`.lines-spreadsheet tbody tr[data-id="${rowId}"]`) as HTMLElement | null
+    const input = row?.querySelector('.cell-input') as HTMLInputElement | undefined
+    input?.focus()
+  })
+}
+
+function focusAfterTable() {
+  const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
+  if (!table) return
+  const focusables = getFocusable()
+  const active = document.activeElement as HTMLElement
+  const fromIdx = focusables.indexOf(active)
+  const next = focusables.find((el, i) => i > fromIdx && !table.contains(el))
+  next?.focus()
+}
+
+function onCellEnter(rowId: number) {
+  if (cellDirty.value) {
+    cellDirty.value = false
+    return
+  }
+  const idx = lineas.value.findIndex(l => l.id === rowId)
+  const nextRow = lineas.value[idx + 1]
+  if (nextRow) {
+    focusRowFirstCell(nextRow.id)
+    return
+  }
+  const current = lineas.value[idx]
+  if (current && isRowEmpty(current)) {
+    focusAfterTable()
+  } else {
+    handleAddLine()
+  }
+}
+
+function onTableFocusout(e: FocusEvent) {
+  const next = e.relatedTarget as HTMLElement | null
+  const table = e.currentTarget as HTMLElement
+  if (next && table.contains(next)) return
+  activeRow.value = null
+  cellDirty.value = false
+  const kept = lineas.value.filter(l => !isRowEmpty(l))
+  lineas.value = kept.length > 0 ? kept : [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
+}
+
+function onDrop(id: number) {
+  if (dragId.value == null || dragId.value === id) {
+    dragId.value = null
+    dragOverId.value = null
+    return
+  }
+  const from = lineas.value.findIndex(l => l.id === dragId.value)
+  const to = lineas.value.findIndex(l => l.id === id)
+  if (from < 0 || to < 0) return
+  const next = [...lineas.value]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  lineas.value = next
+  dragId.value = null
+  dragOverId.value = null
+}
+
+function handleAddLine() {
+  lineas.value.push({ id: mkId(), producto: '', productoId: 0, qty: '', price: '' })
+  nextTick(() => {
+    const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
+    const inputs = table?.querySelectorAll('tbody tr:last-child .cell-input') as NodeListOf<HTMLInputElement> | undefined
+    inputs?.[0]?.focus()
+  })
+}
+
+function validate(): boolean {
+  const detalles = lineas.value
+    .filter(l => l.producto && parseFloat(l.qty) > 0)
+    .map(l => ({
+      productoId: l.productoId || 0,
+      descripcion: l.producto,
+      cantidad: parseFloat(l.qty),
+      precioUnitario: parseFloat(l.price),
+    }))
+
+  const result = presupuestoSchema.safeParse({
+    clienteId: clienteId.value,
+    tematica: tematica.value,
+    tipoEntrega: tipoEntrega.value,
+    direccionEntrega: direccionEntrega.value,
+    fechaFiesta: fechaFiesta.value ? new Date(fechaFiesta.value).toISOString() : undefined,
+    fechaEntrega: fechaEntrega.value ? new Date(fechaEntrega.value).toISOString() : undefined,
+    metodoPago: metodoPago.value,
+    sena: parseFloat(sena.value) || 0,
+    notas: notas.value,
+    detalles,
+  })
+  if (!result.success) {
+    errors.value = {}
+    result.error.issues.forEach((e: any) => {
+      errors.value[e.path.join('.')] = e.message
+    })
+    const firstError = result.error.issues[0]?.message || 'Datos de presupuesto inválidos'
+    toast(firstError, 'error')
+    return false
+  }
+  errors.value = {}
+  return true
+}
+
+function captureSnapshot(status: string) {
+  const now = new Date()
+  return {
+    folio: docFolio.value,
+    cliente: cliente.value,
+    tematica: tematica.value,
+    fFiesta: fechaFiesta.value,
+    fEntrega: fechaEntrega.value,
+    envio: tipoEntrega.value,
+    lugar: direccionEntrega.value,
+    pago: metodoPago.value,
+    sena: parseFloat(sena.value) || 0,
+    resto: restoCalc.value,
+    lines: lineas.value.filter(l => l.producto && parseFloat(l.qty) > 0),
+    subtotal: subtotal.value,
+    total: total.value,
+    notes: notas.value,
+    includeNotes: includeNotes.value,
+    status,
+    savedAt: now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+  }
+}
+
+async function handleSave() {
+  if (!validate()) return
+
+  const detalles = lineas.value
+    .filter(l => l.producto && parseFloat(l.qty) > 0)
+    .map(l => ({
+      productoId: l.productoId,
+      descripcion: l.producto,
+      cantidad: parseFloat(l.qty),
+      precioUnitario: parseFloat(l.price),
+    }))
+
+  const payload: any = {
+    clienteId: clienteId.value,
+    tematica: tematica.value,
+    tipoEntrega: tipoEntrega.value,
+    direccionEntrega: direccionEntrega.value,
+    fechaFiesta: fechaFiesta.value ? new Date(fechaFiesta.value).toISOString() : undefined,
+    fechaEntrega: fechaEntrega.value ? new Date(fechaEntrega.value).toISOString() : undefined,
+    metodoPago: metodoPago.value,
+    sena: parseFloat(sena.value) || 0,
+    notas: notas.value,
+    notasPublicas: includeNotes.value,
+    detalles,
+  }
+
+  try {
+    let res: Presupuesto
+    if (!isNew.value && props.presupuesto) {
+      res = await put<Presupuesto>('/presupuestos', props.presupuesto.id, payload)
+      if (estado.value !== props.presupuesto.estado) {
+        res = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: estado.value })
+      }
+      toast('Presupuesto actualizado')
+    } else {
+      res = await post<Presupuesto>('/presupuestos', payload)
+      if (estado.value !== 'borrador') {
+        res = await patch<Presupuesto>('/presupuestos', `${res.id}/estado`, { estado: estado.value })
+      }
+      toast('Borrador guardado')
+    }
+
+    snapshot.value = captureSnapshot(estado.value)
+    const now = new Date()
+    savedAt.value = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+    originalFormSnapshot.value = getFormSnapshot()
+    emit('saved', res)
+    await loadPresupuesto()
+  } catch (e: any) {
+    toast(e.message || 'Error al guardar', 'error')
+  }
+}
+
+async function handleSendToClient() {
+  if (!validate()) return
+
+  if (isDirty.value) {
+    await handleSave()
+  }
+
+  if (isNew.value || !props.presupuesto) return
+
+  try {
+    const updated = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: 'en_curso' })
+    estado.value = updated.estado
+    originalFormSnapshot.value = getFormSnapshot()
+    emit('saved', updated)
+    await loadPresupuesto()
+
+    if (mainContacto.value) {
+      toast(`Presupuesto enviado por ${mainContacto.value.canal}: ${mainContacto.value.valor}`)
+    } else {
+      toast('Presupuesto enviado al cliente')
+    }
+  } catch (e: any) {
+    toast(e.message || 'Error al enviar presupuesto', 'error')
+  }
+}
+
+const canShareDoc = computed(() => {
+  const persistido = props.presupuesto?.estado
+  return !isNew.value && !!persistido && persistido !== 'borrador' && persistido !== 'cancelado'
+})
+
+const pdfLoading = ref(false)
+
+async function handleDownloadPdf() {
+  if (!props.presupuesto || pdfLoading.value) return
+  pdfLoading.value = true
+  try {
+    const res = await get<{ data: { url: string } }>(`/presupuestos/${props.presupuesto.id}/pdf`)
+    window.open(res.data.url, '_blank')
+  } catch (e: any) {
+    toast(e.data?.error || 'Error al generar el PDF', 'error')
+  } finally {
+    pdfLoading.value = false
+  }
+}
+
+async function handleCopyLink() {
+  if (!props.presupuesto) return
+  let token = props.presupuesto.publicToken
+  if (!token) {
+    try {
+      const res = await get<{ data: Presupuesto }>(`/presupuestos/${props.presupuesto.id}`)
+      token = res.data.publicToken
+    } catch {
+      // se reporta abajo si sigue faltando
+    }
+  }
+  if (!token) {
+    toast('No se pudo obtener el link del presupuesto', 'error')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(`${location.origin}/p/${token}`)
+    toast('Link copiado al portapapeles')
+  } catch {
+    toast('No se pudo copiar el link', 'error')
+  }
+}
+
+function triggerClose() {
+  if (isDirty.value) {
+    showConfirmExit.value = true
+  } else {
+    closeEditor()
+  }
+}
+
+function openEditor() {
+  emit('update:header', {
+    mode: 'editor',
+    title: isNew.value ? 'Nuevo' : (props.presupuesto?.folio || ''),
+    onSave: () => handleSave(),
+    onClose: triggerClose,
+  })
+}
+
+function closeEditor() {
+  emit('update:header', { mode: 'normal' })
+  emit('close')
+  restoreFocus()
+}
+
+onMounted(async () => {
+  window.addEventListener('click', closeDropdown)
+  try {
+    const [clientesRes, productosRes, configRes] = await Promise.all([
+      get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 100 }),
+      get<PaginationResult<Producto>>('/productos', { page: 1, limit: 100 }),
+      get<{ data: ConfiguracionNegocio }>('/ajustes/configuracion'),
+    ])
+    clientes.value = clientesRes.data
+    productos.value = productosRes.data
+    config.value = configRes.data
+  } catch (e: any) {
+    toast('Error al cargar datos', 'error')
+  }
+
+  if (props.open) {
+    await loadPresupuesto()
+    openEditor()
+    originalFormSnapshot.value = getFormSnapshot()
+    editorDirty.value = isDirty.value
+    focusFirstField()
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeDropdown)
+})
+
+watch(cliente, (newVal) => {
+  if (props.presupuesto && newVal === props.presupuesto.cliente?.nombre) {
+    clienteId.value = props.presupuesto.clienteId
+    return
+  }
+  const match = clientes.value.find(c => c.nombre.toLowerCase() === newVal.toLowerCase())
+  if (match) {
+    clienteId.value = match.id
+  } else {
+    clienteId.value = 0
+  }
+})
+
+watch(isDirty, (val) => {
+  editorDirty.value = val
+})
+
+watch(
+  [() => props.open, () => props.presupuesto],
+  async ([open]) => {
+    if (open) {
+      await loadPresupuesto()
+      openEditor()
+      originalFormSnapshot.value = getFormSnapshot()
+      editorDirty.value = isDirty.value
+      focusFirstField()
+    } else {
+      closeEditor()
+      editorDirty.value = false
+    }
+  }
+)
+
+defineExpose({ loadPresupuesto })
+</script>
+
+<template>
+  <Transition name="editor-slide">
+    <div
+      v-if="open"
+      ref="overlayEl"
+      class="editor-overlay"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="isNew ? 'Nuevo presupuesto' : `Presupuesto ${docFolio}`"
+      @keydown="onOverlayKeydown"
+    >
+      <div class="editor-split">
+        <div class="editor-form">
+          <Teleport to="#editor-header-status">
+            <div v-if="!isNew" class="custom-status-dropdown inline-block" @click.stop>
+              <button
+                type="button"
+                class="status-badge-wrap"
+                :class="[statusTones[estado]?.tone || 'default', getAvailableTransitions(estado).length > 0 && 'interactive']"
+                @click="toggleDropdown"
+                :disabled="getAvailableTransitions(estado).length === 0"
+                :aria-haspopup="getAvailableTransitions(estado).length > 0 ? 'menu' : undefined"
+                :aria-expanded="getAvailableTransitions(estado).length > 0 ? dropdownOpen : undefined"
+                :aria-label="`Estado: ${statusTones[estado]?.label || estado}${getAvailableTransitions(estado).length > 0 ? ', cambiar estado' : ''}`"
+              >
+                <span class="dot" aria-hidden="true" />
+                <span>{{ statusTones[estado]?.label || estado }}</span>
+                <span v-if="getAvailableTransitions(estado).length > 0" class="chevron-arrow" aria-hidden="true"></span>
+              </button>
+              <div v-if="dropdownOpen" class="status-dropdown-menu" role="menu">
+                <button
+                  v-for="t in getAvailableTransitions(estado)"
+                  :key="t"
+                  type="button"
+                  role="menuitem"
+                  class="status-dropdown-item"
+                  :class="statusTones[t]?.tone || 'default'"
+                  @click="handleStatusChange(t); dropdownOpen = false"
+                >
+                  <span class="dot" aria-hidden="true" />
+                  <span>{{ statusTones[t]?.label || t }}</span>
+                </button>
+              </div>
+            </div>
+          </Teleport>
+
+          <section class="form-section">
+            <div class="form-section-body">
+              <div class="form-row">
+                <div class="field">
+                  <FloatingField
+                    id="ed-cliente"
+                    label="Cliente"
+                    float-size="16px"
+                    required
+                    v-model="cliente"
+                    placeholder="Buscar o agregar cliente..."
+                    list="ed-clients"
+                    :disabled="!isEditable"
+                    :invalid="clienteInvalid"
+                    :describedby="errors.clienteId ? 'ed-cliente-err' : undefined"
+                  />
+                  <datalist id="ed-clients">
+                    <option v-for="c in clientes" :key="c.id" :value="c.nombre" />
+                  </datalist>
+                  <p v-if="errors.clienteId" id="ed-cliente-err" class="err" role="alert">{{ errors.clienteId }}</p>
+                </div>
+                <div class="field">
+                  <FloatingField
+                    id="ed-tematica"
+                    label="Evento"
+                    v-model="tematica"
+                    placeholder="Ej. Jardín pastel, dinosaurios, neón..."
+                    :disabled="!isEditable"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-section-body">
+              <div class="form-row">
+                <div class="field">
+                  <FloatingField
+                    id="ed-fecha-fiesta"
+                    label="Fecha de fiesta"
+                    type="date"
+                    always-float
+                    v-model="fechaFiesta"
+                    :disabled="!isEditable"
+                  />
+                </div>
+                <div class="field">
+                  <FloatingField
+                    id="ed-fecha-entrega"
+                    label="Fecha de entrega"
+                    type="date"
+                    always-float
+                    v-model="fechaEntrega"
+                    :disabled="!isEditable"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-section-body">
+              <div class="form-row form-row-3">
+                <div class="field">
+                  <FloatingField
+                    id="ed-metodo-pago"
+                    label="Método de pago"
+                    v-model="metodoPago"
+                    placeholder="Transferencia, MP, efectivo..."
+                    :disabled="!isEditable"
+                  />
+                </div>
+                <div class="field">
+                  <FloatingField
+                    id="ed-sena"
+                    label="Seña"
+                    type="number"
+                    prefix="$"
+                    float-size="13px"
+                    v-model="sena"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    :invalid="senaInvalid"
+                    :disabled="!isEditable"
+                  />
+                </div>
+                <div class="field">
+                  <FloatingField
+                    id="ed-resto"
+                    label="Resto"
+                    prefix="$"
+                    float-size="13px"
+                    always-float
+                    readonly
+                    tabindex="-1"
+                    aria-label="Resto a pagar, calculado automáticamente"
+                    :model-value="restoCalc.toFixed(2)"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-section-body">
+              <div class="form-row form-row-envio">
+                <div class="field">
+                  <div class="envio-head">
+                    <h4>Entrega</h4>
+                    <span id="ed-envio-label" class="form-subhead">Método de envío</span>
+                  </div>
+                  <div class="segmented" style="margin-top: 4px;">
+                    <input
+                      type="checkbox"
+                      id="cb-envio-tipo"
+                      class="tgl tgl-flip"
+                      :checked="tipoEntrega === 'envio'"
+                      @change="tipoEntrega = ($event.target as HTMLInputElement).checked ? 'envio' : 'retira'"
+                      :disabled="!isEditable"
+                    />
+                    <label for="cb-envio-tipo" data-tg-on="Envío" data-tg-off="Retira" class="tgl-btn" style="margin: 0;"></label>
+                  </div>
+                </div>
+                <div v-if="tipoEntrega === 'envio'" class="field">
+                  <FloatingField
+                    id="ed-lugar-envio"
+                    label="Lugar de envío"
+                    v-model="direccionEntrega"
+                    placeholder="Calle, número, colonia, CP"
+                    :disabled="!isEditable"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-section-body">
+              <div
+                class="lines-spreadsheet"
+                @focusout="onTableFocusout"
+              >
+                <table>
+                  <colgroup>
+                    <col style="width: 22px" />
+                    <col />
+                    <col style="width: 58px" />
+                    <col style="width: 86px" />
+                    <col style="width: 110px" />
+                    <col style="width: 30px" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th><strong class="th-producto">Producto</strong> / descripción</th>
+                      <th class="num">Cant.</th>
+                      <th class="num">Precio</th>
+                      <th class="num">Subtotal</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="l in lineas"
+                      :key="l.id"
+                      :class="[
+                        'ln-row',
+                        activeRow === l.id && 'active',
+                        isRowInvalid(l) && 'error',
+                        dragId === l.id && 'dragging',
+                        dragOverId === l.id && dragId !== l.id && 'drag-over',
+                      ].filter(Boolean).join(' ')"
+                      :data-id="l.id"
+                      :draggable="isEditable"
+                      @dragstart="isEditable && (dragId = l.id)"
+                      @dragover.prevent="isEditable && (dragOverId = l.id)"
+                      @drop="isEditable && onDrop(l.id)"
+                      @dragend="dragId = null; dragOverId = null"
+                      @mousedown="isEditable && (activeRow = l.id)"
+                    >
+                      <td class="grip" title="Arrastrar para reordenar" aria-hidden="true">
+                        <GripVertical :size="14" />
+                      </td>
+                      <td>
+                        <input
+                          class="cell-input"
+                          :value="l.producto"
+                          @input="handleProductChange(l.id, ($event.target as HTMLInputElement).value)"
+                          @focus="onCellFocus(l.id)"
+                          @keydown.enter.prevent="onCellEnter(l.id)"
+                          :placeholder="l.id === lineas[0]?.id ? 'Producto, descripción o catálogo...' : ''"
+                          list="ed-products"
+                          :disabled="!isEditable"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          class="cell-input num-input"
+                          type="number"
+                          min="0"
+                          step="1"
+                          :value="l.qty"
+                          @input="onCellInput(l.id, { qty: ($event.target as HTMLInputElement).value })"
+                          @focus="onCellFocus(l.id)"
+                          @keydown.enter.prevent="onCellEnter(l.id)"
+                          :disabled="!isEditable"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          class="cell-input num-input"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          :value="l.price"
+                          @input="onCellInput(l.id, { price: ($event.target as HTMLInputElement).value })"
+                          @focus="onCellFocus(l.id)"
+                          @keydown.enter.prevent="onCellEnter(l.id)"
+                          :disabled="!isEditable"
+                        />
+                      </td>
+                      <td class="num cell-subtotal">
+                        {{ formatMoney((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}
+                      </td>
+                      <td>
+                        <button
+                          class="del-btn"
+                          @click="removeLine(l.id)"
+                          title="Eliminar línea"
+                          aria-label="Eliminar línea"
+                          :disabled="!isEditable"
+                          v-if="isEditable"
+                        >
+                          <Trash2 :size="14" aria-hidden="true" />
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <datalist id="ed-products">
+                  <option v-for="p in productos" :key="p.id" :value="p.nombre" />
+                </datalist>
+
+                <button
+                  v-if="isEditable"
+                  type="button"
+                  class="add-line-btn"
+                  @click="handleAddLine"
+                >
+                  <Plus :size="14" /> Agregar línea
+                </button>
+              </div>
+
+              <p v-if="errors.detalles" class="err" role="alert">{{ errors.detalles }}</p>
+
+              <div class="ed-totals">
+                <div class="r"><span>Subtotal</span><span class="num">{{ formatMoney(subtotal) }}</span></div>
+                <div class="r grand">
+                  <span>Total</span><span class="num v">{{ formatMoney(total) }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-section-body">
+              <div class="field">
+                <FloatingField
+                  id="ed-notas"
+                  label="Notas"
+                  multiline
+                  v-model="notas"
+                  placeholder="Detalles para el cliente: incluye montaje, instrucciones de retiro, alergenos, etc."
+                  :disabled="!isEditable"
+                />
+              </div>
+              <label class="check-row">
+                <input type="checkbox" v-model="includeNotes" :disabled="!isEditable" />
+                <span>Incluir en impresión / vista web</span>
+              </label>
+            </div>
+          </section>
+
+          <div class="form-tailspace"></div>
+        </div>
+
+        <div class="editor-preview">
+          <div v-if="!snapshot" class="preview-empty">
+            <FileText :size="44" />
+            <p>El presupuesto aparecerá aquí al guardar.</p>
+            <small>Vista del documento como lo recibe el cliente.</small>
+          </div>
+          <PresupuestoDoc v-else :doc="snapshot" :config="config" />
+        </div>
+      </div>
+
+      <div class="editor-foot">
+        <div class="editor-foot-left">
+          <BaseButton variant="ghost" class="hover:bg-violet-50 text-violet-700" @click="triggerClose">{{ isEditable ? 'Cancelar' : 'Cerrar' }}</BaseButton>
+          <div class="flex-1"></div>
+          <BaseButton
+            v-if="isEditable && estado === 'borrador' && !isNew"
+            variant="secondary"
+            class="text-ink hover:bg-page-bg/80"
+            @click="handleSendToClient"
+          >
+            Enviar a {{ mainContacto ? (mainContacto.valor ? `${mainContacto.canal} (${mainContacto.valor})` : mainContacto.canal) : 'cliente' }}
+          </BaseButton>
+          <BaseButton
+            v-if="isEditable"
+            variant="primary"
+            class="text-white bg-teal-500 hover:bg-teal-600 disabled:opacity-50"
+            @click="handleSave"
+            :disabled="!isDirty"
+          >
+            {{ isNew ? 'Crear presupuesto' : 'Guardar cambios' }}
+          </BaseButton>
+        </div>
+        <div class="editor-foot-right justify-end flex">
+          <template v-if="canShareDoc">
+            <BaseButton variant="secondary" class="flex items-center gap-1.5 text-ink" type="button" @click="handleCopyLink">
+              <Link2 :size="16" aria-hidden="true" />
+              Copiar link
+            </BaseButton>
+            <BaseButton variant="secondary" class="flex items-center gap-1.5 text-ink" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
+              <Download :size="16" aria-hidden="true" />
+              {{ pdfLoading ? 'Generando...' : 'Descargar PDF' }}
+            </BaseButton>
+          </template>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
+  <ConfirmDialog
+    :open="showConfirmExit"
+    title="Salir sin guardar"
+    message="Tenés cambios sin guardar en este presupuesto. ¿Querés salir de todos modos?"
+    confirm-label="Salir"
+    variant="danger"
+    @confirm="showConfirmExit = false; closeEditor()"
+    @cancel="showConfirmExit = false"
+  />
+
+  <ConfirmDialog
+    :open="showConfirmReopen"
+    title="Reabrir presupuesto"
+    message="Este presupuesto ya está cerrado. Al reabrirlo, volverá al estado 'En curso' para que puedas modificar sus datos y se borrará la fecha de finalización. ¿Deseas continuar?"
+    confirm-label="Reabrir"
+    variant="default"
+    @confirm="confirmReopen"
+    @cancel="showConfirmReopen = false"
+  />
+</template>
+
+<style scoped>
+.editor-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--page-bg);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.editor-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-form {
+  overflow-y: auto;
+  padding: 28px 28px 24px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  background: var(--page-bg);
+}
+
+.editor-preview {
+  overflow-y: auto;
+  padding: 28px 32px;
+  background: radial-gradient(circle at 50% 0%, rgba(139, 37, 112, 0.04), transparent 240px), var(--page-bg);
+}
+
+.form-tailspace { height: 4px; }
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.form-section-head h4 {
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.form-subhead {
+  font-size: var(--fs-12);
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.step-pill {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--violet-50);
+  color: var(--violet-700);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.form-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.form-row-3 { grid-template-columns: 2fr 1fr 1fr; }
+
+.form-row-envio {
+  grid-template-columns: auto 1fr;
+  align-items: end;
+}
+.form-row-envio .segmented {
+  width: auto;
+  align-self: center;
+}
+.envio-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.envio-head h4 {
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.th-producto {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.add-line-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 0;
+  border-top: 1px dashed var(--border-strong);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--violet-700);
+  cursor: pointer;
+  text-align: left;
+}
+.add-line-btn:hover { background: var(--violet-50); }
+.add-line-btn svg { width: 14px; height: 14px; }
+
+.ed-totals {
+  margin-top: 14px;
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  max-width: 320px;
+  width: 100%;
+  align-self: flex-end;
+}
+
+.ed-totals .r {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.ed-totals .r.grand {
+  border-top: 1px solid var(--border-strong);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.ed-totals .r.grand .v { color: var(--violet-700); }
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.check-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--teal-500);
+  cursor: pointer;
+}
+
+.editor-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 14px 28px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 5;
+}
+
+.editor-foot-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 28px;
+  border-right: 1px solid var(--border);
+}
+
+.editor-foot-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-empty {
+  height: 100%;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.preview-empty svg {
+  width: 44px;
+  height: 44px;
+  opacity: 0.45;
+  margin-bottom: 6px;
+  color: var(--violet-700);
+}
+
+.preview-empty p {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+
+.preview-empty small { font-size: 12px; color: var(--ink-muted); }
+
+.editor-slide-enter-active,
+.editor-slide-leave-active {
+  transition: opacity 220ms ease;
+}
+
+.editor-slide-enter-from,
+.editor-slide-leave-to {
+  opacity: 0;
+}
+
+.editor-slide-enter-active .editor-overlay,
+.editor-slide-leave-active .editor-overlay {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.editor-slide-enter-from .editor-overlay,
+.editor-slide-leave-to .editor-overlay {
+  transform: translateX(30px);
+}
+</style>

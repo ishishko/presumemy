@@ -1,0 +1,1 @@
+export { useClientesStore } from './store'
