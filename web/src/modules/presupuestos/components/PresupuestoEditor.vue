@@ -9,7 +9,6 @@ import { presupuestoSchema } from '@/schemas/presupuestos'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import PresupuestoDoc from './PresupuestoDoc.vue'
-import { formatMoney } from '@/shared/lib/format'
 
 const props = defineProps<{
   open: boolean
@@ -129,6 +128,7 @@ const snapshot = ref<any>(null)
 const savedAt = ref('')
 const errors = ref<Record<string, string>>({})
 
+// validez por campo para las sombras de estado del FloatingField
 const clienteInvalid = computed(() =>
   !!errors.value.clienteId || (cliente.value.trim().length > 0 && clienteId.value === 0)
 )
@@ -139,6 +139,7 @@ const senaInvalid = computed(() => {
   return isNaN(n) || n < 0
 })
 
+// --- Accesibilidad: focus-trap del dialog ---
 const overlayEl = ref<HTMLElement | null>(null)
 let prevFocused: HTMLElement | null = null
 
@@ -180,6 +181,10 @@ async function focusFirstField() {
 function restoreFocus() {
   prevFocused?.focus?.()
   prevFocused = null
+}
+
+function money(n: number): string {
+  return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 const subtotal = computed(() =>
@@ -279,6 +284,7 @@ async function loadPresupuesto() {
       lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
     }
     estado.value = p.estado
+    // presupuesto ya guardado: mostrar el documento de entrada en el panel derecho
     snapshot.value = captureSnapshot(p.estado)
   }
   originalFormSnapshot.value = getFormSnapshot()
@@ -288,11 +294,13 @@ function updateLine(id: number, patch: Partial<{ producto: string; productoId: n
   lineas.value = lineas.value.map(l => l.id === id ? { ...l, ...patch } : l)
 }
 
+// input de cantidad/precio: marca la celda como editada
 function onCellInput(id: number, patch: Partial<{ qty: string; price: string }>) {
   cellDirty.value = true
   updateLine(id, patch)
 }
 
+// foco de celda: marca la fila activa y resetea el estado de edición
 function onCellFocus(id: number) {
   activeRow.value = id
   cellDirty.value = false
@@ -323,9 +331,11 @@ function handleProductChange(id: number, val: string) {
 const isRowEmpty = (l: { producto: string; qty: string; price: string }) =>
   !l.producto.trim() && !l.qty.trim() && !l.price.trim()
 
+// fila incompleta: tiene algún dato pero le falta producto o una cantidad válida
 const isRowInvalid = (l: { producto: string; qty: string; price: string }) =>
   !isRowEmpty(l) && (!l.producto.trim() || !(parseFloat(l.qty) > 0))
 
+// enfoca la primera celda editable de una fila por su id
 function focusRowFirstCell(rowId: number) {
   nextTick(() => {
     const row = document.querySelector(`.lines-spreadsheet tbody tr[data-id="${rowId}"]`) as HTMLElement | null
@@ -334,6 +344,7 @@ function focusRowFirstCell(rowId: number) {
   })
 }
 
+// saca el foco fuera de la tabla, al siguiente focusable de la página
 function focusAfterTable() {
   const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
   if (!table) return
@@ -344,7 +355,9 @@ function focusAfterTable() {
   next?.focus()
 }
 
+// Enter = navegación por fila (distinta de Tab, que es por celda)
 function onCellEnter(rowId: number) {
+  // celda recién editada: confirma y se queda (un segundo Enter avanzará)
   if (cellDirty.value) {
     cellDirty.value = false
     return
@@ -355,6 +368,7 @@ function onCellEnter(rowId: number) {
     focusRowFirstCell(nextRow.id)
     return
   }
+  // no hay fila debajo
   const current = lineas.value[idx]
   if (current && isRowEmpty(current)) {
     focusAfterTable()
@@ -363,6 +377,7 @@ function onCellEnter(rowId: number) {
   }
 }
 
+// limpia el resaltado de fila activa y elimina filas vacías al salir de la tabla
 function onTableFocusout(e: FocusEvent) {
   const next = e.relatedTarget as HTMLElement | null
   const table = e.currentTarget as HTMLElement
@@ -537,6 +552,8 @@ async function handleSendToClient() {
   }
 }
 
+// --- Documento: descarga de PDF y link público ---
+// el documento existe solo con el estado persistido más allá de borrador
 const canShareDoc = computed(() => {
   const persistido = props.presupuesto?.estado
   return !isNew.value && !!persistido && persistido !== 'borrador' && persistido !== 'cancelado'
@@ -681,7 +698,7 @@ defineExpose({ loadPresupuesto })
       <div class="editor-split">
         <div class="editor-form">
           <Teleport to="#editor-header-status">
-            <div v-if="!isNew" class="custom-status-dropdown inline-block" @click.stop>
+            <div v-if="!isNew" class="custom-status-dropdown" @click.stop>
               <button
                 type="button"
                 class="status-badge-wrap"
@@ -937,7 +954,7 @@ defineExpose({ loadPresupuesto })
                         />
                       </td>
                       <td class="num cell-subtotal">
-                        {{ formatMoney((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}
+                        {{ money((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}
                       </td>
                       <td>
                         <button
@@ -971,9 +988,9 @@ defineExpose({ loadPresupuesto })
               <p v-if="errors.detalles" class="err" role="alert">{{ errors.detalles }}</p>
 
               <div class="ed-totals">
-                <div class="r"><span>Subtotal</span><span class="num">{{ formatMoney(subtotal) }}</span></div>
+                <div class="r"><span>Subtotal</span><span class="num">{{ money(subtotal) }}</span></div>
                 <div class="r grand">
-                  <span>Total</span><span class="num v">{{ formatMoney(total) }}</span>
+                  <span>Total</span><span class="num v">{{ money(total) }}</span>
                 </div>
               </div>
             </div>
@@ -1013,36 +1030,35 @@ defineExpose({ loadPresupuesto })
 
       <div class="editor-foot">
         <div class="editor-foot-left">
-          <BaseButton variant="ghost" class="hover:bg-violet-50 text-violet-700" @click="triggerClose">{{ isEditable ? 'Cancelar' : 'Cerrar' }}</BaseButton>
-          <div class="flex-1"></div>
-          <BaseButton
+          <button class="btn btn-ghost" @click="triggerClose">{{ isEditable ? 'Cancelar' : 'Cerrar' }}</button>
+          <div class="spacer"></div>
+          <button
             v-if="isEditable && estado === 'borrador' && !isNew"
-            variant="secondary"
-            class="text-ink hover:bg-page-bg/80"
+            class="btn btn-secondary"
             @click="handleSendToClient"
           >
             Enviar a {{ mainContacto ? (mainContacto.valor ? `${mainContacto.canal} (${mainContacto.valor})` : mainContacto.canal) : 'cliente' }}
-          </BaseButton>
-          <BaseButton
+          </button>
+          <button
             v-if="isEditable"
-            variant="primary"
-            class="text-white bg-teal-500 hover:bg-teal-600 disabled:opacity-50"
+            class="btn btn-primary"
             @click="handleSave"
             :disabled="!isDirty"
+            :style="{ opacity: isDirty ? 1 : 0.5, pointerEvents: isDirty ? 'auto' : 'none' }"
           >
             {{ isNew ? 'Crear presupuesto' : 'Guardar cambios' }}
-          </BaseButton>
+          </button>
         </div>
-        <div class="editor-foot-right justify-end flex">
+        <div class="editor-foot-right">
           <template v-if="canShareDoc">
-            <BaseButton variant="secondary" class="flex items-center gap-1.5 text-ink" type="button" @click="handleCopyLink">
+            <button class="btn btn-secondary" type="button" @click="handleCopyLink">
               <Link2 :size="16" aria-hidden="true" />
               Copiar link
-            </BaseButton>
-            <BaseButton variant="secondary" class="flex items-center gap-1.5 text-ink" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
+            </button>
+            <button class="btn btn-secondary" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
               <Download :size="16" aria-hidden="true" />
               {{ pdfLoading ? 'Generando...' : 'Descargar PDF' }}
-            </BaseButton>
+            </button>
           </template>
         </div>
       </div>
@@ -1077,8 +1093,55 @@ defineExpose({ loadPresupuesto })
   z-index: 1;
   background: var(--page-bg);
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr auto;
   overflow: hidden;
+}
+
+
+
+.editor-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.editor-title .eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.editor-title .eyebrow .folio {
+  color: var(--violet-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-title h2 {
+  font-size: 22px;
+  line-height: 1.1;
+  margin: 0;
+  color: var(--violet-700);
+}
+
+.save-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 6px 12px;
+  background: var(--mint);
+  color: #1F5A3E;
+  border-radius: 999px;
+}
+
+.save-chip .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1F8A5B;
 }
 
 .editor-split {
@@ -1125,6 +1188,7 @@ defineExpose({ loadPresupuesto })
   letter-spacing: -0.005em;
 }
 
+/* subtítulo inline del header (ej. "Método de envío") */
 .form-subhead {
   font-size: var(--fs-12);
   font-weight: 500;
@@ -1160,6 +1224,7 @@ defineExpose({ loadPresupuesto })
 
 .form-row-3 { grid-template-columns: 2fr 1fr 1fr; }
 
+/* Entrega: field control (Entrega + método + pill) y field input alineados por su base */
 .form-row-envio {
   grid-template-columns: auto 1fr;
   align-items: end;
@@ -1180,9 +1245,30 @@ defineExpose({ loadPresupuesto })
   letter-spacing: -0.005em;
 }
 
+/* marca de inicio de la tabla de productos */
 .th-producto {
   font-weight: 700;
   color: var(--ink);
+}
+
+.date-input { padding-left: 36px; }
+
+
+.money-wrap { position: relative; }
+.money-prefix {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.money-input {
+  padding-left: 22px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .add-line-btn {
@@ -1278,6 +1364,12 @@ defineExpose({ loadPresupuesto })
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.editor-foot-right .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .preview-empty {

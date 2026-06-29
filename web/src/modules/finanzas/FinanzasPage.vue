@@ -3,16 +3,17 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { Plus } from '@lucide/vue'
 import { createTrigger } from '@/shared/lib/createTrigger'
 import { useFinanzasStore } from './store'
-import { formatMoney, formatDate } from '@/shared/lib/format'
+import { formatMoney } from '@/shared/lib/format'
 import MovimientoDrawer from './components/MovimientoDrawer.vue'
 import ImprentaDrawer from './components/ImprentaDrawer.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import DataTable from '@/shared/ui/DataTable.vue'
 import RowActions from '@/shared/ui/RowActions.vue'
-import BaseCard from '@/shared/ui/BaseCard.vue'
 import Pagination from '@/shared/ui/Pagination.vue'
-import { usePagination } from '@/shared/lib/usePagination'
+import BaseKpi from '@/shared/ui/BaseKpi.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 import { useToast } from '@/shared/lib/useToast'
+import { usePagination } from '@/shared/lib/usePagination'
 import type { Transaccion, OrdenImprenta } from '@/types'
 
 const store = useFinanzasStore()
@@ -40,18 +41,18 @@ function esEgreso(t: string): boolean {
 }
 
 const tipoMovs = [
-  { id: 'venta_producto', label: 'Venta producto', color: 'var(--teal-ink)' },
-  { id: 'venta_presupuesto', label: 'Venta presupuesto', color: 'var(--teal-ink)' },
-  { id: 'cobro_cliente', label: 'Cobro cliente', color: 'var(--teal-ink)' },
-  { id: 'compra_insumo', label: 'Compra insumo', color: 'var(--coral-500)' },
-  { id: 'pago_servicio', label: 'Pago servicio', color: 'var(--coral-500)' },
-  { id: 'pago_imprenta', label: 'Pago imprenta', color: 'var(--coral-500)' },
-  { id: 'pago_alquiler', label: 'Pago alquiler', color: 'var(--coral-500)' },
-  { id: 'pago_sueldo', label: 'Pago sueldo', color: 'var(--coral-500)' },
-  { id: 'retiro_socio', label: 'Retiro socio', color: 'var(--coral-500)' },
-  { id: 'deposito', label: 'Depósito', color: 'var(--teal-ink)' },
-  { id: 'ajuste_positivo', label: 'Ajuste positivo', color: 'var(--teal-ink)' },
-  { id: 'ajuste_negativo', label: 'Ajuste negativo', color: 'var(--coral-500)' },
+  { id: 'venta_producto', label: 'Venta producto', color: '#2E6F70' },
+  { id: 'venta_presupuesto', label: 'Venta presupuesto', color: '#2E6F70' },
+  { id: 'cobro_cliente', label: 'Cobro cliente', color: '#2E6F70' },
+  { id: 'compra_insumo', label: 'Compra insumo', color: '#EA5F3C' },
+  { id: 'pago_servicio', label: 'Pago servicio', color: '#EA5F3C' },
+  { id: 'pago_imprenta', label: 'Pago imprenta', color: '#EA5F3C' },
+  { id: 'pago_alquiler', label: 'Pago alquiler', color: '#EA5F3C' },
+  { id: 'pago_sueldo', label: 'Pago sueldo', color: '#EA5F3C' },
+  { id: 'retiro_socio', label: 'Retiro socio', color: '#EA5F3C' },
+  { id: 'deposito', label: 'Deposito', color: '#2E6F70' },
+  { id: 'ajuste_positivo', label: 'Ajuste positivo', color: '#2E6F70' },
+  { id: 'ajuste_negativo', label: 'Ajuste negativo', color: '#EA5F3C' },
 ]
 
 const cuentas = [
@@ -61,18 +62,12 @@ const cuentas = [
   { id: 'billetera', label: 'Billetera' },
 ]
 
-
-
-function money(v: number): string {
-  return formatMoney(v)
-}
-
 function signedMoney(v: number, tipo: string): string {
-  return (esEgreso(tipo) ? '− ' : '+ ') + money(Math.abs(v))
+  return (esEgreso(tipo) ? '− ' : '+ ') + formatMoney(Math.abs(v))
 }
 
-function formatFecha(d: string): string {
-  return formatDate(d, 'short')
+function formatDate(d: string): string {
+  return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 const filteredMovs = computed(() => {
@@ -85,15 +80,33 @@ const filteredMovs = computed(() => {
 
 const {
   currentPage,
-  pageSize,
-  totalItems,
   totalPages,
-  paginatedItems,
-  startIndex,
-  endIndex,
   prevPage,
   nextPage,
 } = usePagination(filteredMovs, 10)
+
+const movColumns = [
+  { key: 'fecha', label: 'Fecha', width: '90px' },
+  { key: 'tipo', label: 'Tipo', width: '130px' },
+  { key: 'cuenta', label: 'Cuenta', width: '130px' },
+  { key: 'referencia', label: 'Referencia', width: '110px' },
+  { key: 'detalle', label: 'Detalle' },
+  { key: 'nroFactura', label: 'Nro. factura', width: '140px' },
+  { key: 'monto', label: 'Monto', align: 'right' as const, width: '130px' },
+  { key: 'acciones', label: '', width: '80px' }
+]
+
+const imprentaColumns = [
+  { key: 'fecha', label: 'Fecha', width: '90px' },
+  { key: 'presupuesto', label: 'Presupuesto', width: '110px' },
+  { key: 'tematica', label: 'Temática' },
+  { key: 'hojas', label: 'Hojas', align: 'right' as const, width: '70px' },
+  { key: 'tipoHoja', label: 'Tipo hoja', width: '160px' },
+  { key: 'valorTotal', label: 'Valor total', align: 'right' as const, width: '110px' },
+  { key: 'metodoPago', label: 'Método pago', width: '130px' },
+  { key: 'pagado', label: 'Pagado', width: '110px' },
+  { key: 'acciones', label: '', width: '80px' }
+]
 
 async function loadData() {
   try {
@@ -150,6 +163,7 @@ async function handleDeleteConfirm() {
     } else {
       await store.removeOrden(item.id)
     }
+    await store.fetch()
     toast(`${label} eliminado`, 'info')
   } catch (e: any) {
     toast(e.message || 'Error al eliminar', 'error')
@@ -157,29 +171,6 @@ async function handleDeleteConfirm() {
   showConfirmDelete.value = false
   deleteTarget.value = null
 }
-
-const movColumns = [
-  { key: 'fecha', label: 'Fecha', width: '90px' },
-  { key: 'tipo', label: 'Tipo', width: '130px' },
-  { key: 'cuenta', label: 'Cuenta', width: '130px' },
-  { key: 'referencia', label: 'Referencia', width: '110px' },
-  { key: 'detalle', label: 'Detalle' },
-  { key: 'nroFactura', label: 'Nro. factura', width: '140px' },
-  { key: 'monto', label: 'Monto', align: 'right' as const, width: '130px' },
-  { key: 'acciones', label: '', width: '80px' }
-]
-
-const imprentaColumns = [
-  { key: 'fecha', label: 'Fecha', width: '90px' },
-  { key: 'presupuesto', label: 'Presupuesto', width: '110px' },
-  { key: 'tematica', label: 'Temática' },
-  { key: 'hojas', label: 'Hojas', align: 'right' as const, width: '70px' },
-  { key: 'tipoHoja', label: 'Tipo hoja', width: '160px' },
-  { key: 'valorTotal', label: 'Valor total', align: 'right' as const, width: '110px' },
-  { key: 'metodoPago', label: 'Método pago', width: '130px' },
-  { key: 'pagado', label: 'Pagado', width: '110px' },
-  { key: 'acciones', label: '', width: '80px' }
-]
 
 onMounted(loadData)
 
@@ -193,153 +184,98 @@ watch(createTrigger, (val) => {
 </script>
 
 <template>
-  <div class="w-full">
-    <div v-if="showLoading" class="border border-border rounded-lg bg-surface p-6">
+  <div class="p-6">
+    <div v-if="showLoading" class="bg-surface border border-border rounded-lg p-5">
       <p class="text-14 text-ink-muted">Cargando finanzas...</p>
     </div>
     <template v-else>
       <!-- KPIs -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-        <BaseCard class="bg-teal-50/20 border-teal-100/50">
-          <div class="flex flex-col gap-1">
-            <span class="text-11 uppercase tracking-[0.06em] text-teal-700 font-medium">Ingresos</span>
-            <span class="text-28 font-medium text-teal-700 font-mono tabular-nums leading-none">{{ money(store.kpis.ingresos) }}</span>
-          </div>
-        </BaseCard>
-        <BaseCard class="bg-coral-50/20 border-coral-100/50">
-          <div class="flex flex-col gap-1">
-            <span class="text-11 uppercase tracking-[0.06em] text-coral-700 font-medium">Egresos</span>
-            <span class="text-28 font-medium text-coral-600 font-mono tabular-nums leading-none">{{ money(store.kpis.egresos) }}</span>
-          </div>
-        </BaseCard>
-        <BaseCard class="bg-violet-50/20 border-violet-100/50">
-          <div class="flex flex-col gap-1">
-            <span class="text-11 uppercase tracking-[0.06em] text-violet-700 font-medium">Utilidad</span>
-            <span class="text-28 font-medium text-violet-700 font-mono tabular-nums leading-none">{{ money(store.kpis.utilidad) }}</span>
-          </div>
-        </BaseCard>
+      <div class="grid grid-cols-3 gap-4 mb-5">
+        <BaseKpi label="Ingresos" :value="formatMoney(store.kpis.ingresos)" />
+        <BaseKpi label="Egresos" :value="formatMoney(store.kpis.egresos)" />
+        <BaseKpi label="Utilidad" :value="formatMoney(store.kpis.utilidad)" />
       </div>
 
-      <!-- Toolbar / Tabs -->
-      <div class="flex justify-between items-center mb-[18px] border-b border-border pb-4 gap-4 flex-wrap">
-        <div class="fin-tabs">
+      <!-- Tabs -->
+      <div class="flex items-center gap-2 mb-4">
+        <div class="inline-flex items-center p-0.75 bg-surface border border-border-strong rounded-[10px] gap-0.5">
           <button
-            type="button"
-            class="fin-tab"
-            :class="{ active: tab === 'movimientos' }"
+            :class="['bg-transparent border-0 font-sans text-13 font-medium py-1.75 px-4 rounded-lg cursor-pointer inline-flex items-center gap-1.75 transition-colors', tab === 'movimientos' ? 'bg-violet-700 text-white' : 'text-ink-muted hover:text-ink']"
             @click="tab = 'movimientos'"
-          >
-            Movimientos
-            <span class="count">{{ store.transacciones.length }}</span>
-          </button>
+          >Movimientos <span class="tabular-nums text-11 font-medium px-1.75 py-0.25 rounded-pill" :class="tab === 'movimientos' ? 'bg-white/20 text-white' : 'bg-page-bg text-ink-muted'">{{ store.transacciones.length }}</span></button>
           <button
-            type="button"
-            class="fin-tab"
-            :class="{ active: tab === 'imprenta' }"
+            :class="['bg-transparent border-0 font-sans text-13 font-medium py-1.75 px-4 rounded-lg cursor-pointer inline-flex items-center gap-1.75 transition-colors', tab === 'imprenta' ? 'bg-violet-700 text-white' : 'text-ink-muted hover:text-ink']"
             @click="tab = 'imprenta'"
-          >
-            Imprenta
-            <span class="count">{{ store.ordenes.length }}</span>
-          </button>
+          >Imprenta <span class="tabular-nums text-11 font-medium px-1.75 py-0.25 rounded-pill" :class="tab === 'imprenta' ? 'bg-white/20 text-white' : 'bg-page-bg text-ink-muted'">{{ store.ordenes.length }}</span></button>
         </div>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
-          @click="tab === 'movimientos' ? handleCreateMov() : handleCreateImprenta()"
-        >
+        <div class="flex-1" />
+        <BaseButton variant="ghost" @click="tab === 'movimientos' ? handleCreateMov() : handleCreateImprenta()">
           <Plus :size="14" /> {{ tab === 'movimientos' ? 'Movimiento' : 'Orden' }}
-        </button>
+        </BaseButton>
       </div>
 
       <!-- Tab Movimientos -->
       <template v-if="tab === 'movimientos'">
-        <div class="mb-5 flex flex-col select-none">
-          <!-- Filtro Tipo -->
-          <div class="fin-filter-row">
-            <span class="lbl">Tipo</span>
-            <button
-              type="button"
-              class="fin-pill"
-              :class="{ active: tipoFilter === 'todos' }"
-              @click="tipoFilter = 'todos'"
-            >
-              Todos
-            </button>
-            <button
-              v-for="t in tipoMovs"
-              :key="t.id"
-              type="button"
-              class="fin-pill"
-              :class="{ active: tipoFilter === t.id }"
-              @click="tipoFilter = t.id"
-            >
-              <span
-                class="dot"
-                :style="{ background: t.color }"
-              />
-              {{ t.label }}
-            </button>
-          </div>
-
-          <!-- Filtro Cuenta -->
-          <div class="fin-filter-row last">
-            <span class="lbl">Cuenta</span>
-            <button
-              type="button"
-              class="fin-pill"
-              :class="{ active: cuentaFilter === 'todas' }"
-              @click="cuentaFilter = 'todas'"
-            >
-              Todas
-            </button>
-            <button
-              v-for="c in cuentas"
-              :key="c.id"
-              type="button"
-              class="fin-pill"
-              :class="{ active: cuentaFilter === c.id }"
-              @click="cuentaFilter = c.id"
-            >
-              {{ c.label }}
-            </button>
-          </div>
+        <!-- Filtros tipo -->
+        <div class="flex flex-wrap gap-1.5 mb-2">
+          <span class="text-11 uppercase tracking-0.06em text-ink-muted font-medium self-center mr-1.5">Tipo</span>
+          <button
+            :class="['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-12 font-medium border transition-colors cursor-pointer', tipoFilter === 'todos' ? 'bg-violet-50 text-violet-700 border-violet-100' : 'bg-transparent text-ink-muted border-border hover:text-ink hover:border-border-strong']"
+            @click="tipoFilter = 'todos'"
+          >Todos</button>
+          <button
+            v-for="t in tipoMovs"
+            :key="t.id"
+            :class="['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-12 font-medium border transition-colors cursor-pointer', tipoFilter === t.id ? 'bg-violet-50 text-violet-700 border-violet-100' : 'bg-transparent text-ink-muted border-border hover:text-ink hover:border-border-strong']"
+            @click="tipoFilter = t.id"
+          >
+            <span class="w-1.75 h-1.75 rounded-full" :style="{ background: t.color }" />
+            {{ t.label }}
+          </button>
         </div>
 
+        <!-- Filtros cuenta -->
+        <div class="flex flex-wrap gap-1.5 mb-2">
+          <span class="text-11 uppercase tracking-0.06em text-ink-muted font-medium self-center mr-1.5">Cuenta</span>
+          <button
+            :class="['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-12 font-medium border transition-colors cursor-pointer', cuentaFilter === 'todas' ? 'bg-violet-50 text-violet-700 border-violet-100' : 'bg-transparent text-ink-muted border-border hover:text-ink hover:border-border-strong']"
+            @click="cuentaFilter = 'todas'"
+          >Todas</button>
+          <button
+            v-for="c in cuentas"
+            :key="c.id"
+            :class="['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-12 font-medium border transition-colors cursor-pointer', cuentaFilter === c.id ? 'bg-violet-50 text-violet-700 border-violet-100' : 'bg-transparent text-ink-muted border-border hover:text-ink hover:border-border-strong']"
+            @click="cuentaFilter = c.id"
+          >{{ c.label }}</button>
+        </div>
+
+        <!-- Tabla -->
         <DataTable
           :columns="movColumns"
-          :rows="paginatedItems"
+          :rows="filteredMovs"
           empty-text="Sin movimientos con los filtros actuales."
         >
           <template #row="{ item: m }">
-            <td class="px-4 py-3.5 align-middle text-13 text-ink-muted tabular-nums select-none" @dblclick="handleEditMov(m)">
-              {{ formatFecha(m.fecha) }}
-            </td>
-            <td class="px-4 py-3.5 align-middle select-none" @dblclick="handleEditMov(m)">
-              <span class="fin-tipo-badge" :style="esEgreso(m.tipo) ? 'background: var(--color-coral-50); color: var(--color-coral-500);' : 'background: var(--color-teal-50); color: var(--color-teal-700);'">
-                <span class="dot"></span>
-                {{ tipoMovs.find(t => t.id === m.tipo)?.label || m.tipo }}
+            <td class="px-4 py-3 align-middle text-13 text-ink-muted tabular-nums">{{ formatDate(m.fecha) }}</td>
+            <td class="px-4 py-3 align-middle">
+              <span
+                class="inline-flex items-center gap-1.5 text-12 font-medium px-2.5 py-0.75 rounded-pill"
+                :style="{
+                  background: tipoMovs.find(t => t.id === m.tipo)?.color === '#2E6F70' ? '#D6F0F1' : '#FCEBE6',
+                  color: tipoMovs.find(t => t.id === m.tipo)?.color || '#6B6270'
+                }"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-current" /> {{ tipoMovs.find(t => t.id === m.tipo)?.label || m.tipo }}
               </span>
             </td>
-            <td class="px-4 py-3.5 align-middle fin-cuenta-cell select-none" @dblclick="handleEditMov(m)">
-              {{ m.cuenta }}
-            </td>
-            <td class="px-4 py-3.5 align-middle fin-ref-cell select-none" @dblclick="handleEditMov(m)">
-              {{ m.referencia || '—' }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink" @dblclick="handleEditMov(m)">
-              {{ m.detalle }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-12 text-ink-muted font-mono select-none" @dblclick="handleEditMov(m)">
-              {{ m.nroFactura || '—' }}
-            </td>
-            <td
-              class="px-4 py-3.5 align-middle text-right select-none"
-              :class="[esEgreso(m.tipo) ? 'fin-monto-neg' : 'fin-monto-pos']"
-              @dblclick="handleEditMov(m)"
-            >
+            <td class="px-4 py-3 align-middle text-13 text-ink-muted capitalize">{{ m.cuenta }}</td>
+            <td class="px-4 py-3 align-middle font-mono text-12 text-violet-700">{{ m.referencia || '—' }}</td>
+            <td class="px-4 py-3 align-middle text-13 text-ink">{{ m.detalle }}</td>
+            <td class="px-4 py-3 align-middle text-12 text-ink-muted font-mono">{{ m.nroFactura || '—' }}</td>
+            <td class="px-4 py-3 align-middle text-13 font-medium text-right tabular-nums" :class="esEgreso(m.tipo) ? 'text-coral-500' : 'text-teal-700'">
               {{ signedMoney(Number(m.monto), m.tipo) }}
             </td>
-            <td class="px-4 py-3.5 align-middle w-[80px]">
+            <td class="px-4 py-3 align-middle">
               <RowActions
                 @edit="handleEditMov(m)"
                 @delete="handleDeleteClick('mov', m)"
@@ -350,12 +286,8 @@ watch(createTrigger, (val) => {
 
         <Pagination
           v-if="filteredMovs.length > 0"
-          v-model:currentPage="currentPage"
-          v-model:pageSize="pageSize"
-          :totalPages="totalPages"
-          :totalItems="totalItems"
-          :startIndex="startIndex"
-          :endIndex="endIndex"
+          v-model:current-page="currentPage"
+          :total-pages="totalPages"
           @prev="prevPage"
           @next="nextPage"
         />
@@ -363,7 +295,7 @@ watch(createTrigger, (val) => {
 
       <!-- Tab Imprenta -->
       <template v-else>
-        <div class="mb-4 text-13 text-ink-muted select-none">
+        <div class="text-13 text-ink-muted mb-3.5">
           Órdenes de impresión del período.
         </div>
 
@@ -373,34 +305,22 @@ watch(createTrigger, (val) => {
           empty-text="Sin órdenes de imprenta en este período."
         >
           <template #row="{ item: o }">
-            <td class="px-4 py-3.5 align-middle text-13 text-ink-muted tabular-nums select-none" @dblclick="handleEditOrden(o)">
-              {{ formatFecha(o.fecha) }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink-muted font-mono select-none" @dblclick="handleEditOrden(o)">
-              {{ o.presupuesto?.folio || '—' }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink font-medium" @dblclick="handleEditOrden(o)">
-              {{ o.tematica }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink text-right tabular-nums select-none" @dblclick="handleEditOrden(o)">
-              {{ o.hojas }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink-muted select-none" @dblclick="handleEditOrden(o)">
-              {{ o.tipoHoja }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink text-right tabular-nums select-none" @dblclick="handleEditOrden(o)">
-              {{ money(o.valorTotal) }}
-            </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink-muted capitalize select-none" @dblclick="handleEditOrden(o)">
-              {{ o.metodoPago }}
-            </td>
-            <td class="px-4 py-3.5 align-middle select-none" @dblclick="handleEditOrden(o)">
-              <span class="fin-pagado-badge" :class="o.pagado ? 'si' : 'no'">
-                <span class="dot"></span>
-                {{ o.pagado ? 'Pagado' : 'Pendiente' }}
+            <td class="px-4 py-3 align-middle text-13 text-ink-muted tabular-nums">{{ formatDate(o.fecha) }}</td>
+            <td class="px-4 py-3 align-middle font-mono text-12 text-violet-700">{{ o.presupuesto?.folio || '—' }}</td>
+            <td class="px-4 py-3 align-middle text-13 text-ink font-medium">{{ o.tematica }}</td>
+            <td class="px-4 py-3 align-middle text-13 text-ink text-right tabular-nums">{{ o.hojas }}</td>
+            <td class="px-4 py-3 align-middle text-13 text-ink-muted">{{ o.tipoHoja }}</td>
+            <td class="px-4 py-3 align-middle text-13 text-ink text-right tabular-nums">{{ formatMoney(o.valorTotal) }}</td>
+            <td class="px-4 py-3 align-middle text-13 text-ink-muted capitalize">{{ o.metodoPago }}</td>
+            <td class="px-4 py-3 align-middle">
+              <span
+                class="inline-flex items-center gap-1.5 text-12 font-medium px-2.5 py-0.75 rounded-pill"
+                :class="o.pagado ? 'bg-mint text-green-700' : 'bg-coral-50 text-coral-500'"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-current" /> {{ o.pagado ? 'Pagado' : 'Pendiente' }}
               </span>
             </td>
-            <td class="px-4 py-3.5 align-middle w-[80px]">
+            <td class="px-4 py-3 align-middle">
               <RowActions
                 @edit="handleEditOrden(o)"
                 @delete="handleDeleteClick('imprenta', o)"

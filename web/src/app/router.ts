@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/modules/auth/store'
 import { resetEditorMode } from '@/shared/lib/editorMode'
 
 const routes = [
@@ -10,7 +10,6 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
-    // vista pública del presupuesto (link compartible, también la renderiza Puppeteer)
     path: '/p/:token',
     name: 'public-presupuesto',
     component: () => import('@/modules/presupuestos/PublicPresupuestoPage.vue'),
@@ -72,7 +71,6 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   resetEditorMode()
 
-  // las rutas públicas no inicializan auth (acelera la carga para clientes y Puppeteer)
   if (to.meta.public) {
     return
   }

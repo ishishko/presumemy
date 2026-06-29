@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ConfiguracionNegocio } from '@/types'
-import { formatMoney, formatDate } from '@/shared/lib/format'
 
 export interface PresupuestoDocLine {
   id?: number | string
@@ -36,7 +35,8 @@ const props = defineProps<{
 }>()
 
 const docDate = computed(() => {
-  return formatDate(props.doc.fecha || new Date(), 'long')
+  const d = props.doc.fecha ? new Date(props.doc.fecha) : new Date()
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
 })
 
 const negocio = computed(() => props.config?.nombre || 'MemyDeni')
@@ -51,13 +51,14 @@ const contactoLinea = computed(() => {
 })
 
 function money(n: number): string {
-  return formatMoney(n)
+  return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function niceDate(iso: string): string {
   if (!iso) return ''
-  const dateStr = iso.includes('T') ? iso : `${iso}T00:00:00`
-  return formatDate(dateStr, 'weekday')
+  const d = new Date(iso + 'T00:00:00')
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
 }
 </script>
 
@@ -154,3 +155,4 @@ function niceDate(iso: string): string {
     </footer>
   </div>
 </template>
+

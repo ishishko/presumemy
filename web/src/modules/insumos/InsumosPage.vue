@@ -2,13 +2,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { createTrigger } from '@/shared/lib/createTrigger'
-import { useInsumosStore } from './store'
-import { getNivel } from './stock'
+import { useInsumosStore } from '@/modules/insumos/store'
+import { getNivel } from '@/modules/insumos/stock'
 import { formatMoney } from '@/shared/lib/format'
 import InsumoDetalle from './components/InsumoDetalle.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
-import CategoriaPills from '@/shared/ui/CategoriaPills.vue'
-import CategoriaDeleteDialog from '@/shared/ui/CategoriaDeleteDialog.vue'
 import FilterChips from '@/shared/ui/FilterChips.vue'
 import DataTable from '@/shared/ui/DataTable.vue'
 import RowActions from '@/shared/ui/RowActions.vue'
@@ -25,14 +23,10 @@ const emit = defineEmits<{
 }>()
 
 const stateFilter = ref('todos')
-const catFilter = ref<number | 'todas'>('todas')
 const showOverlay = ref(false)
 const editingInsumo = ref<Insumo | null>(null)
 const showConfirmDelete = ref(false)
 const deletingInsumo = ref<Insumo | null>(null)
-
-const showConfirmDeleteCat = ref(false)
-const deletingCat = ref<any | null>(null)
 
 const showLoading = computed(() => !store.hasFetched)
 
@@ -47,14 +41,9 @@ const counts = computed(() => {
 const filtered = computed(() => {
   return store.data.filter((i) => {
     if (stateFilter.value !== 'todos' && getNivel(Number(i.stock), Number(i.stockMinimo)) !== stateFilter.value) return false
-    if (catFilter.value !== 'todas' && i.categoriaId !== catFilter.value) return false
     return true
   })
 })
-
-function money(v: number): string {
-  return formatMoney(v)
-}
 
 const stateChips = computed(() => [
   { id: 'todos', label: 'Todos', count: store.data.length },
@@ -66,11 +55,9 @@ const stateChips = computed(() => [
 
 const columns = [
   { key: 'nombre', label: 'Insumo' },
-  { key: 'categoria', label: 'Categoría' },
   { key: 'stock', label: 'Stock', align: 'right' as const },
   { key: 'stockMinimo', label: 'Mínimo', align: 'right' as const },
   { key: 'costoUnitario', label: 'Costo unitario', align: 'right' as const },
-  { key: 'proveedor', label: 'Proveedor principal' },
   { key: 'nivel', label: 'Nivel', width: '160px' },
   { key: 'acciones', label: '', width: '80px' }
 ]
@@ -117,49 +104,6 @@ async function handleDeleteConfirm() {
   deletingInsumo.value = null
 }
 
-async function handleCreateCat(nombre: string) {
-  try {
-    await store.createCategoria(nombre)
-    toast('Categoría creada', 'success')
-  } catch (e: any) {
-    toast(e.message || 'Error al crear categoría', 'error')
-  }
-}
-
-async function handleRenameCat(payload: { id: number; nombre: string }) {
-  try {
-    await store.updateCategoria(payload.id, payload.nombre)
-    toast('Categoría actualizada', 'success')
-  } catch (e: any) {
-    toast(e.message || 'Error al actualizar categoría', 'error')
-  }
-}
-
-function handleRemoveCatClick(cat: any) {
-  deletingCat.value = cat
-  showConfirmDeleteCat.value = true
-}
-
-async function handleDeleteCatConfirm(reasignarA?: number) {
-  if (!deletingCat.value) return
-  try {
-    await store.removeCategoria(deletingCat.value.id, reasignarA)
-    toast('Categoría eliminada', 'info')
-    if (catFilter.value === deletingCat.value.id) {
-      catFilter.value = 'todas'
-    }
-  } catch (e: any) {
-    toast(e.message || 'Error al eliminar categoría', 'error')
-  }
-  showConfirmDeleteCat.value = false
-  deletingCat.value = null
-}
-
-function proveedorPrincipal(i: Insumo): string {
-  const principal = i.proveedores?.find((p) => p.esPrincipal)
-  return principal?.proveedor?.nombre || ''
-}
-
 function handleHeaderUpdate(payload: any) {
   if (payload.mode === 'editor') {
     emit('set-editor-mode', true, payload.title, payload.onSave, payload.onClose)
@@ -197,8 +141,8 @@ watch(createTrigger, (val) => {
 </script>
 
 <template>
-  <div class="w-full">
-    <div v-if="showLoading" class="border border-border rounded-lg bg-surface p-6">
+  <div class="p-6">
+    <div v-if="showLoading" class="bg-surface border border-border rounded-lg p-5">
       <p class="text-14 text-ink-muted">Cargando insumos...</p>
     </div>
     <template v-else>
@@ -210,15 +154,6 @@ watch(createTrigger, (val) => {
           @update:model-value="stateFilter = $event === null ? 'todos' : ($event as string)"
         />
       </div>
-
-      <CategoriaPills
-        v-model="catFilter"
-        variant="insumos"
-        :categorias="store.categorias"
-        @create="handleCreateCat"
-        @rename="handleRenameCat"
-        @remove="handleRemoveCatClick"
-      />
 
       <DataTable
         :columns="columns"
@@ -232,9 +167,6 @@ watch(createTrigger, (val) => {
               <span class="text-11 text-ink-muted font-mono">{{ i.codigo }}</span>
             </div>
           </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink-muted select-none" @dblclick="handleEdit(i)">
-            {{ i.categoria?.nombre }}
-          </td>
           <td class="px-4 py-3.5 align-middle text-13 text-ink font-medium text-right tabular-nums select-none" @dblclick="handleEdit(i)">
             {{ i.stock }} <span class="text-ink-muted text-12 font-normal">{{ i.unidad }}</span>
           </td>
@@ -242,10 +174,7 @@ watch(createTrigger, (val) => {
             {{ i.stockMinimo }} <span class="text-12">{{ i.unidad }}</span>
           </td>
           <td class="px-4 py-3.5 align-middle text-13 text-ink text-right tabular-nums select-none" @dblclick="handleEdit(i)">
-            {{ i.costoUnitario ? money(i.costoUnitario) : '—' }}
-          </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink-muted select-none" @dblclick="handleEdit(i)">
-            {{ proveedorPrincipal(i) || '—' }}
+            {{ i.costoUnitario ? formatMoney(i.costoUnitario) : '—' }}
           </td>
           <td class="px-4 py-3.5 align-middle w-[160px]" @dblclick="handleEdit(i)">
             <StockBar :stock="Number(i.stock)" :minimo="Number(i.stockMinimo)" />
@@ -277,13 +206,5 @@ watch(createTrigger, (val) => {
     variant="danger"
     @confirm="handleDeleteConfirm"
     @cancel="showConfirmDelete = false; deletingInsumo = null"
-  />
-
-  <CategoriaDeleteDialog
-    :open="showConfirmDeleteCat"
-    :categoria="deletingCat"
-    :categorias="store.categorias"
-    @confirm="handleDeleteCatConfirm"
-    @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />
 </template>

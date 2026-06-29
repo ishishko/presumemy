@@ -1,19 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const model = defineModel<string>({ required: true })
-
-const props = withDefaults(
-  defineProps<{
-    options: { value: string; label: string }[]
-    disabled?: boolean
-    ariaLabel?: string
-    ariaLabelledby?: string
-  }>(),
-  {
-    disabled: false,
-  }
-)
+const model = defineModel<string>()
+const props = withDefaults(defineProps<{
+  options: { value: string; label: string }[]
+  disabled?: boolean
+  ariaLabel?: string
+  ariaLabelledby?: string
+}>(), {
+  disabled: false,
+})
 
 const groupEl = ref<HTMLElement | null>(null)
 
@@ -40,7 +36,7 @@ function onKeydown(e: KeyboardEvent) {
 <template>
   <div
     ref="groupEl"
-    class="inline-flex p-0.5 bg-ink-muted/5 rounded-md border border-border"
+    class="inline-flex items-center p-0.75 bg-surface border border-border-strong rounded-[10px] gap-0.5"
     role="radiogroup"
     :aria-label="ariaLabel"
     :aria-labelledby="ariaLabelledby"
@@ -53,12 +49,12 @@ function onKeydown(e: KeyboardEvent) {
       role="radio"
       :aria-checked="model === opt.value"
       :tabindex="model === opt.value ? 0 : -1"
+      class="bg-transparent border-0 font-sans text-13 font-medium py-1.75 px-4 rounded-lg cursor-pointer inline-flex items-center gap-1.75 transition-colors disabled:opacity-50"
+      :class="model === opt.value
+        ? 'bg-violet-700 text-white'
+        : 'text-ink-muted hover:text-ink'"
       :disabled="disabled"
-      class="px-3 py-1.5 text-13 rounded-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:shadow-focus-ring disabled:opacity-50 disabled:pointer-events-none"
-      :class="model === opt.value ? 'bg-surface text-ink shadow-1 font-medium' : 'text-ink-muted hover:text-ink'"
       @click="select(opt.value)"
-    >
-      {{ opt.label }}
-    </button>
+    >{{ opt.label }}</button>
   </div>
 </template>

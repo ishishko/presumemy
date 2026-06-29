@@ -16,7 +16,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const cancelBtnRef = ref<{ focus: () => void } | null>(null)
+const cancelBtnRef = ref<HTMLButtonElement | null>(null)
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
@@ -37,16 +37,12 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 <template>
   <Teleport to="body">
     <Transition name="confirm">
-      <div v-if="open" class="fixed inset-0 grid place-items-center z-[90] bg-[rgba(28,26,30,0.30)]" @click="emit('cancel')">
-        <div class="bg-surface rounded-lg p-[22px] w-[380px] shadow-2 border border-border flex flex-col gap-3.5" @click.stop>
-          <h4 class="text-ink text-[17px] font-medium m-0">{{ title }}</h4>
-          <p class="text-13 text-ink-muted leading-snug m-0">{{ message }}</p>
+      <div v-if="open" class="fixed inset-0 bg-ink/30 grid place-items-center z-90" @click="emit('cancel')">
+        <div class="bg-surface rounded-lg p-5.5 w-95 shadow-2 border border-border flex flex-col gap-3.5" @click.stop>
+          <h4 class="text-17 font-medium text-ink m-0">{{ title }}</h4>
+          <p class="text-13 text-ink-muted m-0 leading-1.45">{{ message }}</p>
           <div class="flex gap-2 justify-end">
-            <BaseButton
-              ref="cancelBtnRef"
-              variant="secondary"
-              @click="emit('cancel')"
-            >
+            <BaseButton ref="cancelBtnRef" variant="secondary" @click="emit('cancel')">
               {{ cancelLabel || 'Cancelar' }}
             </BaseButton>
             <BaseButton
@@ -63,12 +59,10 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </template>
 
 <style scoped>
-/* Transitions */
 .confirm-enter-active,
 .confirm-leave-active {
   transition: opacity 140ms ease;
 }
-
 .confirm-enter-from,
 .confirm-leave-to {
   opacity: 0;

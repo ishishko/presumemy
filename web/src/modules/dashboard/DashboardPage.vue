@@ -2,19 +2,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, Star } from '@lucide/vue'
-import { useDashboardStore } from './store'
+import { useDashboardStore } from '@/modules/dashboard/store'
+import { useToast } from '@/shared/lib/useToast'
 import { useClientesStore } from '@/modules/clientes/store'
 import { useFinanzasStore } from '@/modules/finanzas/store'
 import { useInsumosStore } from '@/modules/insumos/store'
 import { usePresupuestosStore } from '@/modules/presupuestos/store'
 import { useProductosStore } from '@/modules/productos/store'
 import { formatMoney } from '@/shared/lib/format'
-import { get } from '@/shared/api/client'
-import BaseCard from '@/shared/ui/BaseCard.vue'
 import StatusBadge from '@/shared/ui/StatusBadge.vue'
-import StockBar from '@/modules/insumos/components/StockBar.vue'
-import { useToast } from '@/shared/lib/useToast'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 import type { ConfiguracionNegocio } from '@/types'
+import { get } from '@/shared/api/client'
 
 const store = useDashboardStore()
 const router = useRouter()
@@ -30,17 +29,13 @@ const config = ref<ConfiguracionNegocio | null>(null)
 
 const showLoading = computed(() => !store.stats || !productosStore.hasFetched || !insumosStore.hasFetched || !config.value)
 
-function money(v: number): string {
-  return formatMoney(v, { decimals: 0 })
-}
-
-const statusTones: Record<string, { tone: 'ok' | 'warning' | 'danger' | 'info' | 'neutral'; label: string }> = {
-  borrador: { tone: 'neutral', label: 'Borrador' },
-  enviado: { tone: 'info', label: 'Enviado' },
-  en_curso: { tone: 'ok', label: 'En curso' },
-  cerrado: { tone: 'ok', label: 'Cerrado' },
-  facturado: { tone: 'info', label: 'Facturado' },
-  cancelado: { tone: 'danger', label: 'Cancelado' },
+const statusTones: Record<string, { tone: 'default' | 'violet' | 'teal' | 'mint' | 'lavender' | 'coral'; label: string }> = {
+  borrador: { tone: 'default', label: 'Borrador' },
+  enviado: { tone: 'violet', label: 'Enviado' },
+  en_curso: { tone: 'teal', label: 'En curso' },
+  cerrado: { tone: 'mint', label: 'Cerrado' },
+  facturado: { tone: 'lavender', label: 'Facturado' },
+  cancelado: { tone: 'coral', label: 'Cancelado' },
 }
 
 const topInsumosAReponer = computed(() => {
@@ -167,216 +162,189 @@ onMounted(loadDashboard)
 </script>
 
 <template>
-  <div class="w-full">
-    <div v-if="showLoading" class="border border-border rounded-lg bg-surface p-6">
+  <div class="p-6">
+    <div v-if="showLoading" class="bg-surface border border-border rounded-lg p-5">
       <p class="text-14 text-ink-muted">Cargando dashboard...</p>
     </div>
 
     <template v-else>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Columna Izquierda: Finanzas, Entregas y Presupuestos Recientes -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Columna Izquierda -->
         <div class="flex flex-col gap-4">
-          <!-- Card de Finanzas integrada -->
-          <BaseCard class="bg-violet-50/50 border-violet-100!">
+          <!-- Card de Finanzas -->
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-5">
             <div class="flex gap-6 items-center">
-              <div class="flex-1 flex flex-col gap-1">
-                <span class="text-11 uppercase tracking-[0.06em] text-violet-700 font-medium">Ingresos · este mes</span>
-                <span class="text-28 font-medium text-violet-700 font-mono tabular-nums leading-none">{{ money(store.stats!.kpis.ingresosMes) }}</span>
+              <div class="flex-1">
+                <div class="text-11 uppercase tracking-0.06em font-medium text-violet-700">Ingresos · este mes</div>
+                <div class="mt-1.5">
+                  <div class="text-22 font-medium text-violet-700 tabular-nums">{{ formatMoney(store.stats!.kpis.ingresosMes, { decimals: 0 }) }}</div>
+                </div>
               </div>
-              <div class="w-px self-stretch bg-violet-200/60"></div>
-              <div class="flex-1 flex flex-col gap-1">
-                <span class="text-11 uppercase tracking-[0.06em] text-violet-700 font-medium">Por cobrar</span>
-                <span class="text-28 font-medium text-violet-700 font-mono tabular-nums leading-none">{{ money(store.stats!.kpis.porCobrar) }}</span>
-                <span class="text-12 font-medium text-violet-700/80 mt-0.5">
-                  {{ store.stats!.statsPorEstado.filter((s: any) => ['enviado', 'en_curso'].includes(s.estado)).reduce((sum: number, s: any) => sum + s._count.id, 0) }} presupuestos pendientes
-                </span>
+              <div class="w-px self-stretch bg-border-strong"></div>
+              <div class="flex-1">
+                <div class="text-11 uppercase tracking-0.06em font-medium text-violet-700">Por cobrar</div>
+                <div class="mt-1.5">
+                  <div class="text-22 font-medium text-violet-700 tabular-nums">{{ formatMoney(store.stats!.kpis.porCobrar, { decimals: 0 }) }}</div>
+                  <div class="text-12 text-violet-700 opacity-85 tabular-nums">
+                    {{ store.stats!.statsPorEstado.filter(s => ['enviado', 'en_curso'].includes(s.estado)).reduce((sum, s) => sum + s._count.id, 0) }} presupuestos pendientes
+                  </div>
+                </div>
               </div>
             </div>
-          </BaseCard>
+          </div>
 
           <!-- Panel Próximos a entregar -->
-          <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
-              <h3 class="text-16 font-medium text-violet-700 m-0">Próximos a entregar</h3>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
-                @click="router.push({ name: 'presupuestos' })"
-              >
+          <div class="bg-surface border border-border rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-5 pt-4.5 pb-3.5">
+              <h3 class="text-16 font-medium m-0">Próximos a entregar</h3>
+              <BaseButton variant="ghost" @click="router.push({ name: 'presupuestos' })">
                 Ver todos <ArrowRight :size="14" :stroke-width="2" />
-              </button>
+              </BaseButton>
             </div>
-            
-            <div v-if="store.stats!.proximosEntregar.length === 0" class="p-5 text-ink-muted text-13 text-center">
+            <div v-if="store.stats!.proximosEntregar.length === 0" class="p-5 text-13 text-ink-muted text-center">
               Sin entregas próximas
             </div>
-            <div v-else class="overflow-x-auto">
-              <table class="w-full border-collapse">
-                <tbody class="divide-y divide-border">
-                  <tr
-                    v-for="p in store.stats!.proximosEntregar"
-                    :key="p.folio"
-                    class="hover:bg-page-bg/40 transition-colors duration-75 cursor-pointer select-none"
-                    :class="[isAtrasado(p.fechaEntrega!) ? 'bg-coral-50/40 hover:bg-coral-50/70' : '']"
-                    @click="router.push({ name: 'presupuestos', query: { edit: p.folio } })"
-                  >
-                    <td class="px-5 py-3.5 align-middle text-13 text-ink-muted w-[80px]">
-                      {{ p.folio }}
-                    </td>
-                    <td class="px-5 py-3.5 align-middle text-13">
-                      <div class="font-medium text-ink">{{ p.cliente?.nombre || 'Sin cliente' }}</div>
-                      <div class="text-12 text-ink-muted mt-0.5">
-                        {{ p.tematica || 'Sin temática' }}
-                      </div>
-                    </td>
-                    <td class="px-5 py-3.5 align-middle text-right text-13">
-                      <span v-if="isAtrasado(p.fechaEntrega!)" class="inline-flex items-center rounded-pill px-2 py-0.5 text-11 font-medium bg-coral-50 text-coral-700 mr-2 border border-coral-100">
-                        Atrasado
-                      </span>
-                      <span
-                        class="font-medium"
-                        :class="[isAtrasado(p.fechaEntrega!) ? 'text-coral-600' : 'text-ink-muted']"
-                      >
-                        {{ formatFechaEntrega(p.fechaEntrega!) }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </BaseCard>
+            <table v-else class="w-full">
+              <tbody>
+                <tr
+                  v-for="p in store.stats!.proximosEntregar"
+                  :key="p.folio"
+                  class="border-t border-border cursor-pointer hover:bg-page-bg transition-colors"
+                  :class="isAtrasado(p.fechaEntrega!) ? 'bg-coral-50' : ''"
+                  @click="router.push({ name: 'presupuestos', query: { edit: p.folio } })"
+                >
+                  <td class="px-4 py-3 w-20 text-13 text-ink-muted">{{ p.folio }}</td>
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-14">{{ p.cliente?.nombre || 'Sin cliente' }}</div>
+                    <div class="text-12 text-ink-muted mt-0.5">{{ p.tematica || 'Sin temática' }}</div>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <span v-if="isAtrasado(p.fechaEntrega!)" class="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-pill text-12 font-medium bg-coral-50 text-coral-500 mr-2">
+                      <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                      Atrasado
+                    </span>
+                    <span :class="isAtrasado(p.fechaEntrega!) ? 'text-coral-500 font-medium' : 'text-ink-muted font-medium'" class="text-13">
+                      {{ formatFechaEntrega(p.fechaEntrega!) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           <!-- Panel Presupuestos recientes -->
-          <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
-              <h3 class="text-16 font-medium text-violet-700 m-0">Presupuestos recientes</h3>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
-                @click="router.push({ name: 'presupuestos' })"
-              >
+          <div class="bg-surface border border-border rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-5 pt-4.5 pb-3.5">
+              <h3 class="text-16 font-medium m-0">Presupuestos recientes</h3>
+              <BaseButton variant="ghost" @click="router.push({ name: 'presupuestos' })">
                 Ver todos <ArrowRight :size="14" :stroke-width="2" />
-              </button>
+              </BaseButton>
             </div>
-            
-            <div v-if="store.stats!.presupuestosRecientes.length === 0" class="p-5 text-ink-muted text-13 text-center">
+            <div v-if="store.stats!.presupuestosRecientes.length === 0" class="p-5 text-13 text-ink-muted text-center">
               Sin presupuestos aún
             </div>
-            <div v-else class="overflow-x-auto">
-              <table class="w-full border-collapse">
-                <tbody class="divide-y divide-border">
-                  <tr
-                    v-for="p in store.stats!.presupuestosRecientes"
-                    :key="p.folio"
-                    class="hover:bg-page-bg/40 transition-colors duration-75 cursor-pointer select-none"
-                    @click="router.push({ name: 'presupuestos', query: { edit: p.folio } })"
-                  >
-                    <td class="px-5 py-3.5 align-middle text-13 text-ink-muted w-[80px]">
-                      {{ p.folio }}
-                    </td>
-                    <td class="px-5 py-3.5 align-middle text-13">
-                      <div class="font-medium text-ink">{{ p.cliente?.nombre || 'Sin cliente' }}</div>
-                      <div class="text-12 text-ink-muted mt-0.5">
-                        {{ p.tematica || 'Sin temática' }}
-                      </div>
-                    </td>
-                    <td class="px-5 py-3.5 align-middle text-13">
-                      <StatusBadge
-                        :label="statusTones[p.estado]?.label || p.estado"
-                        :tone="statusTones[p.estado]?.tone || 'neutral'"
-                      />
-                    </td>
-                    <td class="px-5 py-3.5 align-middle text-13 text-ink font-medium text-right tabular-nums">
-                      {{ money(p.total) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </BaseCard>
+            <table v-else class="w-full">
+              <tbody>
+                <tr
+                  v-for="p in store.stats!.presupuestosRecientes"
+                  :key="p.folio"
+                  class="border-t border-border cursor-pointer hover:bg-page-bg transition-colors"
+                  @click="router.push({ name: 'presupuestos', query: { edit: p.folio } })"
+                >
+                  <td class="px-4 py-3 w-20 text-13 text-ink-muted">{{ p.folio }}</td>
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-14">{{ p.cliente?.nombre || 'Sin cliente' }}</div>
+                    <div class="text-12 text-ink-muted mt-0.5">{{ p.tematica || 'Sin temática' }}</div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <StatusBadge
+                      :label="statusTones[p.estado]?.label || p.estado"
+                      :tone="statusTones[p.estado]?.tone || 'default'"
+                      dot
+                    />
+                  </td>
+                  <td class="px-4 py-3 text-right font-medium text-14 tabular-nums">{{ formatMoney(p.total, { decimals: 0 }) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- Columna Derecha: Capacidad de fabricación e Insumos a reponer -->
+        <!-- Columna Derecha -->
         <div class="flex flex-col gap-4">
           <!-- Panel Capacidad de fabricación -->
-          <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
-              <h3 class="text-16 font-medium text-violet-700 m-0">Capacidad de fabricación</h3>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
-                @click="router.push({ name: 'productos' })"
-              >
+          <div class="bg-surface border border-border rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-5 pt-4.5 pb-3.5">
+              <h3 class="text-16 font-medium m-0">Capacidad de fabricación</h3>
+              <BaseButton variant="ghost" @click="router.push({ name: 'productos' })">
                 Ver catálogo <ArrowRight :size="14" :stroke-width="2" />
-              </button>
+              </BaseButton>
             </div>
-            
-            <div v-if="capacidadFabricacion.length === 0" class="p-5 text-ink-muted text-13 text-center">
+            <div v-if="capacidadFabricacion.length === 0" class="p-5 text-13 text-ink-muted text-center">
               Sin productos con receta de insumos
             </div>
             <div v-else class="px-5 pb-5">
               <div
                 v-for="p in capacidadFabricacion"
                 :key="p.id"
-                class="py-3 border-b border-border last:border-0 hover:bg-page-bg/20 transition-colors duration-75 cursor-pointer select-none flex justify-between items-center"
+                class="py-3 border-b border-border cursor-pointer flex justify-between items-center hover:bg-page-bg/50 transition-colors"
                 @click="router.push({ name: 'productos', query: { edit: p.codigo } })"
               >
                 <div>
                   <div class="flex items-center gap-1.5">
-                    <Star v-if="p.favorito" :size="14" class="fill-yellow text-yellow-ink stroke-yellow" />
-                    <span class="text-14 font-medium text-ink">{{ p.nombre }}</span>
+                    <Star v-if="p.favorito" :size="14" fill="var(--color-yellow)" stroke="var(--color-yellow-ink)" />
+                    <span class="text-14 font-medium">{{ p.nombre }}</span>
                   </div>
-                  <div class="text-12 text-ink-muted mt-0.5">
-                    {{ p.codigo }} · limitado por: {{ p.insumoLimitante }}
-                  </div>
+                  <div class="text-12 text-ink-muted">{{ p.codigo }} · limitado por: {{ p.insumoLimitante }}</div>
                 </div>
                 <div class="text-right">
                   <StatusBadge
                     :label="`Capacidad: ${p.capacidad} ${p.capacidad === 1 ? 'unidad' : 'unidades'}`"
-                    :tone="p.capacidad === 0 ? 'danger' : p.capacidad <= 5 ? 'warning' : 'neutral'"
+                    :tone="p.capacidad === 0 ? 'coral' : p.capacidad <= 5 ? 'yellow' : 'default'"
                   />
                 </div>
               </div>
             </div>
-          </BaseCard>
+          </div>
 
-          <!-- Panel Insumos a reponer (Top 5) -->
-          <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
-              <h3 class="text-16 font-medium text-violet-700 m-0">Insumos a reponer</h3>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
-                @click="router.push({ name: 'insumos' })"
-              >
+          <!-- Panel Insumos a reponer -->
+          <div class="bg-surface border border-border rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-5 pt-4.5 pb-3.5">
+              <h3 class="text-16 font-medium m-0">Insumos a reponer</h3>
+              <BaseButton variant="ghost" @click="router.push({ name: 'insumos' })">
                 Ver inventario <ArrowRight :size="14" :stroke-width="2" />
-              </button>
+              </BaseButton>
             </div>
-            
-            <div v-if="topInsumosAReponer.length === 0" class="p-5 text-ink-muted text-13 text-center">
+            <div v-if="topInsumosAReponer.length === 0" class="p-5 text-13 text-ink-muted text-center">
               Todos los insumos están en nivel óptimo
             </div>
             <div v-else class="px-5 pb-5">
               <div
                 v-for="i in topInsumosAReponer"
                 :key="i.id"
-                class="py-3 border-b border-border last:border-0 hover:bg-page-bg/20 transition-colors duration-75 cursor-pointer select-none"
+                class="py-3 border-b border-border cursor-pointer hover:bg-page-bg/50 transition-colors"
                 @click="router.push({ name: 'insumos', query: { edit: i.codigo } })"
               >
-                <div class="flex justify-between mb-2">
+                <div class="flex justify-between mb-1.5">
                   <div>
-                    <div class="text-14 font-medium text-ink">{{ i.nombre }}</div>
+                    <div class="text-14 font-medium">{{ i.nombre }}</div>
                     <div class="text-12 text-ink-muted">{{ i.codigo }}</div>
                   </div>
                   <div class="text-13 tabular-nums text-right">
-                    <div class="font-medium text-ink">{{ i.stock }} {{ i.unidad }}</div>
+                    <div class="font-medium">{{ i.stock }} {{ i.unidad }}</div>
                     <div class="text-12 text-ink-muted">min {{ i.stockMinimo }}</div>
                   </div>
                 </div>
-                <StockBar :stock="Number(i.stock)" :minimo="Number(i.stockMinimo)" />
+                <div class="h-1.5 bg-page-bg rounded-pill overflow-hidden">
+                  <div
+                    class="h-full rounded-pill transition-all"
+                    :class="Number(i.stock) < Number(i.stockMinimo) * 0.5 ? 'bg-coral-500' : 'bg-yellow'"
+                    :style="{ width: Math.min(100, (Number(i.stock) / Number(i.stockMinimo)) * 100) + '%' }"
+                  ></div>
+                </div>
               </div>
             </div>
-          </BaseCard>
+          </div>
         </div>
       </div>
     </template>

@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { ArrowLeft, Check, Trash2, X, Plus, Lock, Image, GripVertical, Ruler } from '@lucide/vue'
+import { editorDirty } from '@/shared/lib/editorMode'
 import { get, post, put, del } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
 import ToggleSwitch from '@/shared/ui/ToggleSwitch.vue'
-import OverlayShell from '@/shared/ui/OverlayShell.vue'
-import BaseButton from '@/shared/ui/BaseButton.vue'
-import { formatMoney } from '@/shared/lib/format'
 import type { Producto, CategoriaProducto, Insumo, PaginationResult } from '@/types'
 
 const props = defineProps<{
@@ -21,6 +19,7 @@ const emit = defineEmits<{
   close: []
   saved: [producto: Producto]
   deleted: []
+  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
 }>()
 
 const { toast } = useToast()
@@ -58,7 +57,6 @@ const localMedidasFormatted = computed(() => {
   const suffix = medidasTipo.value === 'cuerpo' && medidasProfundidad.value !== '' ? ` × ${medidasProfundidad.value}` : ''
   return `${medidasBase.value} × ${medidasAltura.value}${suffix} cm`
 })
-
 const tieneBom = ref(true)
 const precioManual = ref(false)
 const tipoGanancia = ref<'porcentaje' | 'fijo'>('porcentaje')
@@ -125,6 +123,10 @@ watch([precioCalculado, precioManual], ([newCalc, manual]) => {
     precio.value = Number(Number(newCalc).toFixed(2))
   }
 })
+
+function money(n: number): string {
+  return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+}
 
 function reset() {
   nombre.value = ''
@@ -201,6 +203,7 @@ function loadProducto() {
   }
 }
 
+
 function addBomLinea() {
   bomLineas.value.push({
     tipoLinea: 'insumo',
@@ -271,7 +274,6 @@ async function handleSave() {
         tipoLinea: l.tipoLinea,
         insumoId: l.insumoId || undefined,
         descripcion: l.descripcion,
-        fancyCosto: l.costoUnitario,
         cantidad: l.cantidad,
         costoUnitario: l.costoUnitario,
       }))
@@ -314,17 +316,42 @@ function handleBack() {
   }
 }
 
-function handleClose() {
+function openOverlay() {
+  emit('update:header', {
+    mode: 'editor',
+    title: isEdit.value ? (props.producto?.codigo || '') : 'Nuevo',
+    onSave: handleSave,
+    onClose: handleClose,
+  })
+}
+
+function closeOverlay() {
+  emit('update:header', { mode: 'normal' })
   emit('close')
 }
 
+function handleClose() {
+  closeOverlay()
+}
+
+watch(dirty, (val) => {
+  editorDirty.value = val
+})
+
 watch(() => props.open, async (open) => {
   if (open) {
+    document.body.classList.add('no-scroll')
     loadProducto()
+    openOverlay()
+    editorDirty.value = dirty.value
     await nextTick()
     const nameInput = document.getElementById('pd-nombre-input') as HTMLInputElement | null
     nameInput?.focus()
     nameInput?.select()
+  } else {
+    document.body.classList.remove('no-scroll')
+    closeOverlay()
+    editorDirty.value = false
   }
 }, { immediate: true })
 
@@ -341,6 +368,10 @@ watch(() => props.open, async (open) => {
       toast('Error al cargar datos', 'error')
     }
   }
+})
+
+onUnmounted(() => {
+  document.body.classList.remove('no-scroll')
 })
 
 function getImageUrl(path: string) {
@@ -494,10 +525,9 @@ function cleanupEmptyRecetaLineas() {
     bomLineas.value = kept.length > 0 ? kept : [{
       tipoLinea: 'insumo',
       descripcion: '',
-      fancyCosto: 0,
       cantidad: 0,
       costoUnitario: 0,
-    } as any]
+    }]
   })
 }
 
@@ -549,458 +579,661 @@ function onCellEnter(idx: number, field: 'tipoLinea' | 'descripcion' | 'cantidad
   addBomLinea()
   focusRecetaInput(idx + 1, field)
 }
+
+defineExpose({ loadProducto })
 </script>
 
 <template>
-  <OverlayShell
-    :open="open"
-    :title="isEdit ? (producto?.codigo || '') : 'Nuevo'"
-    :dirty="dirty"
-    @close="handleClose"
-    @save="handleSave"
-  >
-    <template #body>
-      <div ref="overlayEl" class="p-7 flex flex-col gap-6 max-w-7xl mx-auto w-full">
-        <div class="grid grid-cols-1 lg:grid-cols-[6fr_4fr] gap-6 items-start">
-          
-          <!-- Bloque Izquierdo (60% del ancho) -->
-          <div class="flex flex-col gap-6 min-w-0">
-            <!-- Nombre del Producto -->
-            <div class="p-4 bg-transparent border-0 rounded-lg">
-              <div class="flex gap-3 items-end w-full">
-                <div class="flex-1 min-w-0">
-                  <FloatingField
-                    id="pd-nombre-input"
-                    label="Nombre"
-                    required
-                    v-model="nombre"
-                    placeholder="Nombre del producto"
-                    class="pd-inline-name-ff"
-                    @focus="($event.target as HTMLInputElement).select()"
-                    @blur="nombre = nombre.trim()"
-                    @keydown.enter.prevent="focusCategory"
-                  />
-                </div>
-                <div v-if="isEdit" class="pb-2 flex gap-2 items-center flex-shrink-0">
-                  <span v-if="localMedidasFormatted" class="inline-flex items-center gap-1.5 font-mono text-12 text-violet-700 bg-violet-100 px-2.5 py-1 rounded-full animate-fade-in" title="Medidas">
-                    <Ruler :size="10" /> {{ localMedidasFormatted }}
-                  </span>
-                  <span class="inline-flex items-center gap-1.5 font-mono text-12 text-violet-700 bg-violet-100 px-2.5 py-1 rounded-full" title="Código autogenerado">
-                    <Lock :size="10" /> {{ producto!.codigo }}
-                  </span>
+  <Transition name="overlay">
+    <div v-if="open" ref="overlayEl" class="pd-overlay">
+        <div class="pd-body">
+          <div class="pd-top">
+            <!-- Bloque Izquierdo (60% del ancho) -->
+            <div class="pd-left-block">
+              <!-- Nombre del Producto (100% de ancho de este bloque) -->
+              <div class="pd-name-header-card" style="padding: 14px 18px;">
+                <div style="display: flex; align-items: flex-end; gap: 12px; width: 100%;">
+                  <div style="flex: 1;">
+                    <FloatingField
+                      id="pd-nombre-input"
+                      label="Nombre"
+                      required
+                      v-model="nombre"
+                      placeholder="Nombre del producto"
+                      class="pd-inline-name-ff"
+                      @focus="($event.target as HTMLInputElement).select()"
+                      @blur="nombre = nombre.trim()"
+                      @keydown.enter.prevent="focusCategory"
+                    />
+                  </div>
+                  <div v-if="isEdit" style="padding-bottom: 8px; display: flex; gap: 6px; align-items: center;">
+                    <span v-if="localMedidasFormatted" class="pd-code-badge" title="Medidas" style="flex-shrink: 0; background: var(--violet-50); color: var(--violet-700)">
+                      <Ruler :size="10" /> {{ localMedidasFormatted }}
+                    </span>
+                    <span class="pd-code-badge" title="Código autogenerado" style="flex-shrink: 0;">
+                      <Lock :size="10" /> {{ producto!.codigo }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Dos sub-columnas debajo del Nombre -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-              <!-- Sub-columna 1: Fotos -->
-              <section class="flex flex-col gap-4 bg-surface border border-border rounded-lg p-5">
-                <!-- Foto Principal (slot 0) -->
-                <div
-                  class="relative aspect-video w-full bg-page-bg rounded-md flex flex-col items-center justify-center text-ink-muted/50 overflow-hidden cursor-pointer border border-dashed border-border-strong hover:border-violet-700 transition"
-                  draggable="true"
-                  tabindex="0"
-                  role="button"
-                  aria-label="Foto principal. Arrastrá o hacé click para subir"
-                  @dragstart="handleDragStart(0)"
-                  @dragover="handleDragOver"
-                  @drop="handleDrop(0)"
-                  @click="triggerFileInput(0)"
-                  @keydown.enter.prevent="triggerFileInput(0)"
-                  @keydown.space.prevent="triggerFileInput(0)"
-                >
-                  <img v-if="imagenes[0]" :src="getImageUrl(imagenes[0])" alt="Imagen principal" class="w-full h-full object-cover block" />
-                  <div v-else class="flex flex-col items-center gap-1 text-center p-3">
-                    <Image :size="32" class="text-ink-muted/30" />
-                    <span class="text-11 text-ink-muted">Arrastrá o hacé click para subir</span>
-                  </div>
-                  <button v-if="imagenes[0]" class="absolute top-2 right-2 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer hover:bg-coral-600 transition" @click.stop="removeImage(0)">
-                    <X :size="12" />
-                  </button>
-                </div>
-
-                <!-- Miniaturas (slots 1 y 2) -->
-                <div class="grid grid-cols-2 gap-3">
+              <!-- Dos sub-columnas debajo del Nombre -->
+              <div class="pd-left-grid">
+                <!-- Sub-columna 1: Fotos -->
+                <section class="pd-card">
+                  <!-- Foto Principal (slot 0) -->
                   <div
-                    v-for="idx in [1, 2]"
-                    :key="idx"
-                    class="relative aspect-video w-full bg-page-bg rounded-md flex items-center justify-center text-ink-muted/50 overflow-hidden cursor-pointer border border-dashed border-border-strong hover:border-violet-700 transition"
+                    class="pd-photo-main"
                     draggable="true"
                     tabindex="0"
                     role="button"
-                    :aria-label="`Foto miniatura ${idx}. Arrastrá o hacé click para subir`"
-                    @dragstart="handleDragStart(idx)"
+                    aria-label="Foto principal. Presioná Enter o Espacio para cambiar o subir"
+                    @dragstart="handleDragStart(0)"
                     @dragover="handleDragOver"
-                    @drop="handleDrop(idx)"
-                    @click="triggerFileInput(idx)"
-                    @keydown.enter.prevent="triggerFileInput(idx)"
-                    @keydown.space.prevent="triggerFileInput(idx)"
+                    @drop="handleDrop(0)"
+                    @click="triggerFileInput(0)"
+                    @keydown.enter.prevent="triggerFileInput(0)"
+                    @keydown.space.prevent="triggerFileInput(0)"
                   >
-                    <img v-if="imagenes[idx]" :src="getImageUrl(imagenes[idx])" alt="Miniatura" class="w-full h-full object-cover block" />
-                    <div v-else class="flex items-center justify-center">
-                      <Plus :size="16" class="text-ink-muted/30" />
+                    <img v-if="imagenes[0]" :src="getImageUrl(imagenes[0])" alt="Imagen principal" />
+                    <div v-else class="pd-photo-placeholder">
+                      <Image :size="40" />
+                      <span class="text-hint" style="font-size: 11px; margin-top: 4px;">Arrastrá o hacé click para subir</span>
                     </div>
-                    <button v-if="imagenes[idx]" class="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer hover:bg-coral-600 transition" @click.stop="removeImage(idx)">
-                      <X :size="10" />
+                    <button v-if="imagenes[0]" class="remove-img-btn" @click.stop="removeImage(0)">
+                      <X :size="12" />
                     </button>
                   </div>
-                </div>
 
-                <!-- Inputs de archivos ocultos -->
-                <input
-                  v-for="idx in [0, 1, 2]"
-                  :key="'input-' + idx"
-                  :id="'file-input-' + idx"
-                  type="file"
-                  accept="image/*"
-                  class="hidden"
-                  @change="handleFileChange($event, idx)"
-                />
-              </section>
-
-              <!-- Sub-columna 2: Identidad -->
-              <section class="flex flex-col gap-6 bg-surface border border-border rounded-lg p-5">
-                <div class="flex flex-col gap-1.5">
-                  <FloatingSelect id="pd-categoria" label="Categoría" required v-model.number="categoriaId">
-                    <option :value="0" disabled>Seleccionar</option>
-                    <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                  </FloatingSelect>
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                  <div class="flex items-center justify-between gap-2 mb-1">
-                    <label class="text-11 font-semibold text-ink-muted uppercase tracking-[0.06em]">Medidas</label>
-                    <div class="checkbox-wrapper-10">
-                      <input
-                        type="checkbox"
-                        id="cb-medidas-tipo"
-                        class="tgl tgl-flip"
-                        :checked="medidasTipo === 'cuerpo'"
-                        @change="medidasTipo = ($event.target as HTMLInputElement).checked ? 'cuerpo' : 'plano'"
-                      />
-                      <label for="cb-medidas-tipo" data-tg-on="Cuerpo" data-tg-off="Plano" class="tgl-btn"></label>
+                  <!-- Miniaturas (slots 1 y 2) -->
+                  <div class="pd-thumbnails-grid">
+                    <div
+                      v-for="idx in [1, 2]"
+                      :key="idx"
+                      class="pd-photo-thumb"
+                      draggable="true"
+                      tabindex="0"
+                      role="button"
+                      :aria-label="`Foto miniatura ${idx}. Presioná Enter o Espacio para cambiar o subir`"
+                      @dragstart="handleDragStart(idx)"
+                      @dragover="handleDragOver"
+                      @drop="handleDrop(idx)"
+                      @click="triggerFileInput(idx)"
+                      @keydown.enter.prevent="triggerFileInput(idx)"
+                      @keydown.space.prevent="triggerFileInput(idx)"
+                    >
+                      <img v-if="imagenes[idx]" :src="getImageUrl(imagenes[idx])" alt="Miniatura" />
+                      <div v-else class="pd-photo-placeholder-thumb">
+                        <Plus :size="16" />
+                      </div>
+                      <button v-if="imagenes[idx]" class="remove-img-btn" @click.stop="removeImage(idx)">
+                        <X :size="10" />
+                      </button>
                     </div>
                   </div>
-                  
-                  <div class="flex gap-2">
-                    <div class="flex-1 min-w-0">
-                      <FloatingField
-                        id="pd-base"
-                        label="Base (cm)"
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        v-model.number="medidasBase"
-                        placeholder="0"
-                      />
+
+                  <!-- Inputs de archivos ocultos -->
+                  <input
+                    v-for="idx in [0, 1, 2]"
+                    :key="'input-' + idx"
+                    :id="'file-input-' + idx"
+                    type="file"
+                    accept="image/*"
+                    style="display: none;"
+                    @change="handleFileChange($event, idx)"
+                  />
+                </section>
+
+                <!-- Sub-columna 2: Identidad -->
+                <section class="pd-card">
+                  <div class="pd-field">
+                    <FloatingSelect id="pd-categoria" label="Categoría" required v-model.number="categoriaId">
+                      <option :value="0" disabled>Seleccionar</option>
+                      <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                    </FloatingSelect>
+                  </div>
+
+                  <div class="pd-field">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                      <label class="pd-label-group" style="margin-bottom: 0;">Medidas</label>
+                      <div class="medidas-toggle-group" style="margin-bottom: 0;">
+                        <input
+                          type="checkbox"
+                          id="cb-medidas-tipo"
+                          class="tgl tgl-flip"
+                          :checked="medidasTipo === 'cuerpo'"
+                          @change="medidasTipo = ($event.target as HTMLInputElement).checked ? 'cuerpo' : 'plano'"
+                        />
+                        <label for="cb-medidas-tipo" data-tg-on="Cuerpo" data-tg-off="Plano" class="tgl-btn" style="margin: 0;"></label>
+                      </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                      <FloatingField
-                        id="pd-altura"
-                        label="Altura (cm)"
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        v-model.number="medidasAltura"
-                        placeholder="0"
-                      />
+                    
+                    <div class="medidas-inputs-row">
+                      <div class="medida-input-col">
+                        <FloatingField
+                          id="pd-base"
+                          label="Base (cm)"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          v-model.number="medidasBase"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div class="medida-input-col">
+                        <FloatingField
+                          id="pd-altura"
+                          label="Altura (cm)"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          v-model.number="medidasAltura"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div v-if="medidasTipo === 'cuerpo'" class="medida-input-col">
+                        <FloatingField
+                          id="pd-profundidad"
+                          label="Profundidad (cm)"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          v-model.number="medidasProfundidad"
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
-                    <div v-if="medidasTipo === 'cuerpo'" class="flex-1 min-w-0">
-                      <FloatingField
-                        id="pd-profundidad"
-                        label="Prof. (cm)"
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        v-model.number="medidasProfundidad"
-                        placeholder="0"
-                      />
+                  </div>
+
+                  <div class="pd-field">
+                    <FloatingField
+                      id="pd-descripcion"
+                      label="Descripción"
+                      multiline
+                      v-model="descripcion"
+                      placeholder="Detalles, terminaciones, materiales destacados"
+                    />
+                  </div>
+
+                  <div class="pd-toggle-row">
+                    <div class="lbl">
+                      <span class="t">Producto activo</span>
+                      <span class="h">Visible en catálogo y presupuestos</span>
                     </div>
+                    <ToggleSwitch v-model="activo" aria-label="Producto activo" />
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <!-- Bloque Derecho (40% del ancho) -->
+            <div class="pd-right-block">
+              <section class="pd-card">
+                <div class="pd-card-head">
+                  <h4>Precios</h4>
+                </div>
+
+                <div class="pd-toggle-row" style="margin-bottom: 12px; border-top: 0; padding-top: 0;">
+                  <div class="lbl">
+                    <span class="t">Precio automático</span>
+                    <span class="h">Sincronizado con receta y margen</span>
+                  </div>
+                  <ToggleSwitch :modelValue="!precioManual" @update:modelValue="val => precioManual = !val" aria-label="Precio automático" />
+                </div>
+
+                <!-- Tipo de Ganancia: Flip Switch .checkbox-wrapper-10 en la misma línea -->
+                <div class="pd-toggle-row" style="margin-bottom: 12px;">
+                  <div class="lbl">
+                    <span class="t">Tipo de ganancia</span>
+                    <span class="h">Cálculo por porcentaje o monto fijo</span>
+                  </div>
+                  <div class="checkbox-wrapper-10" style="margin-bottom: 0;">
+                    <input 
+                      type="checkbox" 
+                      id="cb-profit-type" 
+                      class="tgl tgl-flip" 
+                      :checked="tipoGanancia === 'fijo'" 
+                      @change="tipoGanancia = ($event.target as HTMLInputElement).checked ? 'fijo' : 'porcentaje'"
+                    />
+                    <label for="cb-profit-type" data-tg-on="Fijo" data-tg-off="Porcentaje" class="tgl-btn" style="margin: 0;"></label>
                   </div>
                 </div>
 
-                <div class="flex flex-col gap-1.5">
-                  <FloatingField
-                    id="pd-descripcion"
-                    label="Descripción"
-                    multiline
-                    v-model="descripcion"
-                    placeholder="Detalles, terminaciones, materiales destacados"
+                <!-- Margen / Monto sobre costo en la misma línea -->
+                <div class="pd-price-row">
+                  <span class="pd-price-label">{{ tipoGanancia === 'porcentaje' ? 'Margen (%)' : 'Monto sobre costo' }}</span>
+                  <input
+                    class="pd-money-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    v-model.number="ganancia"
+                    style="font-variant-numeric: tabular-nums; text-align: right;"
                   />
                 </div>
 
-                <div class="flex items-center justify-between py-2.5 px-3 bg-page-bg/50 border border-border rounded-lg mt-1">
-                  <div class="flex flex-col gap-0.5 text-left">
-                    <span class="text-13 font-medium text-ink">Producto activo</span>
-                    <span class="text-12 text-ink-muted">Visible en catálogo y presupuestos</span>
-                  </div>
-                  <ToggleSwitch v-model="activo" aria-label="Producto activo" />
+                <div v-if="tieneBom" class="pd-price-row">
+                  <span class="pd-price-label">Costo del producto <span style="margin-left: 6px; font-size: 10px; color: var(--ink-muted)">(desde BOM)</span></span>
+                  <input class="pd-money-input readonly" :value="money(costoProducto)" readonly />
+                </div>
+
+                <div class="pd-price-row">
+                  <span class="pd-price-label">Precio calculado</span>
+                  <input
+                    class="pd-money-input readonly"
+                    :value="tieneBom ? money(precioCalculado) : '—'"
+                    readonly
+                    tabindex="-1"
+                  />
+                </div>
+
+                <div class="pd-price-row grand">
+                  <span class="pd-price-label">Precio final</span>
+                  <input
+                    class="pd-money-input"
+                    :class="{ readonly: !precioManual }"
+                    type="number"
+                    min="0"
+                    step="1"
+                    v-model.number="precio"
+                    :readonly="!precioManual"
+                    style="font-size: 18px; font-weight: 500; color: var(--violet-700); width: 150px"
+                  />
+                </div>
+
+                <div v-if="precio < precioCalculado" class="price-warning-banner">
+                  ⚠️ El precio de venta final está por debajo del sugerido (costo de receta + margen)
                 </div>
               </section>
             </div>
           </div>
 
-          <!-- Bloque Derecho (40% del ancho) -->
-          <div class="flex flex-col gap-6">
-            <section class="flex flex-col gap-4 bg-surface border border-border rounded-lg shadow-sm p-5">
-              <div class="flex items-center justify-between">
-                <h4 class="text-11 font-semibold text-ink-muted uppercase tracking-[0.06em] m-0">Precios</h4>
-              </div>
+          <section v-if="tieneBom" class="pd-bom">
+            <div class="pd-bom-head">
+              <h4>Receta · BOM</h4>
+              <span class="text-hint" style="font-size: 12px">
+                Costos aislados — editar el costo unitario acá no afecta a otros productos.
+              </span>
+            </div>
 
-              <div class="flex items-center justify-between py-2.5 px-3 bg-page-bg/30 border border-border rounded-lg">
-                <div class="flex flex-col gap-0.5 text-left">
-                  <span class="text-13 font-medium text-ink">Precio automático</span>
-                  <span class="text-12 text-ink-muted">Sincronizado con receta y margen</span>
-                </div>
-                <ToggleSwitch :modelValue="!precioManual" @update:modelValue="precioManual = !$event" aria-label="Precio automático" />
-              </div>
+            <div ref="recetaTableRef" class="lines-spreadsheet pd-bom-table" @focusout="onRecetaTableFocusout">
+              <table>
+                <colgroup>
+                  <col style="width: 22px;" />
+                  <col style="width: 130px;" />
+                  <col />
+                  <col style="width: 100px;" />
+                  <col style="width: 130px;" />
+                  <col style="width: 120px;" />
+                  <col style="width: 36px;" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Tipo</th>
+                    <th>Insumo / descripción</th>
+                    <th class="num">Cantidad</th>
+                    <th class="num">Costo unitario</th>
+                    <th class="num">Subtotal</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr 
+                    v-for="(l, idx) in bomLineas" 
+                    :key="idx"
+                    :class="[
+                      'ln-row',
+                      activeRowIdx === idx && 'active',
+                      dragId === idx && 'dragging',
+                      dragOverId === idx && dragId !== idx && 'drag-over'
+                    ]"
+                    draggable="true"
+                    @dragstart="onBomDragStart(idx)"
+                    @dragover="onBomDragOver($event, idx)"
+                    @drop="onBomDrop(idx)"
+                    @dragend="onBomDragEnd"
+                    @mousedown="activeRowIdx = idx"
+                  >
+                    <td class="grip" title="Arrastrar para reordenar">
+                      <GripVertical :size="14" />
+                    </td>
+                    <td>
+                      <select 
+                        class="cell-select" 
+                        v-model="l.tipoLinea" 
+                        @focus="activeRowIdx = idx"
+                        @keydown.enter.prevent="onCellEnter(idx, 'tipoLinea')"
+                      >
+                        <option value="insumo">Insumo</option>
+                        <option value="cameo">Cameo</option>
+                        <option value="embalaje">Embalaje</option>
+                        <option value="extra">Extra</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        class="cell-input"
+                        :value="l.insumoId || 0"
+                        @change="onInsumoChange(idx, +($event.target as HTMLSelectElement).value)"
+                        @focus="activeRowIdx = idx"
+                        @keydown.enter.prevent="onCellEnter(idx, 'descripcion')"
+                      >
+                        <option :value="0">Texto libre</option>
+                        <option v-for="ins in insumosList" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
+                      </select>
+                    </td>
+                    <td style="position: relative;">
+                      <input
+                        class="cell-input num-input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        v-model.number="l.cantidad"
+                        @focus="activeRowIdx = idx"
+                        @keydown.enter.prevent="onCellEnter(idx, 'cantidad')"
+                        style="padding-right: 45px; text-align: right;"
+                      />
+                      <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink-muted); pointer-events: none;">
+                        {{ getInsumoUnit(l.insumoId) }}
+                      </span>
+                    </td>
+                    <td style="position: relative;">
+                      <input
+                        class="cell-input num-input"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        v-model.number="l.costoUnitario"
+                        @focus="activeRowIdx = idx"
+                        @keydown.enter.prevent="onCellEnter(idx, 'costoUnitario')"
+                        style="padding-right: 45px; text-align: right;"
+                      />
+                      <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink-muted); pointer-events: none;">
+                        {{ l.insumoId ? `/ ${getInsumoUnit(l.insumoId)}` : '' }}
+                      </span>
+                    </td>
+                    <td class="num cell-subtotal">{{ money(l.cantidad * l.costoUnitario) }}</td>
+                    <td>
+                      <button class="del-btn" @click="removeBomLinea(idx)" title="Eliminar línea">
+                        <X :size="14" />
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <button class="add-line-btn" @click="addBomLinea">
+                <Plus :size="14" /> Agregar línea
+              </button>
+            </div>
 
-              <div class="flex items-center justify-between py-2.5 px-3 bg-page-bg/30 border border-border rounded-lg">
-                <div class="flex flex-col gap-0.5 text-left">
-                  <span class="text-13 font-medium text-ink">Tipo de ganancia</span>
-                  <span class="text-12 text-ink-muted">Margen porcentual o valor fijo</span>
-                </div>
-                <div class="checkbox-wrapper-10">
-                  <input 
-                    type="checkbox" 
-                    id="cb-profit-type" 
-                    class="tgl tgl-flip" 
-                    :checked="tipoGanancia === 'fijo'" 
-                    @change="tipoGanancia = ($event.target as HTMLInputElement).checked ? 'fijo' : 'porcentaje'"
-                  />
-                  <label for="cb-profit-type" data-tg-on="Fijo" data-tg-off="Porcentaje" class="tgl-btn"></label>
-                </div>
-              </div>
-
-              <!-- Margen / Monto sobre costo -->
-              <div class="flex items-center justify-between py-2 border-t border-border mt-1">
-                <span class="text-12 font-medium text-ink-muted uppercase tracking-[0.06em]">{{ tipoGanancia === 'porcentaje' ? 'Margen (%)' : 'Monto sobre costo' }}</span>
-                <input
-                  class="w-[140px] text-14 text-right bg-surface border border-border-strong rounded-md px-3 py-2 font-mono focus:outline-none focus:border-teal-500 focus:shadow-focus-ring"
-                  type="number"
-                  min="0"
-                  step="1"
-                  v-model.number="ganancia"
-                />
-              </div>
-
-              <div v-if="tieneBom" class="flex items-center justify-between py-2 border-t border-border">
-                <span class="text-12 font-medium text-ink-muted uppercase tracking-[0.06em]">Costo del producto <span class="text-10 text-ink-muted font-normal lowercase">(desde BOM)</span></span>
-                <input class="w-[140px] text-14 text-right bg-page-bg text-ink-muted border border-border rounded-md px-3 py-2 font-mono" :value="formatMoney(costoProducto)" readonly />
-              </div>
-
-              <div class="flex items-center justify-between py-2 border-t border-border">
-                <span class="text-12 font-medium text-ink-muted uppercase tracking-[0.06em]">Precio sugerido</span>
-                <input
-                  class="w-[140px] text-14 text-right bg-page-bg text-ink-muted border border-border rounded-md px-3 py-2 font-mono"
-                  :value="tieneBom ? formatMoney(precioCalculado) : '—'"
-                  readonly
-                  tabindex="-1"
-                />
-              </div>
-
-              <div class="flex items-center justify-between py-3 border-t border-border-strong mt-2">
-                <span class="text-12 font-semibold text-ink-muted uppercase tracking-[0.06em]">Precio de venta</span>
-                <input
-                  class="w-[140px] text-18 font-semibold text-right bg-surface border border-border-strong rounded-md px-3 py-2 font-mono text-violet-700 focus:outline-none focus:border-teal-500 focus:shadow-focus-ring"
-                  :class="{ '!bg-page-bg !text-ink-muted !border-border': !precioManual }"
-                  type="number"
-                  min="0"
-                  step="1"
-                  v-model.number="precio"
-                  :readonly="!precioManual"
-                />
-              </div>
-
-              <div v-if="precio < precioCalculado" class="text-12 text-orange-ink bg-yellow/40 border border-yellow/60 p-3 rounded-lg leading-relaxed">
-                El precio de venta final está por debajo del sugerido (costo de receta + margen)
-              </div>
-            </section>
-          </div>
+            <div class="pd-bom-total">
+              <span class="lbl">Total BOM</span>
+              <span class="val">{{ money(bomTotal) }}</span>
+            </div>
+          </section>
         </div>
 
-        <section v-if="tieneBom" class="bg-surface border border-border rounded-lg shadow-sm p-5 flex flex-col gap-4 mt-2">
-          <div class="flex items-center justify-between gap-3">
-            <h4 class="text-16 font-semibold text-ink m-0">Receta · BOM</h4>
-            <span class="text-12 text-ink-muted">Costos aislados — editar el costo unitario acá no afecta a otros productos</span>
-          </div>
-
-          <div ref="recetaTableRef" class="lines-spreadsheet overflow-x-auto" @focusout="onRecetaTableFocusout">
-            <table class="w-full text-left border-collapse">
-              <colgroup>
-                <col style="width: 22px;" />
-                <col style="width: 130px;" />
-                <col />
-                <col style="width: 100px;" />
-                <col style="width: 130px;" />
-                <col style="width: 120px;" />
-                <col style="width: 36px;" />
-              </colgroup>
-              <thead>
-                <tr class="border-b border-border text-11 font-semibold text-ink-muted uppercase tracking-[0.06em] bg-page-bg/30">
-                  <th class="py-2"></th>
-                  <th class="py-2 pb-2">Tipo</th>
-                  <th class="py-2 pb-2">Insumo / descripción</th>
-                  <th class="py-2 pb-2 text-right">Cantidad</th>
-                  <th class="py-2 pb-2 text-right">Costo unitario</th>
-                  <th class="py-2 pb-2 text-right">Subtotal</th>
-                  <th class="py-2 pb-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr 
-                  v-for="(l, idx) in bomLineas" 
-                  :key="idx"
-                  :class="[
-                    'border-b border-border last:border-0 hover:bg-page-bg/50',
-                    activeRowIdx === idx && 'bg-page-bg/80',
-                    dragId === idx && 'opacity-50 bg-violet-50',
-                    dragOverId === idx && dragId !== idx && 'border-t-2 border-violet-500'
-                  ]"
-                  draggable="true"
-                  @dragstart="onBomDragStart(idx)"
-                  @dragover="onBomDragOver($event, idx)"
-                  @drop="onBomDrop(idx)"
-                  @dragend="onBomDragEnd"
-                  @mousedown="activeRowIdx = idx"
-                >
-                  <td class="py-2 text-center text-ink-muted/40 cursor-grab active:cursor-grabbing grip" title="Arrastrar para reordenar">
-                    <GripVertical :size="14" />
-                  </td>
-                  <td class="py-2">
-                    <select 
-                      class="w-full bg-transparent text-13 text-ink focus:outline-none focus:bg-teal-100 py-1" 
-                      v-model="l.tipoLinea" 
-                      @focus="activeRowIdx = idx"
-                      @keydown.enter.prevent="onCellEnter(idx, 'tipoLinea')"
-                    >
-                      <option value="insumo">Insumo</option>
-                      <option value="cameo">Cameo</option>
-                      <option value="embalaje">Embalaje</option>
-                      <option value="extra">Extra</option>
-                    </select>
-                  </td>
-                  <td class="py-2">
-                    <select
-                      class="w-full bg-transparent text-13 text-ink focus:outline-none focus:bg-teal-100 py-1 pr-6"
-                      :value="l.insumoId || 0"
-                      @change="onInsumoChange(idx, +($event.target as HTMLSelectElement).value)"
-                      @focus="activeRowIdx = idx"
-                      @keydown.enter.prevent="onCellEnter(idx, 'descripcion')"
-                    >
-                      <option :value="0">Texto libre</option>
-                      <option v-for="ins in insumosList" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
-                    </select>
-                  </td>
-                  <td class="py-2 relative">
-                    <input
-                      class="w-full bg-transparent text-13 text-ink text-right focus:outline-none focus:bg-teal-100 py-1 font-mono num-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      v-model.number="l.cantidad"
-                      @focus="activeRowIdx = idx"
-                      @keydown.enter.prevent="onCellEnter(idx, 'cantidad')"
-                      style="padding-right: 45px;"
-                    />
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-11 text-ink-muted pointer-events-none font-sans">
-                      {{ getInsumoUnit(l.insumoId) }}
-                    </span>
-                  </td>
-                  <td class="py-2 relative">
-                    <input
-                      class="w-full bg-transparent text-13 text-ink text-right focus:outline-none focus:bg-teal-100 py-1 font-mono num-input"
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      v-model.number="l.costoUnitario"
-                      @focus="activeRowIdx = idx"
-                      @keydown.enter.prevent="onCellEnter(idx, 'costoUnitario')"
-                      style="padding-right: 45px;"
-                    />
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-11 text-ink-muted pointer-events-none font-sans">
-                      {{ l.insumoId ? `/ ${getInsumoUnit(l.insumoId)}` : '' }}
-                    </span>
-                  </td>
-                  <td class="py-2 text-right font-medium text-13 font-mono">{{ formatMoney(l.cantidad * l.costoUnitario) }}</td>
-                  <td class="py-2 text-center">
-                    <button class="text-ink-muted hover:text-coral-500 cursor-pointer p-1 transition-colors" @click="removeBomLinea(idx)" title="Eliminar línea">
-                      <X :size="14" />
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            
-            <button class="flex items-center gap-1.5 text-13 text-violet-700 hover:text-violet-800 font-medium cursor-pointer py-3 px-4 w-full border-t border-dashed border-border-strong hover:bg-violet-50 transition" @click="addBomLinea">
-              <Plus :size="14" /> Agregar línea
-            </button>
-          </div>
-
-          <div class="flex justify-end items-center gap-4 py-2 mt-1">
-            <span class="text-11 font-semibold text-ink-muted uppercase tracking-[0.06em]">Total BOM</span>
-            <span class="text-20 font-semibold text-violet-700 font-mono">{{ formatMoney(bomTotal) }}</span>
-          </div>
-        </section>
-      </div>
-    </template>
-
-    <template #foot>
-      <div class="flex items-center w-full">
-        <BaseButton
-          variant="ghost"
-          class="flex items-center gap-2 text-violet-700 hover:bg-violet-50"
-          @click="handleBack"
-        >
-          <ArrowLeft :size="16" /> Volver a productos
-        </BaseButton>
-        <div class="flex-1" />
-        <div class="flex gap-2">
-          <BaseButton
+        <div class="pd-foot">
+          <button id="pd-back-btn" class="pd-back-btn" @click="handleBack">
+            <ArrowLeft :size="16" /> Volver a productos
+          </button>
+          <div class="spacer" />
+          <button
             v-if="isEdit"
-            variant="danger"
-            class="flex items-center gap-2"
+            class="btn btn-danger"
             @click="showConfirmDelete = true"
           >
             <Trash2 :size="16" /> Eliminar
-          </BaseButton>
-          <BaseButton
-            variant="primary"
-            class="flex items-center gap-2"
+          </button>
+          <button
+            class="btn btn-primary"
             @click="handleSave"
             :disabled="!dirty"
+            :style="{ opacity: dirty ? 1 : 0.5, pointerEvents: dirty ? 'auto' : 'none' }"
           >
             <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear producto' }}
-          </BaseButton>
+          </button>
         </div>
+
+        <ConfirmDialog
+          :open="showConfirmExit"
+          title="¿Salir sin guardar?"
+          :message="`Tenés cambios pendientes en ${nombre}. Si salís ahora, vas a perderlos.`"
+          confirm-label="Salir sin guardar"
+          cancel-label="Seguir editando"
+          variant="danger"
+          @confirm="handleClose(); showConfirmExit = false"
+          @cancel="showConfirmExit = false"
+        />
+
+        <ConfirmDialog
+          :open="showConfirmDelete"
+          title="Eliminar producto"
+          :message="`Vas a eliminar ${producto?.codigo} · ${nombre}. Esta acción no se puede deshacer.`"
+          confirm-label="Eliminar"
+          variant="danger"
+          @confirm="handleDelete"
+          @cancel="showConfirmDelete = false"
+        />
       </div>
-    </template>
-  </OverlayShell>
-
-  <ConfirmDialog
-    :open="showConfirmExit"
-    title="¿Salir sin guardar?"
-    :message="`Tenés cambios pendientes en ${nombre}. Si salís ahora, vas a perderlos.`"
-    confirm-label="Salir sin guardar"
-    cancel-label="Seguir editando"
-    variant="danger"
-    @confirm="handleClose(); showConfirmExit = false"
-    @cancel="showConfirmExit = false"
-  />
-
-  <ConfirmDialog
-    :open="showConfirmDelete"
-    title="Eliminar producto"
-    :message="`Vas a eliminar ${producto?.codigo} · ${nombre}. Esta acción no se puede deshacer.`"
-    confirm-label="Eliminar"
-    variant="danger"
-    @confirm="handleDelete"
-    @cancel="showConfirmDelete = false"
-  />
+  </Transition>
 </template>
 
 <style scoped>
+.pd-overlay {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  left: 240px;
+  z-index: 30;
+  background: var(--page-bg);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.pd-body {
+  overflow-y: auto;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pd-top {
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.pd-left-block {
+  display: flex;
+  flex-direction: column;
+  /* gap: 20px; */
+}
+
+.pd-left-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.pd-name-header-card {
+  /* background: var(--surface); */
+  /* border: 1px solid var(--border); */
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  /* box-shadow: var(--shadow-1); */
+}
+
+.pd-right-block {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pd-card {
+  /* background: var(--surface); */
+  /* border: 1px solid var(--border); */
+  /* border-radius: var(--r-lg); */
+  padding: 20px;
+  /* box-shadow: var(--shadow-1); */
+  display: flex;
+  flex-direction: column;
+  /* gap: 16px; */
+}
+
+.pd-left-grid .pd-card:first-of-type {
+  gap: 16px;
+}
+
+.pd-left-grid .pd-card:last-of-type {
+  gap: 26px;
+}
+
+.pd-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pd-card-head h4 {
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.pd-photo-main {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  background: #F0EEF4;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  color: rgba(28, 26, 30, 0.30);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  border: 1px dashed var(--border-strong);
+  transition: border-color 120ms ease;
+}
+
+.pd-photo-main:hover {
+  border-color: var(--violet-700);
+}
+
+.pd-photo-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pd-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 12px;
+}
+
+.pd-thumbnails-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pd-photo-thumb {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  background: #F0EEF4;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  color: rgba(28, 26, 30, 0.30);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  border: 1px dashed var(--border-strong);
+  transition: border-color 120ms ease;
+}
+
+.pd-photo-thumb:hover {
+  border-color: var(--violet-700);
+}
+
+.pd-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pd-photo-placeholder-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-img-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 0;
+  color: #fff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 120ms ease;
+  z-index: 10;
+}
+
+.remove-img-btn:hover {
+  background: var(--coral-600);
+}
+
+.pd-code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 10px;
+  background: var(--violet-100);
+  color: var(--violet-700);
+  border-radius: 999px;
+}
+
+.pd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pd-field > label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+/* Nombre unificado estéticamente pero con fuente grande (copiado de ins-nombre) */
 .pd-inline-name-ff {
   --ff-rest-y: 26px;
 }
@@ -1012,27 +1245,283 @@ function onCellEnter(idx: number, field: 'tipoLinea' | 'descripcion' | 'cantidad
 :deep(.pd-inline-name-ff .ff-label) {
   top: 14px;
 }
-.id-radio {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-strong);
-  background: var(--surface);
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
-  transition: border-color 120ms ease;
-  padding: 0;
+
+.pd-id-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
 }
 
-.id-radio:hover { border-color: var(--violet-700); }
-.id-radio.checked { border-color: var(--violet-700); }
+.pd-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+}
 
-.id-radio.checked::after {
-  content: "";
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--violet-700);
+.pd-toggle-row .lbl { display: flex; flex-direction: column; gap: 2px; }
+.pd-toggle-row .lbl .t { font-size: 13px; font-weight: 500; color: var(--ink); }
+.pd-toggle-row .lbl .h { font-size: 12px; color: var(--ink-muted); }
+
+.pd-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.pd-price-row.grand {
+  border-top: 1px solid var(--border-strong);
+  margin-top: 6px;
+  padding-top: 14px;
+}
+
+.pd-price-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pd-money-input {
+  width: 130px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.pd-money-input:focus {
+  outline: none;
+  border-color: var(--teal-500);
+  box-shadow: var(--focus-ring);
+}
+
+.pd-money-input.readonly {
+  background: var(--page-bg);
+  color: var(--ink-muted);
+  border-color: var(--border);
+}
+
+.pd-bom {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pd-bom .pd-bom-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pd-bom .pd-bom-head h4 { font-size: 16px; color: var(--ink); font-weight: 500; }
+
+.pd-bom-table {
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.pd-bom-table table { width: 100%; border-collapse: collapse; }
+
+.pd-bom-table thead th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  background: var(--page-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.pd-bom-table thead th.num { text-align: right; }
+
+.pd-bom-table tbody td {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.pd-bom-table tbody tr:last-child td { border-bottom: 0; }
+
+.cell-select {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink);
+  padding: 11px 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.cell-select:focus { background: var(--teal-100); }
+
+.cell-input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink);
+  padding: 11px 12px;
+  outline: none;
+}
+
+.cell-input:focus { background: var(--teal-100); }
+.cell-input.num-input { text-align: right; font-variant-numeric: tabular-nums; }
+
+.cell-subtotal {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  padding: 11px 12px !important;
+}
+
+.del-btn {
+  background: transparent;
+  border: 0;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.del-btn:hover { color: var(--coral-500); }
+
+.add-line-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 0;
+  border-top: 1px dashed var(--border-strong);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--violet-700);
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease;
+}
+
+.add-line-btn:hover {
+  background: var(--violet-50);
+}
+
+.pd-bom-total {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.pd-bom-total .lbl { font-size: 12px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.pd-bom-total .val {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--violet-700);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.pd-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.pd-back-btn {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--violet-700);
+  transition: background 120ms ease;
+}
+
+.pd-back-btn:hover { background: var(--violet-50); }
+
+/* Transitions */
+.overlay-enter-active {
+  animation: overlay-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.overlay-leave-active {
+  animation: overlay-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes overlay-in {
+  from { transform: translateY(6px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes overlay-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(4px); opacity: 0.6; }
+}
+
+.price-warning-banner {
+  font-size: 12px;
+  color: #D97706;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+
+.medidas-inputs-row {
+  display: flex;
+  gap: 8px;
+}
+
+.medida-input-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-label-group {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  font-weight: 500;
+  margin-bottom: 6px;
 }
 </style>

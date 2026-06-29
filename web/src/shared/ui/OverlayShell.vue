@@ -1,64 +1,44 @@
 <script setup lang="ts">
-import { watch, onUnmounted } from 'vue'
-import { setEditorMode, resetEditorMode, editorDirty } from '@/shared/lib/editorMode'
+import { X } from '@lucide/vue'
+import { onMounted, onUnmounted } from 'vue'
 
-const props = withDefaults(
-  defineProps<{
-    open: boolean
-    title: string
-    dirty?: boolean
-  }>(),
-  {
-    dirty: false,
-  }
-)
+const props = defineProps<{
+  open: boolean
+  title?: string
+}>()
 
 const emit = defineEmits<{
   close: []
-  save: []
 }>()
 
-// Sincronizar el estado del editor y la cabecera
-watch(() => props.open, (isOpen) => {
-  if (isOpen) {
-    document.body.classList.add('no-scroll')
-    setEditorMode(
-      true,
-      props.title,
-      () => emit('save'),
-      () => emit('close')
-    )
-    editorDirty.value = props.dirty
-  } else {
-    document.body.classList.remove('no-scroll')
-    resetEditorMode()
-  }
-}, { immediate: true })
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && props.open) emit('close')
+}
 
-watch(() => props.dirty, (isDirty) => {
-  if (props.open) {
-    editorDirty.value = isDirty
-  }
-})
-
-onUnmounted(() => {
-  document.body.classList.remove('no-scroll')
-  resetEditorMode()
-})
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="overlay">
-      <div
-        v-if="open"
-        class="fixed top-[56px] left-[240px] right-0 bottom-0 z-30 bg-page-bg grid grid-rows-[1fr_auto] overflow-hidden"
-      >
+      <div v-if="open" class="fixed inset-0 z-90 bg-surface flex flex-col">
+        <header v-if="title || $slots.header" class="flex items-center gap-4 px-6 py-4 border-b border-border">
+          <slot name="header">
+            <h2 class="text-22 font-medium m-0">{{ title }}</h2>
+          </slot>
+          <div class="flex-1" />
+          <slot name="header-actions" />
+          <button
+            class="w-9 h-9 inline-flex items-center justify-center rounded-md bg-transparent border-0 text-ink-muted cursor-pointer hover:bg-page-bg"
+            @click="emit('close')"
+            title="Cerrar"
+          >
+            <X :size="20" />
+          </button>
+        </header>
         <div class="flex-1 overflow-y-auto">
-          <slot name="body" />
-        </div>
-        <div v-if="$slots.foot" class="flex items-center gap-2.5 px-6 py-4 bg-surface border-t border-border justify-end">
-          <slot name="foot" />
+          <slot />
         </div>
       </div>
     </Transition>
@@ -66,22 +46,12 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Transitions */
-.overlay-enter-active {
-  animation: overlay-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
+.overlay-enter-active,
 .overlay-leave-active {
-  animation: overlay-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+  transition: opacity 200ms ease;
 }
-
-@keyframes overlay-in {
-  from { transform: translateY(6px); opacity: 0.6; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes overlay-out {
-  from { transform: translateY(0); opacity: 1; }
-  to { transform: translateY(4px); opacity: 0.6; }
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
 }
 </style>

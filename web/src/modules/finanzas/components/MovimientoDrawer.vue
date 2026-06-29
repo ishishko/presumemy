@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Check } from '@lucide/vue'
+import { Check, X } from '@lucide/vue'
 import { post, put, get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
 import type { Transaccion, Presupuesto, PaginationResult } from '@/types'
-import DrawerShell from '@/shared/ui/DrawerShell.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
-import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const props = defineProps<{
   open: boolean
@@ -45,7 +43,7 @@ const tipoMovs = [
   { id: 'pago_alquiler', label: 'Pago alquiler', sign: -1 },
   { id: 'pago_sueldo', label: 'Pago sueldo', sign: -1 },
   { id: 'retiro_socio', label: 'Retiro socio', sign: -1 },
-  { id: 'deposito', label: 'Depósito', sign: 1 },
+  { id: 'deposito', label: 'Deposito', sign: 1 },
   { id: 'ajuste_positivo', label: 'Ajuste positivo', sign: 1 },
   { id: 'ajuste_negativo', label: 'Ajuste negativo', sign: -1 },
 ]
@@ -197,135 +195,344 @@ defineExpose({ loadTransaccion })
 </script>
 
 <template>
-  <DrawerShell
-    :open="open"
-    :title="tipoMeta?.label || 'Movimiento'"
-    :eyebrow="isEdit ? 'Editar movimiento' : 'Nuevo movimiento'"
-    @close="handleClose"
-  >
-    <template #body>
-      <div class="flex flex-col gap-4">
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <FloatingField
-              id="fd-m-fecha"
-              label="Fecha"
-              type="date"
-              always-float
-              v-model="fecha"
-            />
+  <Teleport to="body">
+    <Transition name="drawer">
+      <div v-if="open" class="drawer-container">
+        <div class="drawer-scrim" @click="handleClose"></div>
+        <aside class="drawer-panel">
+          <div class="drawer-head">
+            <div class="drawer-title-block">
+              <span class="drawer-eyebrow">{{ isEdit ? 'Editar movimiento' : 'Nuevo movimiento' }}</span>
+              <h3>{{ tipoMeta?.label || 'Movimiento' }}</h3>
+            </div>
+            <button class="icon-btn" @click="handleClose" title="Cerrar">
+              <X :size="18" />
+            </button>
           </div>
-          <div class="flex-1">
-            <FloatingSelect id="fd-m-cuenta" label="Cuenta" v-model="cuenta">
-              <option v-for="c in cuentas" :key="c.id" :value="c.id">{{ c.label }}</option>
-            </FloatingSelect>
-          </div>
-        </div>
 
-        <div>
-          <FloatingSelect id="fd-m-tipo" label="Tipo de movimiento" v-model="tipo">
-            <option v-for="t in tipoMovs" :key="t.id" :value="t.id">{{ t.label }}</option>
-          </FloatingSelect>
-        </div>
+          <div class="drawer-body">
+            <div class="fd-row">
+              <div class="field">
+                <FloatingField
+                  id="fd-m-fecha"
+                  label="Fecha"
+                  type="date"
+                  always-float
+                  v-model="fecha"
+                />
+              </div>
+              <div class="field">
+                <FloatingSelect id="fd-m-cuenta" label="Cuenta" v-model="cuenta">
+                  <option v-for="c in cuentas" :key="c.id" :value="c.id">{{ c.label }}</option>
+                </FloatingSelect>
+              </div>
+            </div>
 
-        <div>
-          <label class="text-11 font-medium uppercase tracking-[0.06em] text-ink-muted mb-2 block">Valor</label>
-          <div class="flex gap-1 mb-2 select-none" role="group" aria-label="Signo">
-            <button
-              type="button"
-              class="flex-1 py-2 px-3 border border-border-strong rounded-lg bg-page-bg text-ink-muted text-13 font-medium cursor-pointer transition-all duration-120 hover:bg-page-bg/80"
-              :class="[signo === 'in' ? 'bg-teal-100! text-teal-700! border-teal-500!' : '']"
-              @click="signo = 'in'"
-            >+ Ingreso</button>
-            <button
-              type="button"
-              class="flex-1 py-2 px-3 border border-border-strong rounded-lg bg-page-bg text-ink-muted text-13 font-medium cursor-pointer transition-all duration-120 hover:bg-page-bg/80"
-              :class="[signo === 'out' ? 'bg-coral-50! text-coral-500! border-coral-500!' : '']"
-              @click="signo = 'out'"
-            >− Egreso</button>
-          </div>
-          <input
-            class="w-full font-sans text-20 font-medium text-right tabular-nums px-4 py-3 border border-border-strong rounded-md bg-surface outline-none focus:border-teal-500"
-            :class="[signo === 'in' ? 'text-teal-700' : 'text-coral-500']"
-            type="number"
-            min="0"
-            step="0.01"
-            v-model.number="valor"
-            placeholder="0"
-          />
-          <span class="block text-12 text-ink-muted mt-1.5 select-none">
-            Equivale a {{ signo === 'in' ? '+ ' : '− ' }}{{ moneyAbs }} en la cuenta {{ cuentas.find(c => c.id === cuenta)?.label }}.
-          </span>
-        </div>
+            <div class="fd-row single">
+              <div class="field">
+                <FloatingSelect id="fd-m-tipo" label="Tipo de movimiento" v-model="tipo">
+                  <option v-for="t in tipoMovs" :key="t.id" :value="t.id">{{ t.label }}</option>
+                </FloatingSelect>
+              </div>
+            </div>
 
-        <div>
-          <FloatingField
-            id="fd-m-detalle"
-            label="Detalle"
-            multiline
-            v-model="detalle"
-            placeholder="Ej. cobro presupuesto P-1024 · Marisol Aguirre"
-          />
-        </div>
+            <div class="fd-row single">
+              <div class="field">
+                <label>Valor</label>
+                <div class="fd-sign-toggle" role="group" aria-label="Signo">
+                  <button
+                    type="button"
+                    :class="{ active: signo === 'in', in: true }"
+                    @click="signo = 'in'"
+                  >+ Ingreso</button>
+                  <button
+                    type="button"
+                    :class="{ active: signo === 'out', out: true }"
+                    @click="signo = 'out'"
+                  >− Egreso</button>
+                </div>
+                <input
+                  :class="['fd-money-input', signo === 'in' ? 'income' : 'expense']"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="valor"
+                  placeholder="0"
+                />
+                <span class="hint">
+                  Equivale a {{ signo === 'in' ? '+ ' : '− ' }}{{ moneyAbs }} en la cuenta {{ cuentas.find(c => c.id === cuenta)?.label }}.
+                </span>
+              </div>
+            </div>
 
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <FloatingField
-              id="fd-m-nrofactura"
-              label="Nro. de factura"
-              v-model="nroFactura"
-              placeholder="Opcional"
-            />
-          </div>
-          <div class="flex-1">
-            <FloatingField
-              id="fd-m-presupuesto"
-              label="Presupuesto"
-              v-model="presupuestoId"
-              placeholder="P-1024 (opcional)"
-              list="fd-presupuestos"
-            />
-            <datalist id="fd-presupuestos">
-              <option v-for="p in presupuestos" :key="p.id" :value="p.folio" />
-            </datalist>
-          </div>
-        </div>
+            <div class="fd-row single">
+              <div class="field">
+                <FloatingField
+                  id="fd-m-detalle"
+                  label="Detalle"
+                  multiline
+                  v-model="detalle"
+                  placeholder="Ej. cobro presupuesto P-1024 · Marisol Aguirre"
+                />
+              </div>
+            </div>
 
-        <div class="bg-page-bg border border-border rounded-md p-4 flex flex-col gap-2 select-none mt-2">
-          <div class="flex justify-between text-13 text-ink">
-            <span class="text-ink-muted">Tipo</span>
-            <span>{{ tipoMeta?.label }}</span>
+            <div class="fd-row">
+              <div class="field">
+                <FloatingField
+                  id="fd-m-nrofactura"
+                  label="Nro. de factura"
+                  v-model="nroFactura"
+                  placeholder="Opcional"
+                />
+              </div>
+              <div class="field">
+                <FloatingField
+                  id="fd-m-presupuesto"
+                  label="Presupuesto"
+                  v-model="presupuestoId"
+                  placeholder="P-1024 (opcional)"
+                  list="fd-presupuestos"
+                />
+                <datalist id="fd-presupuestos">
+                  <option v-for="p in presupuestos" :key="p.id" :value="p.folio" />
+                </datalist>
+              </div>
+            </div>
+
+            <div class="fd-summary">
+              <div class="row">
+                <span style="color: var(--ink-muted)">Tipo</span>
+                <span>{{ tipoMeta?.label }}</span>
+              </div>
+              <div class="row">
+                <span style="color: var(--ink-muted)">Cuenta</span>
+                <span>{{ cuentas.find(c => c.id === cuenta)?.label }}</span>
+              </div>
+              <div class="row grand">
+                <span>Impacto</span>
+                <span :style="{ color: signo === 'in' ? '#2E6F70' : 'var(--coral-500)' }">
+                  {{ signo === 'in' ? '+ ' : '− ' }}{{ moneyAbs }}
+                </span>
+              </div>
+            </div>
           </div>
-          <div class="flex justify-between text-13 text-ink">
-            <span class="text-ink-muted">Cuenta</span>
-            <span>{{ cuentas.find(c => c.id === cuenta)?.label }}</span>
+
+          <div class="drawer-foot">
+            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
+            <button class="btn btn-primary" @click="handleSave">
+              <Check :size="16" /> Guardar
+            </button>
           </div>
-          <div class="flex justify-between border-t border-border pt-2 mt-1 text-13 font-medium text-ink">
-            <span>Impacto</span>
-            <span :class="[signo === 'in' ? 'text-teal-700' : 'text-coral-500']">
-              {{ signo === 'in' ? '+ ' : '− ' }}{{ moneyAbs }}
-            </span>
-          </div>
-        </div>
+        </aside>
+
+        <ConfirmDialog
+          :open="showConfirmExit"
+          title="¿Salir sin guardar?"
+          message="Tenés cambios pendientes en este movimiento. Si salís ahora, vas a perderlos."
+          confirm-label="Salir sin guardar"
+          cancel-label="Seguir editando"
+          variant="danger"
+          @confirm="emit('close'); showConfirmExit = false"
+          @cancel="showConfirmExit = false"
+        />
       </div>
-    </template>
-
-    <template #foot>
-      <BaseButton variant="ghost" @click="handleClose">Cancelar</BaseButton>
-      <BaseButton variant="primary" @click="handleSave">
-        <Check :size="16" /> Guardar
-      </BaseButton>
-    </template>
-  </DrawerShell>
-
-  <ConfirmDialog
-    :open="showConfirmExit"
-    title="¿Salir sin guardar?"
-    message="Tenés cambios pendientes en este movimiento. Si salís ahora, vas a perderlos."
-    confirm-label="Salir sin guardar"
-    cancel-label="Seguir editando"
-    variant="danger"
-    @confirm="emit('close'); showConfirmExit = false"
-    @cancel="showConfirmExit = false"
-  />
+    </Transition>
+  </Teleport>
 </template>
+
+<style scoped>
+.drawer-container {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 26, 30, 0.40);
+  pointer-events: auto;
+}
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 520px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  pointer-events: auto;
+  box-shadow: var(--shadow-2);
+  z-index: 81;
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawer-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.drawer-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.drawer-head h3 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.drawer-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
+
+.fd-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fd-row > .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.fd-row.single { grid-template-columns: 1fr; }
+
+.fd-sign-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.fd-sign-toggle button {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--page-bg);
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.fd-sign-toggle button.active.in {
+  background: var(--teal-100);
+  color: #2E6F70;
+  border-color: var(--teal-500);
+}
+
+.fd-sign-toggle button.active.out {
+  background: var(--coral-50);
+  color: var(--coral-500);
+  border-color: var(--coral-500);
+}
+
+.fd-money-input {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding: 12px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.fd-money-input:focus {
+  outline: none;
+  border-color: var(--teal-500);
+  box-shadow: var(--focus-ring);
+}
+
+.fd-money-input.income { color: #2E6F70; }
+.fd-money-input.expense { color: var(--coral-500); }
+
+.hint {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+.fd-summary {
+  background: var(--page-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fd-summary .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.fd-summary .row.grand {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Transitions */
+.drawer-enter-active .drawer-panel,
+.drawer-leave-active .drawer-panel {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.drawer-enter-from .drawer-panel,
+.drawer-leave-to .drawer-panel {
+  transform: translateX(100%);
+}
+
+.drawer-enter-active .drawer-scrim,
+.drawer-leave-active .drawer-scrim {
+  transition: opacity 220ms ease;
+}
+
+.drawer-enter-from .drawer-scrim,
+.drawer-leave-to .drawer-scrim {
+  opacity: 0;
+}
+</style>

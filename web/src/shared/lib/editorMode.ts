@@ -1,7 +1,5 @@
 import { ref } from 'vue'
 
-export const EDITOR_STATUS_SLOT_ID = 'editor-header-status'
-
 export const editorMode = ref(false)
 export const editorTitle = ref('')
 export const editorSaveHandler = ref<(() => void) | null>(null)

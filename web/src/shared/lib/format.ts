@@ -33,11 +33,8 @@ export function formatDate(value: string | Date, style: 'short' | 'long' | 'week
     return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
   }
   if (style === 'time') {
-    // Nota: toLocaleDateString no siempre incluye la hora si no se usa toLocaleString,
-    // por lo que usamos toLocaleString para la opción 'time'.
     return d.toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
   
-  // Estilo 'short' por defecto: "25 jun 2026"
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }

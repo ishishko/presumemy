@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ofetch } from 'ofetch'
 import { FileX, Printer } from '@lucide/vue'
 import PresupuestoDoc, { type PresupuestoDocData } from './components/PresupuestoDoc.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 import type { ConfiguracionNegocio } from '@/types'
 
 interface PublicPresupuestoDTO {
@@ -79,99 +80,35 @@ function handlePrint() {
 
 <template>
   <div
-    class="public-page"
-    :class="{ 'pdf-mode': isPdfMode }"
+    class="min-h-screen p-8 pb-12"
+    :class="isPdfMode ? 'p-0 bg-surface' : ''"
+    :style="!isPdfMode ? { background: 'radial-gradient(circle at 50% 0%, rgba(139, 37, 112, 0.04), transparent 240px), var(--color-page-bg)' } : {}"
     :data-doc-ready="!loading ? 'true' : undefined"
   >
-    <div v-if="loading" class="public-state" aria-live="polite">
-      <span class="spinner" aria-hidden="true"></span>
-      <p>Cargando presupuesto...</p>
+    <div v-if="loading" class="min-h-60vh flex flex-col items-center justify-center gap-2.5 text-ink-muted text-center p-10" aria-live="polite">
+      <div class="w-5.5 h-5.5 border-2 border-border-strong border-t-teal-500 rounded-full animate-spin" aria-hidden="true"></div>
+      <p class="text-14">Cargando presupuesto...</p>
     </div>
 
-    <div v-else-if="notFound || !doc" class="public-state">
-      <FileX :size="44" aria-hidden="true" />
-      <p>Este presupuesto no está disponible</p>
-      <small>El link puede haber expirado o el presupuesto ya no está vigénte.</small>
+    <div v-else-if="notFound || !doc" class="min-h-60vh flex flex-col items-center justify-center gap-2.5 text-ink-muted text-center p-10">
+      <FileX :size="44" class="text-violet-700 opacity-45 mb-1.5" aria-hidden="true" />
+      <p class="text-15 font-medium text-ink m-0">Este presupuesto no está disponible</p>
+      <small class="text-12">El link puede haber expirado o el presupuesto ya no está vigente.</small>
     </div>
 
     <template v-else>
-      <div v-if="!isPdfMode" class="public-toolbar no-print">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-13 font-medium bg-surface hover:bg-page-bg text-ink border border-border rounded-md transition-all cursor-pointer focus-visible:outline-none focus-visible:shadow-focus-ring"
-          @click="handlePrint"
-        >
+      <div v-if="!isPdfMode" class="max-w-155 mx-auto mb-4 flex justify-end no-print">
+        <BaseButton variant="secondary" type="button" @click="handlePrint">
           <Printer :size="16" aria-hidden="true" />
           Imprimir
-        </button>
+        </BaseButton>
       </div>
       <PresupuestoDoc :doc="doc" :config="config" />
     </template>
   </div>
 </template>
 
-<style scoped>
-.public-page {
-  min-height: 100vh;
-  background: radial-gradient(circle at 50% 0%, rgba(139, 37, 112, 0.04), transparent 240px), var(--page-bg);
-  padding: 32px 16px 48px;
-}
-
-.public-page.pdf-mode {
-  padding: 0;
-  background: var(--surface);
-}
-
-.public-toolbar {
-  max-width: 620px;
-  margin: 0 auto 16px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.public-state {
-  min-height: 60vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: var(--ink-muted);
-  text-align: center;
-  padding: 40px;
-}
-
-.public-state svg {
-  color: var(--violet-700);
-  opacity: 0.45;
-  margin-bottom: 6px;
-}
-
-.public-state p {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--ink);
-  margin: 0;
-}
-
-.public-state small { font-size: 12px; }
-
-.spinner {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--border-strong);
-  border-top-color: var(--teal-500);
-  border-radius: 50%;
-  animation: spin 700ms linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-</style>
-
 <style>
-/* render para PDF (Puppeteer): sin animación de entrada ni decoración de card */
 .pdf-mode .preview-doc {
   animation: none;
   border: none;

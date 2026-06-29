@@ -1,67 +1,53 @@
 <script setup lang="ts">
-export interface Column {
+type Align = 'left' | 'center' | 'right'
+
+interface Column {
   key: string
   label: string
-  align?: 'left' | 'center' | 'right'
+  align?: Align
   width?: string
 }
 
-withDefaults(
-  defineProps<{
-    columns: Column[]
-    rows: any[]
-    loading?: boolean
-    emptyText?: string
-  }>(),
-  {
-    loading: false,
-    emptyText: 'No se encontraron resultados',
-  }
-)
+const props = defineProps<{
+  columns: Column[]
+  rows: any[]
+  emptyText?: string
+}>()
 
+const ALIGN_MAP: Record<Align, string> = {
+  left: 'text-left',
+  center: 'text-center',
+  right: 'text-right',
+}
 </script>
 
 <template>
-  <div class="w-full overflow-x-auto border border-border rounded-lg bg-surface shadow-1">
-    <table class="w-full border-collapse">
+  <div class="bg-surface border border-border rounded-lg overflow-hidden">
+    <table class="w-full">
       <thead>
-        <tr class="bg-page-bg/50">
+        <tr class="border-b border-border bg-page-bg">
           <th
             v-for="col in columns"
             :key="col.key"
-            class="text-11 uppercase tracking-[0.06em] text-ink-muted font-semibold px-4 py-3 border-b border-border select-none text-left"
+            class="px-4 py-3 text-12 font-medium text-ink-muted uppercase tracking-0.06em"
+            :class="ALIGN_MAP[col.align || 'left']"
             :style="col.width ? { width: col.width } : {}"
           >
             {{ col.label }}
           </th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-border">
-        <template v-if="loading">
-          <tr>
-            <td :colspan="columns.length" class="text-center py-8 text-13 text-ink-muted">
-              Cargando datos...
-            </td>
+      <tbody>
+        <template v-if="rows.length > 0">
+          <tr v-for="(item, idx) in rows" :key="idx">
+            <slot name="row" :item="item" :index="idx" />
           </tr>
         </template>
-        <template v-else-if="rows.length === 0">
-          <tr>
-            <td :colspan="columns.length" class="text-center py-8 text-13 text-ink-muted">
-              <slot name="empty">
-                {{ emptyText }}
-              </slot>
-            </td>
-          </tr>
-        </template>
-        <template v-else>
-          <tr
-            v-for="(row, idx) in rows"
-            :key="row.id || idx"
-            class="hover:bg-page-bg/40 transition-colors duration-75"
-          >
-            <slot name="row" :item="row" :index="idx" />
-          </tr>
-        </template>
+        <tr v-else>
+          <td :colspan="columns.length" class="px-4 py-8 text-center text-13 text-ink-muted">
+            {{ emptyText || 'Sin datos' }}
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>

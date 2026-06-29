@@ -1,24 +1,28 @@
 import { ref, watch, onUnmounted } from 'vue'
-import { searchAll } from './search-api'
-import type { SearchResult } from './types'
+import { get } from '@/shared/api/client'
+
+export interface SearchResult {
+  tipo: 'insumo' | 'producto' | 'cliente' | 'presupuesto'
+  id: number
+  codigo: string
+  titulo: string
+  subtitulo: string
+}
 
 export function useGlobalSearch() {
   const query = ref('')
   const results = ref<SearchResult[]>([])
   const loading = ref(false)
-  let timer: ReturnType<typeof setTimeout> | null = null
+  let timer: any = null
   let abortController: AbortController | null = null
-
-  const isQueryTooShort = (val: string): boolean => {
-    return val.trim().length < 2
-  }
 
   const performSearch = async (val: string) => {
     if (abortController) {
       abortController.abort()
     }
 
-    if (isQueryTooShort(val)) {
+    const trimmed = val.trim()
+    if (trimmed.length < 2) {
       results.value = []
       loading.value = false
       return
@@ -28,7 +32,11 @@ export function useGlobalSearch() {
     abortController = new AbortController()
 
     try {
-      const res = await searchAll(val.trim(), abortController.signal)
+      const res = await get<{ data: SearchResult[] }>(
+        '/search',
+        { q: trimmed },
+        { signal: abortController.signal }
+      )
       results.value = res.data
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -47,7 +55,8 @@ export function useGlobalSearch() {
       clearTimeout(timer)
     }
 
-    if (isQueryTooShort(newVal)) {
+    const trimmed = newVal.trim()
+    if (trimmed.length < 2) {
       results.value = []
       loading.value = false
       return

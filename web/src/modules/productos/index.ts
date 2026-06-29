@@ -1,1 +1,0 @@
-export { useProductosStore } from './store'

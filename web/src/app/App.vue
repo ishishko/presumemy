@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/modules/auth/store'
 import { createTrigger } from '@/shared/lib/createTrigger'
 import { editorMode, editorTitle, editorSaveHandler, editorCloseHandler, setEditorMode, resetEditorMode, editorDirty } from '@/shared/lib/editorMode'
-import AppSidebar from '@/app/shell/AppSidebar.vue'
-import AppHeader from '@/app/shell/AppHeader.vue'
+import AppSidebar from './shell/AppSidebar.vue'
+import AppHeader from './shell/AppHeader.vue'
 import ToastContainer from '@/shared/ui/ToastContainer.vue'
 
 const router = useRouter()
@@ -42,7 +42,6 @@ const showCreate = computed(() => {
   return ['presupuestos', 'productos', 'insumos', 'finanzas', 'clientes'].includes(currentRoute.value)
 })
 
-// rutas sin shell (sidebar/topbar): login y vistas públicas
 const isBareRoute = computed(() => route.name === 'login' || route.meta.public === true)
 
 onMounted(async () => {
@@ -80,13 +79,13 @@ function handleEditorClose() {
     <RouterView />
   </div>
 
-  <div v-else class="grid grid-cols-[240px_1fr] min-h-screen bg-page-bg">
+  <div v-else class="flex h-screen overflow-hidden">
     <AppSidebar
       :current-route="currentRoute"
       @navigate="handleNavigate"
       @logout="handleLogout"
     />
-    <div class="flex flex-col min-h-screen min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
       <AppHeader
         :title="pageTitle"
         :show-create="showCreate"
@@ -97,7 +96,7 @@ function handleEditorClose() {
         @editor-save="handleEditorSave"
         @editor-close="handleEditorClose"
       />
-      <main class="flex-1 p-8 relative">
+      <main class="flex-1 overflow-y-auto">
         <RouterView @set-editor-mode="handleSetEditorMode" />
       </main>
     </div>

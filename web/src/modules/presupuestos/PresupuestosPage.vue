@@ -7,13 +7,15 @@ import { usePresupuestosStore } from './store'
 import { formatMoney, formatDate } from '@/shared/lib/format'
 import PresupuestoEditor from './components/PresupuestoEditor.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
-import FilterChips from '@/shared/ui/FilterChips.vue'
 import DataTable from '@/shared/ui/DataTable.vue'
 import RowActions from '@/shared/ui/RowActions.vue'
+import FilterChips from '@/shared/ui/FilterChips.vue'
 import Pagination from '@/shared/ui/Pagination.vue'
-import { usePagination } from '@/shared/lib/usePagination'
 import { useToast } from '@/shared/lib/useToast'
+import { usePagination } from '@/shared/lib/usePagination'
 import type { Presupuesto } from '@/types'
+
+type Tone = 'default' | 'violet' | 'teal' | 'mint' | 'lavender' | 'coral'
 
 const emit = defineEmits<{
   'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
@@ -38,21 +40,12 @@ const filtered = computed(() => {
 
 const {
   currentPage,
-  pageSize,
-  totalItems,
   totalPages,
-  paginatedItems,
-  startIndex,
-  endIndex,
   prevPage,
   nextPage,
 } = usePagination(filtered, 10)
 
-function money(v: number): string {
-  return formatMoney(v)
-}
-
-const statusTones: Record<string, { tone: string; label: string }> = {
+const statusTones: Record<string, { tone: Tone; label: string }> = {
   borrador: { tone: 'default', label: 'Borrador' },
   en_curso: { tone: 'teal', label: 'En curso' },
   cerrado: { tone: 'mint', label: 'Cerrado' },
@@ -134,13 +127,23 @@ function handleStateChangeCancel() {
   stateChangeTarget.value = null
 }
 
-const filters = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'borrador', label: 'Borrador' },
-  { id: 'en_curso', label: 'En curso' },
-  { id: 'cerrado', label: 'Cerrado' },
-  { id: 'facturado', label: 'Facturado' },
-  { id: 'cancelado', label: 'Cancelado' },
+const stateChips = computed(() => [
+  { id: 'todos', label: 'Todos', count: store.data.length },
+  { id: 'borrador', label: 'Borrador', count: store.data.filter(p => p.estado === 'borrador').length },
+  { id: 'en_curso', label: 'En curso', count: store.data.filter(p => p.estado === 'en_curso').length },
+  { id: 'cerrado', label: 'Cerrado', count: store.data.filter(p => p.estado === 'cerrado').length },
+  { id: 'facturado', label: 'Facturado', count: store.data.filter(p => p.estado === 'facturado').length },
+  { id: 'cancelado', label: 'Cancelado', count: store.data.filter(p => p.estado === 'cancelado').length },
+])
+
+const columns = [
+  { key: 'folio', label: 'Folio' },
+  { key: 'cliente', label: 'Cliente' },
+  { key: 'tematica', label: 'Temática' },
+  { key: 'fecha', label: 'Fecha' },
+  { key: 'estado', label: 'Estado' },
+  { key: 'total', label: 'Total', align: 'right' as const },
+  { key: 'acciones', label: '', width: '80px' }
 ]
 
 async function loadPresupuestos() {
@@ -198,21 +201,6 @@ async function handleDeleteConfirm() {
   deletingPresupuesto.value = null
 }
 
-function formatFecha(d?: string): string {
-  if (!d) return '—'
-  return formatDate(d, 'short')
-}
-
-const columns = [
-  { key: 'folio', label: 'Folio', width: '100px' },
-  { key: 'cliente', label: 'Cliente' },
-  { key: 'tematica', label: 'Temática' },
-  { key: 'fecha', label: 'Fecha', width: '140px' },
-  { key: 'estado', label: 'Estado', width: '160px' },
-  { key: 'total', label: 'Total', align: 'right' as const, width: '140px' },
-  { key: 'acciones', label: '', width: '80px' }
-]
-
 onMounted(loadPresupuestos)
 
 watch(
@@ -237,74 +225,80 @@ watch(createTrigger, (val) => {
 </script>
 
 <template>
-  <div class="w-full">
-    <div v-if="showLoading" class="border border-border rounded-lg bg-surface p-6">
+  <div class="p-6 relative">
+    <div v-if="showLoading" class="bg-surface border border-border rounded-lg p-5">
       <p class="text-14 text-ink-muted">Cargando presupuestos...</p>
     </div>
     <template v-else>
       <div class="mb-4">
         <FilterChips
-          v-model="filter"
-          :chips="filters"
+          :model-value="filter"
+          :chips="stateChips"
+          @update:model-value="filter = $event || 'todos'"
         />
       </div>
 
       <DataTable
         :columns="columns"
-        :rows="paginatedItems"
+        :rows="filtered"
         empty-text="Sin presupuestos con este filtro."
       >
         <template #row="{ item: p }">
-          <td class="px-4 py-3.5 align-middle text-13 font-mono text-ink-muted select-none" @dblclick="handleEdit(p)">
-            {{ p.folio }}
-          </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink font-medium select-none" @dblclick="handleEdit(p)">
-            {{ p.cliente?.nombre || 'Sin cliente' }}
-          </td>
-          <td class="px-4 py-3.5 align-middle text-13 select-none" @dblclick="handleEdit(p)">
-            <span v-if="p.tematica" class="badge lavender">
-              {{ p.tematica }}
+          <td class="px-4 py-3 align-middle font-mono text-12 text-ink-muted" @dblclick="handleEdit(p)">{{ p.folio }}</td>
+          <td class="px-4 py-3 align-middle text-14 text-ink font-medium" @dblclick="handleEdit(p)">{{ p.cliente?.nombre || 'Sin cliente' }}</td>
+          <td class="px-4 py-3 align-middle" @dblclick="handleEdit(p)">
+            <span class="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-pill text-12 font-medium bg-violet-100 text-violet-700">
+              {{ p.tematica || '—' }}
             </span>
-            <span v-else class="text-ink-muted">—</span>
           </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink-muted select-none" @dblclick="handleEdit(p)">
-            {{ formatFecha(p.fechaEntrega || p.createdAt) }}
-          </td>
-          <td class="px-4 py-3.5 align-middle select-none">
-            <div class="relative inline-block" @click.stop @dblclick.stop>
+          <td class="px-4 py-3 align-middle text-13 text-ink-muted" @dblclick="handleEdit(p)">{{ formatDate(p.fechaEntrega || p.createdAt) }}</td>
+          <td class="px-4 py-3 align-middle" @dblclick.stop>
+            <div class="relative" @click.stop>
               <button
                 type="button"
-                class="status-badge-wrap"
+                class="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-pill text-12 font-medium border-0 cursor-pointer transition-all"
                 :class="[
-                  statusTones[p.estado]?.tone || 'default',
-                  getAvailableTransitions(p.estado).length > 0 ? 'interactive' : ''
+                  statusTones[p.estado]?.tone === 'default' ? 'bg-page-bg text-ink border border-border' :
+                  statusTones[p.estado]?.tone === 'violet' ? 'bg-violet-100 text-violet-700' :
+                  statusTones[p.estado]?.tone === 'teal' ? 'bg-teal-100 text-teal-700' :
+                  statusTones[p.estado]?.tone === 'mint' ? 'bg-mint text-ink' :
+                  statusTones[p.estado]?.tone === 'lavender' ? 'bg-lavender text-ink' :
+                  statusTones[p.estado]?.tone === 'coral' ? 'bg-coral-50 text-coral-500' :
+                  'bg-page-bg text-ink',
+                  getAvailableTransitions(p.estado).length > 0 ? 'pr-5 relative' : ''
                 ]"
                 @click="toggleDropdown(p.id)"
                 :disabled="getAvailableTransitions(p.estado).length === 0"
               >
-                <span class="dot" />
+                <span class="w-1.5 h-1.5 rounded-full bg-current" />
                 <span>{{ statusTones[p.estado]?.label || p.estado }}</span>
-                <span v-if="getAvailableTransitions(p.estado).length > 0" class="chevron-arrow" />
+                <span v-if="getAvailableTransitions(p.estado).length > 0" class="absolute right-2 w-1 h-1 border-r-[1.5px] border-b-[1.5px] border-current rotate-45 opacity-65" />
               </button>
-              <div v-if="activeDropdownId === p.id" class="status-dropdown-menu" @click.stop>
+              <div v-if="activeDropdownId === p.id" class="absolute top-full left-0 mt-1.5 bg-surface border border-border rounded-md shadow-pop z-100 w-36 py-1">
                 <button
                   v-for="t in getAvailableTransitions(p.estado)"
                   :key="t"
                   type="button"
-                  class="status-dropdown-item"
-                  :class="statusTones[t]?.tone || 'default'"
+                  class="w-full text-left px-3 py-1.5 text-12 font-medium bg-transparent border-0 cursor-pointer flex items-center gap-1.5 text-ink hover:bg-page-bg transition-colors"
+                  :class="[
+                    statusTones[t]?.tone === 'default' ? 'text-ink' :
+                    statusTones[t]?.tone === 'violet' ? 'text-violet-700' :
+                    statusTones[t]?.tone === 'teal' ? 'text-teal-700' :
+                    statusTones[t]?.tone === 'mint' ? 'text-green-700' :
+                    statusTones[t]?.tone === 'lavender' ? 'text-violet-700' :
+                    statusTones[t]?.tone === 'coral' ? 'text-coral-700' :
+                    'text-ink'
+                  ]"
                   @click="handleStatusChange(p, t); activeDropdownId = null"
                 >
-                  <span class="dot" />
+                  <span class="w-1.5 h-1.5 rounded-full bg-current" />
                   <span>{{ statusTones[t]?.label || t }}</span>
                 </button>
               </div>
             </div>
           </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink font-medium text-right tabular-nums select-none" @dblclick="handleEdit(p)">
-            {{ money(p.total) }}
-          </td>
-          <td class="px-4 py-3.5 align-middle w-[80px]">
+          <td class="px-4 py-3 align-middle text-14 text-ink font-medium text-right tabular-nums" @dblclick="handleEdit(p)">{{ formatMoney(p.total) }}</td>
+          <td class="px-4 py-3 align-middle">
             <RowActions
               @edit="handleEdit(p)"
               @delete="handleDeleteClick(p)"
@@ -315,12 +309,8 @@ watch(createTrigger, (val) => {
 
       <Pagination
         v-if="filtered.length > 0"
-        v-model:currentPage="currentPage"
-        v-model:pageSize="pageSize"
-        :totalPages="totalPages"
-        :totalItems="totalItems"
-        :startIndex="startIndex"
-        :endIndex="endIndex"
+        v-model:current-page="currentPage"
+        :total-pages="totalPages"
         @prev="prevPage"
         @next="nextPage"
       />

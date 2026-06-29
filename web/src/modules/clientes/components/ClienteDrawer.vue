@@ -5,10 +5,8 @@ import { post, put } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
 import type { Cliente, ClienteContacto } from '@/types'
 import { clienteSchema } from '@/schemas/clientes'
-import DrawerShell from '@/shared/ui/DrawerShell.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
-import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const props = defineProps<{
   open: boolean
@@ -186,125 +184,323 @@ defineExpose({ loadCliente })
 </script>
 
 <template>
-  <DrawerShell
-    :open="open"
-    :title="isEdit ? cliente!.nombre : 'Crear cliente'"
-    :eyebrow="isEdit ? 'Editar cliente' : 'Nuevo cliente'"
-    @close="handleClose"
-  >
-    <template #body>
-      <div class="flex flex-col gap-4">
-        <div>
-          <FloatingField
-            id="cl-nombre"
-            label="Nombre"
-            required
-            v-model="nombre"
-            placeholder="Nombre del cliente"
-            :invalid="!!errors.nombre"
-            :describedby="errors.nombre ? 'cl-nombre-err' : undefined"
-            autofocus
-          />
-          <p v-if="errors.nombre" id="cl-nombre-err" class="text-12 text-coral-500 mt-1 m-0" role="alert">{{ errors.nombre }}</p>
-        </div>
-
-        <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mt-3">Domicilio</div>
-
-        <div class="flex gap-3">
-          <div class="flex-[2]">
-            <FloatingField id="cl-calle" label="Calle" v-model="calle" />
+  <Teleport to="body">
+    <Transition name="drawer">
+      <div v-if="open" class="drawer-container">
+        <div class="drawer-scrim" @click="handleClose"></div>
+        <aside class="drawer-panel">
+          <div class="drawer-head">
+            <div class="drawer-title-block">
+              <span class="drawer-eyebrow">{{ isEdit ? 'Editar cliente' : 'Nuevo cliente' }}</span>
+              <h3>{{ isEdit ? cliente!.nombre : 'Crear cliente' }}</h3>
+            </div>
+            <div class="spacer"></div>
+            <button class="icon-btn" @click="handleClose" title="Cerrar">
+              <X :size="18" />
+            </button>
           </div>
-          <div class="flex-1">
-            <FloatingField id="cl-numero" label="Número" v-model="numero" />
+
+          <div class="drawer-body">
+            <div class="field">
+              <FloatingField
+                id="cl-nombre"
+                label="Nombre"
+                required
+                v-model="nombre"
+                placeholder="Nombre del cliente"
+                :invalid="!!errors.nombre"
+                :describedby="errors.nombre ? 'cl-nombre-err' : undefined"
+                autofocus
+              />
+              <p v-if="errors.nombre" id="cl-nombre-err" class="err" role="alert">{{ errors.nombre }}</p>
+            </div>
+
+            <div class="fd-section-label" style="margin-top: 18px">Domicilio</div>
+
+            <div class="fd-row">
+              <div class="field" style="flex: 2">
+                <FloatingField id="cl-calle" label="Calle" v-model="calle" />
+              </div>
+              <div class="field" style="flex: 1">
+                <FloatingField id="cl-numero" label="Número" v-model="numero" />
+              </div>
+            </div>
+
+            <div class="fd-row">
+              <div class="field" style="flex: 1">
+                <FloatingField id="cl-localidad" label="Localidad" v-model="localidad" />
+              </div>
+              <div class="field" style="flex: 1">
+                <FloatingField id="cl-provincia" label="Provincia" v-model="provincia" />
+              </div>
+            </div>
+
+            <div class="fd-section-label" style="margin-top: 18px">
+              Contactos
+              <span class="hint" style="font-weight: 400; text-transform: none; letter-spacing: 0">· hasta 3</span>
+            </div>
+
+            <div v-for="(c, idx) in contactos" :key="idx" class="contacto-row">
+              <select class="select contacto-select" v-model="c.canal">
+                <option value="instagram">Instagram</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="mail">Mail</option>
+                <option value="otros">Otros</option>
+              </select>
+              <input
+                class="input contacto-input"
+                v-model="c.valor"
+                placeholder="Valor"
+              />
+              <button
+                type="button"
+                :class="['contacto-radio', { checked: c.esPrincipal }]"
+                @click="setPrincipal(idx)"
+                :title="c.esPrincipal ? 'Contacto principal' : 'Marcar como principal'"
+              />
+              <button
+                class="contacto-del"
+                @click="removeContacto(idx)"
+                :disabled="contactos.length <= 1"
+                title="Eliminar contacto"
+              >
+                <X :size="14" />
+              </button>
+            </div>
+
+            <button
+              class="add-contacto-btn"
+              @click="addContacto"
+              :disabled="contactos.length >= 3"
+            >
+              <Plus :size="14" /> Agregar contacto
+            </button>
+
+            <div class="field" style="margin-top: 18px">
+              <FloatingField
+                id="cl-notas"
+                label="Notas"
+                multiline
+                v-model="notas"
+                placeholder="Información interna · solo visible para tu equipo"
+              />
+            </div>
           </div>
-        </div>
 
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <FloatingField id="cl-localidad" label="Localidad" v-model="localidad" />
+          <div class="drawer-foot">
+            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
+            <button class="btn btn-primary" @click="handleSave">
+              <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear cliente' }}
+            </button>
           </div>
-          <div class="flex-1">
-            <FloatingField id="cl-provincia" label="Provincia" v-model="provincia" />
-          </div>
-        </div>
+        </aside>
 
-        <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mt-3 flex justify-between items-center select-none">
-          Contactos
-          <span class="text-11 text-ink-muted/75 normal-case tracking-normal">· hasta 3</span>
-        </div>
-
-        <div v-for="(c, idx) in contactos" :key="idx" class="flex items-center gap-2">
-          <select
-            class="w-[120px] shrink-0 box-border font-sans text-13 text-ink bg-surface border border-border-strong rounded-md px-2.5 py-2 outline-none cursor-pointer focus:border-teal-500"
-            v-model="c.canal"
-          >
-            <option value="instagram">Instagram</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="mail">Mail</option>
-            <option value="otros">Otros</option>
-          </select>
-          <input
-            class="flex-1 box-border font-sans text-13 text-ink bg-surface border border-border-strong rounded-md px-3 py-2 outline-none focus:border-teal-500"
-            v-model="c.valor"
-            placeholder="Valor"
-          />
-          <button
-            type="button"
-            class="w-4.5 h-4.5 rounded-full border border-border-strong bg-surface cursor-pointer flex items-center justify-center shrink-0 transition-colors duration-120 hover:border-violet-700"
-            :class="[c.esPrincipal ? 'border-violet-700!' : '']"
-            @click="setPrincipal(idx)"
-            :title="c.esPrincipal ? 'Contacto principal' : 'Marcar como principal'"
-          >
-            <span v-if="c.esPrincipal" class="w-2.5 h-2.5 rounded-full bg-violet-700" />
-          </button>
-          <button
-            type="button"
-            class="bg-transparent border-0 text-ink-muted cursor-pointer p-1 rounded-md flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none hover:text-coral-500 hover:bg-coral-50"
-            @click="removeContacto(idx)"
-            :disabled="contactos.length <= 1"
-            title="Eliminar contacto"
-          >
-            <X :size="14" />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="self-start bg-transparent border border-dashed border-border-strong text-violet-700 text-12 font-medium px-3.5 py-2 rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors duration-120 disabled:opacity-50 disabled:pointer-events-none hover:bg-violet-50 hover:border-violet-700"
-          @click="addContacto"
-          :disabled="contactos.length >= 3"
-        >
-          <Plus :size="14" /> Agregar contacto
-        </button>
-
-        <div class="mt-3">
-          <FloatingField
-            id="cl-notas"
-            label="Notas"
-            multiline
-            v-model="notas"
-            placeholder="Información interna · solo visible para tu equipo"
-          />
-        </div>
+        <ConfirmDialog
+          :open="showConfirmExit"
+          title="¿Salir sin guardar?"
+          message="Tenés cambios pendientes en este cliente. Si salís ahora, vas a perderlos."
+          confirm-label="Salir sin guardar"
+          cancel-label="Seguir editando"
+          variant="danger"
+          @confirm="emit('close'); showConfirmExit = false"
+          @cancel="showConfirmExit = false"
+        />
       </div>
-    </template>
-
-    <template #foot>
-      <BaseButton variant="ghost" @click="handleClose">Cancelar</BaseButton>
-      <BaseButton variant="primary" @click="handleSave">
-        <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear cliente' }}
-      </BaseButton>
-    </template>
-  </DrawerShell>
-
-  <ConfirmDialog
-    :open="showConfirmExit"
-    title="¿Salir sin guardar?"
-    message="Tenés cambios pendientes en este cliente. Si salís ahora, vas a perderlos."
-    confirm-label="Salir sin guardar"
-    cancel-label="Seguir editando"
-    variant="danger"
-    @confirm="emit('close'); showConfirmExit = false"
-    @cancel="showConfirmExit = false"
-  />
+    </Transition>
+  </Teleport>
 </template>
+
+<style scoped>
+.drawer-container {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 26, 30, 0.40);
+  pointer-events: auto;
+}
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 520px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  pointer-events: auto;
+  box-shadow: var(--shadow-2);
+  z-index: 81;
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawer-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.drawer-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.drawer-head h3 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.drawer-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
+
+.spacer { flex: 1; }
+
+.fd-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fd-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.contacto-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.contacto-select { width: 120px; flex-shrink: 0; }
+.contacto-input { flex: 1; }
+
+.contacto-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: border-color 120ms ease;
+}
+
+.contacto-radio.checked {
+  border-color: var(--violet-700);
+}
+
+.contacto-radio.checked::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--violet-700);
+}
+
+.contacto-del {
+  background: transparent;
+  border: 0;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+}
+
+.contacto-del:hover { color: var(--coral-500); background: var(--coral-50); }
+.contacto-del:disabled { opacity: 0.3; pointer-events: none; }
+
+.add-contacto-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--violet-700);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.add-contacto-btn:hover { background: var(--violet-50); border-color: var(--violet-700); }
+.add-contacto-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+.field-error .input,
+.field-error .select,
+.field-error .textarea {
+  border-color: var(--coral-500);
+}
+
+.field-error-msg {
+  font-size: 12px;
+  color: var(--coral-500);
+  margin-top: 4px;
+}
+
+/* Transitions */
+.drawer-enter-active .drawer-panel,
+.drawer-leave-active .drawer-panel {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.drawer-enter-from .drawer-panel,
+.drawer-leave-to .drawer-panel {
+  transform: translateX(100%);
+}
+
+.drawer-enter-active .drawer-scrim,
+.drawer-leave-active .drawer-scrim {
+  transition: opacity 220ms ease;
+}
+
+.drawer-enter-from .drawer-scrim,
+.drawer-leave-to .drawer-scrim {
+  opacity: 0;
+}
+</style>

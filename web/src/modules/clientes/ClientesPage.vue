@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { createTrigger } from '@/shared/lib/createTrigger'
-import { useClientesStore } from './store'
+import { useClientesStore } from '@/modules/clientes/store'
 import { formatMoney } from '@/shared/lib/format'
 import ClienteDrawer from './components/ClienteDrawer.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
@@ -23,10 +23,10 @@ const deletingCliente = ref<Cliente | null>(null)
 const showLoading = computed(() => !store.hasFetched)
 
 const canalColors: Record<string, string> = {
-  instagram: 'bg-[#E1306C]',
-  whatsapp: 'bg-[#25D366]',
-  mail: 'bg-violet-600',
-  otros: 'bg-ink-muted',
+  instagram: '#D7548C',
+  whatsapp: '#1F8A5B',
+  mail: '#2E6F70',
+  otros: '#6B6270',
 }
 
 const canalLabels: Record<string, string> = {
@@ -37,29 +37,34 @@ const canalLabels: Record<string, string> = {
 }
 
 const avatarPalette = [
-  { bg: 'bg-violet-50 text-violet-700' },
-  { bg: 'bg-teal-50 text-teal-700' },
-  { bg: 'bg-rose-50 text-rose-750' },
-  { bg: 'bg-teal-100 text-teal-800' },
-  { bg: 'bg-violet-100 text-violet-850' },
+  { bg: '#DBA8CD', ink: '#8B2570' },
+  { bg: '#D6F0F1', ink: '#2E6F70' },
+  { bg: '#F9C2D2', ink: '#8B2570' },
+  { bg: '#D0EADD', ink: '#1B7A4B' },
+  { bg: '#ECD8E6', ink: '#8B2570' },
 ]
 
-function getAvatarClass(name: string): string {
+function getAvatarPalette(name: string) {
   const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % avatarPalette.length
-  return avatarPalette[idx].bg
+  return avatarPalette[idx]
 }
 
 function getInitials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 }
 
-function money(v: number): string {
-  return formatMoney(v)
-}
-
 const principalContact = (cliente: Cliente): ClienteContacto | undefined => {
   return cliente.contactos?.find((c) => c.esPrincipal) || cliente.contactos?.[0]
 }
+
+const columns = [
+  { key: 'nombre', label: 'Cliente' },
+  { key: 'codigo', label: 'Código', width: '100px' },
+  { key: 'ultimoPedido', label: 'Último pedido', width: '140px' },
+  { key: 'pedidos', label: 'Pedidos', align: 'right' as const, width: '100px' },
+  { key: 'total', label: 'Total facturado', align: 'right' as const, width: '160px' },
+  { key: 'acciones', label: '', width: '80px' }
+]
 
 async function loadClientes() {
   try {
@@ -103,15 +108,6 @@ async function handleDeleteConfirm() {
   deletingCliente.value = null
 }
 
-const columns = [
-  { key: 'cliente', label: 'Cliente' },
-  { key: 'codigo', label: 'Código', width: '100px' },
-  { key: 'ultimoPedido', label: 'Último pedido', width: '140px' },
-  { key: 'pedidos', label: 'Pedidos', align: 'right' as const, width: '100px' },
-  { key: 'totalGastado', label: 'Total facturado', align: 'right' as const, width: '160px' },
-  { key: 'acciones', label: '', width: '80px' }
-]
-
 onMounted(loadClientes)
 
 watch(
@@ -136,8 +132,8 @@ watch(createTrigger, (val) => {
 </script>
 
 <template>
-  <div class="w-full">
-    <div v-if="showLoading" class="border border-border rounded-lg bg-surface p-6">
+  <div class="p-6">
+    <div v-if="showLoading" class="bg-surface border border-border rounded-lg p-5">
       <p class="text-14 text-ink-muted">Cargando clientes...</p>
     </div>
     <template v-else>
@@ -147,40 +143,32 @@ watch(createTrigger, (val) => {
         empty-text="Sin clientes registrados."
       >
         <template #row="{ item: c }">
-          <td class="px-4 py-3.5 align-middle" @dblclick="handleEdit(c)">
+          <td class="px-4 py-3.5 align-middle">
             <div class="flex items-center gap-3">
               <div
-                class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-12 select-none shrink-0"
-                :class="getAvatarClass(c.nombre)"
-              >
-                {{ getInitials(c.nombre) }}
-              </div>
+                class="w-9 h-9 rounded-full flex items-center justify-center text-13 font-medium flex-shrink-0"
+                :style="{ background: getAvatarPalette(c.nombre).bg, color: getAvatarPalette(c.nombre).ink }"
+              >{{ getInitials(c.nombre) }}</div>
               <div class="flex flex-col gap-0.5">
-                <span class="text-13 text-ink font-medium">{{ c.nombre }}</span>
-                <span v-if="principalContact(c)" class="text-11 text-ink-muted flex items-center gap-1.5 mt-0.5">
+                <span class="text-14 font-medium text-ink">{{ c.nombre }}</span>
+                <span v-if="principalContact(c)" class="flex items-center gap-1.5 text-12 text-ink-muted">
                   <span
-                    class="w-1.5 h-1.5 rounded-full shrink-0"
-                    :class="[canalColors[principalContact(c)!.canal] || 'bg-ink-muted']"
+                    class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    :style="{ background: canalColors[principalContact(c)!.canal] || '#6B6270' }"
                   />
-                  <span>{{ canalLabels[principalContact(c)!.canal] || principalContact(c)!.canal }}:</span>
-                  <span class="font-mono">{{ principalContact(c)!.valor }}</span>
+                  <span>{{ canalLabels[principalContact(c)!.canal] || principalContact(c)!.canal }}</span>
+                  <span>{{ principalContact(c)!.valor }}</span>
                 </span>
               </div>
             </div>
           </td>
-          <td class="px-4 py-3.5 align-middle text-13 font-mono text-ink-muted select-none" @dblclick="handleEdit(c)">
-            {{ c.codigo }}
+          <td class="px-4 py-3.5 align-middle">
+            <span class="font-mono text-12 text-ink-muted">{{ c.codigo }}</span>
           </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink-muted select-none" @dblclick="handleEdit(c)">
-            —
-          </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink text-right tabular-nums select-none" @dblclick="handleEdit(c)">
-            {{ c.totalPedidos || 0 }}
-          </td>
-          <td class="px-4 py-3.5 align-middle text-13 text-ink font-medium text-right tabular-nums select-none" @dblclick="handleEdit(c)">
-            {{ money(c.totalGastado || 0) }}
-          </td>
-          <td class="px-4 py-3.5 align-middle w-[80px]">
+          <td class="px-4 py-3.5 align-middle text-13 text-ink-muted">—</td>
+          <td class="px-4 py-3.5 align-middle text-13 text-ink text-right tabular-nums">{{ c.totalPedidos || 0 }}</td>
+          <td class="px-4 py-3.5 align-middle text-13 text-ink font-medium text-right tabular-nums">{{ formatMoney(c.totalGastado || 0) }}</td>
+          <td class="px-4 py-3.5 align-middle">
             <RowActions
               @edit="handleEdit(c)"
               @delete="handleDeleteClick(c)"

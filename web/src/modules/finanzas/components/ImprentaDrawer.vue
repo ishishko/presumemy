@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Check } from '@lucide/vue'
+import { Check, X } from '@lucide/vue'
 import { post, put, get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
 import type { OrdenImprenta, Presupuesto, PaginationResult } from '@/types'
-import DrawerShell from '@/shared/ui/DrawerShell.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
-import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const props = defineProps<{
   open: boolean
@@ -184,164 +182,353 @@ defineExpose({ loadOrden })
 </script>
 
 <template>
-  <DrawerShell
-    :open="open"
-    :title="tematica || 'Orden sin temática'"
-    :eyebrow="isEdit ? 'Editar orden' : 'Nueva orden de imprenta'"
-    @close="handleClose"
-  >
-    <template #body>
-      <div class="flex flex-col gap-4">
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <FloatingField
-              id="fd-i-fecha"
-              label="Fecha"
-              type="date"
-              always-float
-              v-model="fecha"
-            />
+  <Teleport to="body">
+    <Transition name="drawer">
+      <div v-if="open" class="drawer-container">
+        <div class="drawer-scrim" @click="handleClose"></div>
+        <aside class="drawer-panel">
+          <div class="drawer-head">
+            <div class="drawer-title-block">
+              <span class="drawer-eyebrow">{{ isEdit ? 'Editar orden' : 'Nueva orden de imprenta' }}</span>
+              <h3>{{ tematica || 'Orden sin temática' }}</h3>
+            </div>
+            <button class="icon-btn" @click="handleClose" title="Cerrar">
+              <X :size="18" />
+            </button>
           </div>
-          <div class="flex-1">
-            <FloatingField
-              id="fd-i-presupuesto"
-              label="Presupuesto"
-              v-model="presupuestoId"
-              placeholder="P-1024 (opcional)"
-              list="fd-presupuestos-i"
-            />
-            <datalist id="fd-presupuestos-i">
-              <option v-for="p in presupuestos" :key="p.id" :value="p.folio" />
-            </datalist>
-          </div>
-        </div>
 
-        <div>
-          <FloatingField
-            id="fd-i-tematica"
-            label="Temática / cliente"
-            required
-            v-model="tematica"
-            placeholder="Ej. Cumple Mila · unicornios pastel"
-          />
-        </div>
-
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <FloatingField
-              id="fd-i-hojas"
-              label="Cantidad de hojas"
-              type="number"
-              v-model.number="hojas"
-              min="0"
-              step="1"
-            />
-          </div>
-          <div class="flex-1">
-            <FloatingField
-              id="fd-i-tipohoja"
-              label="Tipo de hoja"
-              v-model="tipoHoja"
-              placeholder="Opalina A4 220 g"
-            />
-          </div>
-        </div>
-
-        <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mt-3 pb-1 border-b border-border">Valores</div>
-
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <FloatingField
-              id="fd-i-valornuestro"
-              label="Valor nuestro"
-              type="number"
-              prefix="$"
-              v-model.number="valorNuestro"
-              :invalid="Number(valorNuestro) < 0"
-              min="0"
-              step="0.01"
-            />
-          </div>
-          <div class="flex-1">
-            <FloatingField
-              id="fd-i-valorpatri"
-              label="Valor Patri"
-              type="number"
-              prefix="$"
-              v-model.number="valorPatri"
-              :invalid="Number(valorPatri) < 0"
-              min="0"
-              step="0.01"
-            />
-          </div>
-        </div>
-
-        <div class="bg-page-bg border border-border rounded-md p-4 flex flex-col gap-2 select-none">
-          <div class="flex justify-between text-13 text-ink">
-            <span class="text-ink-muted">Valor nuestro</span>
-            <span class="font-mono tabular-nums">{{ money(valorNuestro) }}</span>
-          </div>
-          <div class="flex justify-between text-13 text-ink">
-            <span class="text-ink-muted">Valor Patri</span>
-            <span class="font-mono tabular-nums">{{ money(valorPatri) }}</span>
-          </div>
-          <div class="flex justify-between border-t border-border pt-2 mt-1 text-13 font-medium text-ink">
-            <span>Diferencia</span>
-            <span
-              class="font-mono tabular-nums"
-              :class="[diff >= 0 ? 'text-teal-700' : 'text-coral-500']"
-            >
-              {{ diff >= 0 ? '+ ' : '− ' }}{{ money(diff) }}
-            </span>
-          </div>
-        </div>
-
-        <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mt-3 pb-1 border-b border-border">Pago</div>
-
-        <div class="flex gap-3 items-start">
-          <div class="flex-1">
-            <FloatingSelect
-              id="fd-i-metodopago"
-              label="Método de pago"
-              v-model="metodoPago"
-            >
-              <option v-for="m in metodosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
-            </FloatingSelect>
-          </div>
-          <div class="flex-1 flex flex-col gap-1">
-            <label class="text-11 font-medium uppercase tracking-[0.06em] text-ink-muted select-none">Estado</label>
-            <label class="flex gap-2.5 items-start cursor-pointer mt-1">
-              <input
-                type="checkbox"
-                v-model="pagado"
-                class="mt-1 accent-violet-700 w-4 h-4"
-              />
-              <div class="flex flex-col gap-0.5">
-                <span class="text-13 font-medium text-ink">Pagado a la imprenta</span>
-                <span class="text-11 text-ink-muted">{{ pagado ? 'Registrado como pagado.' : 'Pendiente de pago.' }}</span>
+          <div class="drawer-body">
+            <div class="fd-row">
+              <div class="field">
+                <FloatingField
+                  id="fd-i-fecha"
+                  label="Fecha"
+                  type="date"
+                  always-float
+                  v-model="fecha"
+                />
               </div>
-            </label>
+              <div class="field">
+                <FloatingField
+                  id="fd-i-presupuesto"
+                  label="Presupuesto"
+                  v-model="presupuestoId"
+                  placeholder="P-1024 (opcional)"
+                  list="fd-presupuestos-i"
+                />
+                <datalist id="fd-presupuestos-i">
+                  <option v-for="p in presupuestos" :key="p.id" :value="p.folio" />
+                </datalist>
+              </div>
+            </div>
+
+            <div class="fd-row single">
+              <div class="field">
+                <FloatingField
+                  id="fd-i-tematica"
+                  label="Temática / cliente"
+                  required
+                  v-model="tematica"
+                  placeholder="Ej. Cumple Mila · unicornios pastel"
+                />
+              </div>
+            </div>
+
+            <div class="fd-row">
+              <div class="field">
+                <FloatingField
+                  id="fd-i-hojas"
+                  label="Cantidad de hojas"
+                  type="number"
+                  v-model.number="hojas"
+                  min="0"
+                  step="1"
+                />
+              </div>
+              <div class="field">
+                <FloatingField
+                  id="fd-i-tipohoja"
+                  label="Tipo de hoja"
+                  v-model="tipoHoja"
+                  placeholder="Opalina A4 220 g"
+                />
+              </div>
+            </div>
+
+            <div class="fd-section-label">Valores</div>
+
+            <div class="fd-row">
+              <div class="field">
+                <FloatingField
+                  id="fd-i-valornuestro"
+                  label="Valor nuestro"
+                  type="number"
+                  prefix="$"
+                  v-model.number="valorNuestro"
+                  :invalid="Number(valorNuestro) < 0"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div class="field">
+                <FloatingField
+                  id="fd-i-valorpatri"
+                  label="Valor Patri"
+                  type="number"
+                  prefix="$"
+                  v-model.number="valorPatri"
+                  :invalid="Number(valorPatri) < 0"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div class="fd-summary">
+              <div class="row">
+                <span style="color: var(--ink-muted)">Valor nuestro</span>
+                <span style="font-variant-numeric: tabular-nums">{{ money(valorNuestro) }}</span>
+              </div>
+              <div class="row">
+                <span style="color: var(--ink-muted)">Valor Patri</span>
+                <span style="font-variant-numeric: tabular-nums">{{ money(valorPatri) }}</span>
+              </div>
+              <div class="row grand">
+                <span>Diferencia</span>
+                <span :class="diff >= 0 ? 'fin-diff-pos' : 'fin-diff-neg'" style="font-size: 16px">
+                  {{ diff >= 0 ? '+ ' : '− ' }}{{ money(diff) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="fd-section-label" style="margin-top: 16px">Pago</div>
+
+            <div class="fd-row">
+              <div class="field">
+                <FloatingSelect
+                  id="fd-i-metodopago"
+                  label="Método de pago"
+                  v-model="metodoPago"
+                >
+                  <option v-for="m in metodosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
+                </FloatingSelect>
+              </div>
+              <div class="field">
+                <label>Estado</label>
+                <label class="check-row" style="margin-top: 2px">
+                  <input type="checkbox" v-model="pagado" />
+                  <div class="lbl-block">
+                    <span class="t">Pagado a la imprenta</span>
+                    <span class="h">{{ pagado ? 'Registrado como pagado.' : 'Pendiente de pago.' }}</span>
+                  </div>
+                </label>
+              </div>
+            </div>
           </div>
-        </div>
+
+          <div class="drawer-foot">
+            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
+            <button class="btn btn-primary" @click="handleSave">
+              <Check :size="16" /> Guardar
+            </button>
+          </div>
+        </aside>
+
+        <ConfirmDialog
+          :open="showConfirmExit"
+          title="¿Salir sin guardar?"
+          message="Tenés cambios pendientes en esta orden. Si salís ahora, vas a perderlos."
+          confirm-label="Salir sin guardar"
+          cancel-label="Seguir editando"
+          variant="danger"
+          @confirm="emit('close'); showConfirmExit = false"
+          @cancel="showConfirmExit = false"
+        />
       </div>
-    </template>
-
-    <template #foot>
-      <BaseButton variant="ghost" @click="handleClose">Cancelar</BaseButton>
-      <BaseButton variant="primary" @click="handleSave">
-        <Check :size="16" /> Guardar
-      </BaseButton>
-    </template>
-  </DrawerShell>
-
-  <ConfirmDialog
-    :open="showConfirmExit"
-    title="¿Salir sin guardar?"
-    message="Tenés cambios pendientes en esta orden. Si salís ahora, vas a perderlos."
-    confirm-label="Salir sin guardar"
-    cancel-label="Seguir editando"
-    variant="danger"
-    @confirm="emit('close'); showConfirmExit = false"
-    @cancel="showConfirmExit = false"
-  />
+    </Transition>
+  </Teleport>
 </template>
+
+<style scoped>
+.drawer-container {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 26, 30, 0.40);
+  pointer-events: auto;
+}
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 520px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  pointer-events: auto;
+  box-shadow: var(--shadow-2);
+  z-index: 81;
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawer-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.drawer-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.drawer-head h3 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.drawer-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
+
+.fd-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fd-row > .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.fd-row.single { grid-template-columns: 1fr; }
+
+.fd-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.fd-money-input {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.fd-money-input:focus {
+  outline: none;
+  border-color: var(--teal-500);
+  box-shadow: var(--focus-ring);
+}
+
+.fd-summary {
+  background: var(--page-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fd-summary .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.fd-summary .row.grand {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.fin-diff-pos { color: #2E6F70; }
+.fin-diff-neg { color: var(--coral-500); }
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.check-row input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: var(--violet-700);
+  width: 16px;
+  height: 16px;
+}
+
+.lbl-block { display: flex; flex-direction: column; gap: 2px; }
+.lbl-block .t { font-size: 13px; font-weight: 500; color: var(--ink); }
+.lbl-block .h { font-size: 12px; color: var(--ink-muted); }
+
+/* Transitions */
+.drawer-enter-active .drawer-panel,
+.drawer-leave-active .drawer-panel {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.drawer-enter-from .drawer-panel,
+.drawer-leave-to .drawer-panel {
+  transform: translateX(100%);
+}
+
+.drawer-enter-active .drawer-scrim,
+.drawer-leave-active .drawer-scrim {
+  transition: opacity 220ms ease;
+}
+
+.drawer-enter-from .drawer-scrim,
+.drawer-leave-to .drawer-scrim {
+  opacity: 0;
+}
+</style>

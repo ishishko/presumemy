@@ -1,41 +1,33 @@
 <script setup lang="ts">
-type Tone = 'ok' | 'warning' | 'danger' | 'info' | 'neutral'
-
 interface Chip {
-  id: string | number
+  id: string
   label: string
   count?: number
-  dotTone?: Tone
+  dotTone?: 'ok' | 'warning' | 'danger' | 'neutral'
 }
 
-const props = withDefaults(
-  defineProps<{
-    modelValue: string | number | null
-    chips: Chip[]
-    deselectable?: boolean
-  }>(),
-  {
-    deselectable: false,
-  }
-)
+const props = withDefaults(defineProps<{
+  modelValue: string | null
+  chips: Chip[]
+  deselectable?: boolean
+}>(), {
+  deselectable: false,
+})
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string | number | null]
+  'update:modelValue': [value: string | null]
 }>()
 
-const DOT_COLORS: Record<Tone, string> = {
-  ok: 'bg-teal-500',
+const DOT_COLORS: Record<string, string> = {
+  ok: 'bg-green-500',
   warning: 'bg-yellow',
   danger: 'bg-coral-500',
-  info: 'bg-violet-700',
   neutral: 'bg-ink-muted',
 }
 
-function select(id: string | number) {
-  if (props.modelValue === id) {
-    if (props.deselectable) {
-      emit('update:modelValue', null)
-    }
+function select(id: string) {
+  if (props.deselectable && props.modelValue === id) {
+    emit('update:modelValue', null)
   } else {
     emit('update:modelValue', id)
   }
@@ -43,30 +35,21 @@ function select(id: string | number) {
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-2">
+  <div class="flex flex-wrap gap-1.5">
     <button
       v-for="chip in chips"
       :key="chip.id"
       type="button"
-      class="inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-13 font-medium transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:shadow-focus-ring"
-      :class="[
-        modelValue === chip.id
-          ? 'bg-violet-700 text-white shadow-1'
-          : 'bg-violet-50 text-violet-700 hover:bg-violet-100/60'
-      ]"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-12 font-medium border transition-colors cursor-pointer"
+      :class="modelValue === chip.id
+        ? 'bg-violet-50 text-violet-700 border-violet-100'
+        : 'bg-transparent text-ink-muted border-border hover:text-ink hover:border-border-strong'"
       @click="select(chip.id)"
     >
-      <span
-        v-if="chip.dotTone"
-        class="w-2 h-2 rounded-full shrink-0"
-        :class="[DOT_COLORS[chip.dotTone] || DOT_COLORS.neutral]"
-      />
+      <span v-if="chip.dotTone" class="w-1.75 h-1.75 rounded-full" :class="DOT_COLORS[chip.dotTone]" />
       {{ chip.label }}
-      <span
-        v-if="chip.count !== undefined"
-        class="text-11 px-1.5 py-0.5 rounded-pill bg-black/10 text-inherit/80"
-        :class="[modelValue === chip.id ? 'bg-white/20' : 'bg-violet-700/10']"
-      >
+      <span v-if="chip.count !== undefined" class="tabular-nums text-11 font-medium px-1.75 py-0.25 rounded-pill"
+        :class="modelValue === chip.id ? 'bg-white/20 text-white' : 'bg-page-bg text-ink-muted'">
         {{ chip.count }}
       </span>
     </button>

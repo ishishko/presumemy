@@ -1,21 +1,6 @@
 <script setup lang="ts">
 import { Pencil, Trash2 } from '@lucide/vue'
 
-const props = withDefaults(
-  defineProps<{
-    editLabel?: string
-    deleteLabel?: string
-    showEdit?: boolean
-    showDelete?: boolean
-  }>(),
-  {
-    editLabel: 'Editar',
-    deleteLabel: 'Eliminar',
-    showEdit: true,
-    showDelete: true,
-  }
-)
-
 const emit = defineEmits<{
   edit: []
   delete: []
@@ -23,24 +8,20 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex gap-1 justify-end items-center" @click.stop>
+  <div class="flex items-center gap-1">
     <button
-      v-if="showEdit"
-      type="button"
-      :title="editLabel"
-      class="p-1.5 rounded text-ink-muted hover:bg-page-bg hover:text-ink transition-colors cursor-pointer focus-visible:outline-none focus-visible:shadow-focus-ring"
+      class="w-8 h-8 inline-flex items-center justify-center rounded-md bg-transparent border-0 text-ink-muted cursor-pointer hover:bg-page-bg hover:text-ink transition-colors"
       @click="emit('edit')"
+      title="Editar"
     >
-      <Pencil :size="14" />
+      <Pencil :size="15" />
     </button>
     <button
-      v-if="showDelete"
-      type="button"
-      :title="deleteLabel"
-      class="p-1.5 rounded text-ink-muted hover:bg-coral-50 hover:text-coral-700 transition-colors cursor-pointer focus-visible:outline-none focus-visible:shadow-danger-ring"
+      class="w-8 h-8 inline-flex items-center justify-center rounded-md bg-transparent border-0 text-ink-muted cursor-pointer hover:bg-coral-50 hover:text-coral-500 transition-colors"
       @click="emit('delete')"
+      title="Eliminar"
     >
-      <Trash2 :size="14" />
+      <Trash2 :size="15" />
     </button>
   </div>
 </template>

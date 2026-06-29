@@ -50,7 +50,6 @@ export function usePagination<T>(items: { value: T[] } | (() => T[]), initialPag
     }
   }
 
-  // Reset to first page when items change
   watch(totalItems, () => {
     currentPage.value = 1
   })

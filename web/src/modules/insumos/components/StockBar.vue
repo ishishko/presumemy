@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getNivel, getFillPct, type Nivel } from '../stock'
+import { getNivel, getFillPct } from '@/modules/insumos/stock'
 
 const props = defineProps<{
   stock: number
@@ -8,18 +8,22 @@ const props = defineProps<{
 }>()
 
 const nivel = computed(() => getNivel(props.stock, props.minimo))
-const pct = computed(() => getFillPct(props.stock, props.minimo))
+const fillPct = computed(() => getFillPct(props.stock, props.minimo))
 
-const CLASSES: Record<Nivel, string> = {
-  sin_unidades: 'low',
-  critico: 'low',
-  bajo: 'warn',
-  ok: 'ok',
+const BAR_COLORS: Record<string, string> = {
+  ok: 'bg-canal-whatsapp',
+  bajo: 'bg-yellow',
+  critico: 'bg-coral-500',
+  sin_unidades: 'bg-coral-500',
 }
 </script>
 
 <template>
-  <div class="stock-bar" :class="CLASSES[nivel]" title="Nivel de stock">
-    <div :style="{ width: `${pct}%` }" />
+  <div class="h-1.5 bg-page-bg rounded-pill overflow-hidden">
+    <div
+      class="h-full rounded-pill transition-all"
+      :class="BAR_COLORS[nivel]"
+      :style="{ width: `${fillPct}%` }"
+    />
   </div>
 </template>
