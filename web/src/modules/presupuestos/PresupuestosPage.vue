@@ -52,13 +52,13 @@ function money(v: number): string {
   return formatMoney(v)
 }
 
-const statusTones: Record<string, { bg: string; dot: string; label: string }> = {
-  borrador: { bg: 'bg-page-bg text-ink-muted border-border-strong/60', dot: 'bg-ink-muted', label: 'Borrador' },
-  en_curso: { bg: 'bg-teal-50/70 text-teal-700 border-teal-100', dot: 'bg-teal-600', label: 'En curso' },
-  cerrado: { bg: 'bg-emerald-50 text-emerald-700 border-emerald-100', dot: 'bg-emerald-600', label: 'Cerrado' },
-  facturado: { bg: 'bg-purple-50 text-purple-750 border-purple-100', dot: 'bg-purple-650', label: 'Facturado' },
-  cancelado: { bg: 'bg-coral-50 text-coral-700 border-coral-100', dot: 'bg-coral-600', label: 'Cancelado' },
-  enviado: { bg: 'bg-violet-50 text-violet-700 border-violet-100', dot: 'bg-violet-600', label: 'Enviado' },
+const statusTones: Record<string, { tone: string; label: string }> = {
+  borrador: { tone: 'default', label: 'Borrador' },
+  en_curso: { tone: 'teal', label: 'En curso' },
+  cerrado: { tone: 'mint', label: 'Cerrado' },
+  facturado: { tone: 'lavender', label: 'Facturado' },
+  cancelado: { tone: 'coral', label: 'Cancelado' },
+  enviado: { tone: 'violet', label: 'Enviado' },
 }
 
 const TRANSITIONS: Record<string, string[]> = {
@@ -262,7 +262,7 @@ watch(createTrigger, (val) => {
             {{ p.cliente?.nombre || 'Sin cliente' }}
           </td>
           <td class="px-4 py-3.5 align-middle text-13 select-none" @dblclick="handleEdit(p)">
-            <span v-if="p.tematica" class="inline-flex items-center rounded-pill px-2.5 py-0.5 text-12 bg-purple-50 text-purple-700 border border-purple-100">
+            <span v-if="p.tematica" class="badge lavender">
               {{ p.tematica }}
             </span>
             <span v-else class="text-ink-muted">—</span>
@@ -274,27 +274,28 @@ watch(createTrigger, (val) => {
             <div class="relative inline-block" @click.stop @dblclick.stop>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-12 font-medium border transition-all cursor-pointer"
+                class="status-badge-wrap"
                 :class="[
-                  statusTones[p.estado]?.bg || 'bg-page-bg text-ink-muted border-border',
-                  getAvailableTransitions(p.estado).length > 0 ? 'hover:bg-page-bg/80 hover:border-border-strong' : ''
+                  statusTones[p.estado]?.tone || 'default',
+                  getAvailableTransitions(p.estado).length > 0 ? 'interactive' : ''
                 ]"
                 @click="toggleDropdown(p.id)"
                 :disabled="getAvailableTransitions(p.estado).length === 0"
               >
-                <span class="w-1.5 h-1.5 rounded-full" :class="[statusTones[p.estado]?.dot || 'bg-ink-muted']" />
+                <span class="dot" />
                 <span>{{ statusTones[p.estado]?.label || p.estado }}</span>
-                <span v-if="getAvailableTransitions(p.estado).length > 0" class="w-1 h-1 border-r border-b border-current rotate-45 transform -translate-y-0.5 ml-0.5" />
+                <span v-if="getAvailableTransitions(p.estado).length > 0" class="chevron-arrow" />
               </button>
-              <div v-if="activeDropdownId === p.id" class="absolute left-0 mt-1 w-36 rounded-md bg-surface border border-border shadow-2 py-1 z-30">
+              <div v-if="activeDropdownId === p.id" class="status-dropdown-menu" @click.stop>
                 <button
                   v-for="t in getAvailableTransitions(p.estado)"
                   :key="t"
                   type="button"
-                  class="w-full text-left px-3 py-1.5 text-12 font-medium hover:bg-page-bg flex items-center gap-1.5 cursor-pointer bg-transparent border-0"
+                  class="status-dropdown-item"
+                  :class="statusTones[t]?.tone || 'default'"
                   @click="handleStatusChange(p, t); activeDropdownId = null"
                 >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="[statusTones[t]?.dot || 'bg-ink-muted']" />
+                  <span class="dot" />
                   <span>{{ statusTones[t]?.label || t }}</span>
                 </button>
               </div>

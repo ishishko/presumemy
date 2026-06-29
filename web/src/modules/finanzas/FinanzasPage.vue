@@ -7,11 +7,8 @@ import { formatMoney, formatDate } from '@/shared/lib/format'
 import MovimientoDrawer from './components/MovimientoDrawer.vue'
 import ImprentaDrawer from './components/ImprentaDrawer.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
-import FilterChips from '@/shared/ui/FilterChips.vue'
-import SegmentedControl from '@/shared/ui/SegmentedControl.vue'
 import DataTable from '@/shared/ui/DataTable.vue'
 import RowActions from '@/shared/ui/RowActions.vue'
-import StatusBadge from '@/shared/ui/StatusBadge.vue'
 import BaseCard from '@/shared/ui/BaseCard.vue'
 import Pagination from '@/shared/ui/Pagination.vue'
 import { usePagination } from '@/shared/lib/usePagination'
@@ -64,27 +61,7 @@ const cuentas = [
   { id: 'billetera', label: 'Billetera' },
 ]
 
-const tabOptions = computed(() => [
-  { value: 'movimientos', label: `Movimientos (${store.transacciones.length})` },
-  { value: 'imprenta', label: `Imprenta (${store.ordenes.length})` }
-])
 
-const tipoChips = computed(() => [
-  { id: 'todos', label: 'Todos' },
-  ...tipoMovs.map(t => ({
-    id: t.id,
-    label: t.label,
-    dotTone: (t.color === 'var(--teal-ink)' ? 'ok' : 'danger') as 'ok' | 'danger'
-  }))
-])
-
-const cuentaChips = computed(() => [
-  { id: 'todas', label: 'Todas' },
-  ...cuentas.map(c => ({
-    id: c.id,
-    label: c.label
-  }))
-])
 
 function money(v: number): string {
   return formatMoney(v)
@@ -243,15 +220,31 @@ watch(createTrigger, (val) => {
         </BaseCard>
       </div>
 
-      <!-- Toolbar / Segmented Control Tabs -->
-      <div class="flex justify-between items-center mb-5 border-b border-border pb-4 gap-4 flex-wrap">
-        <SegmentedControl
-          v-model="tab"
-          :options="tabOptions"
-        />
+      <!-- Toolbar / Tabs -->
+      <div class="flex justify-between items-center mb-[18px] border-b border-border pb-4 gap-4 flex-wrap">
+        <div class="fin-tabs">
+          <button
+            type="button"
+            class="fin-tab"
+            :class="{ active: tab === 'movimientos' }"
+            @click="tab = 'movimientos'"
+          >
+            Movimientos
+            <span class="count">{{ store.transacciones.length }}</span>
+          </button>
+          <button
+            type="button"
+            class="fin-tab"
+            :class="{ active: tab === 'imprenta' }"
+            @click="tab = 'imprenta'"
+          >
+            Imprenta
+            <span class="count">{{ store.ordenes.length }}</span>
+          </button>
+        </div>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-13 font-medium bg-violet-50 text-violet-700 hover:bg-violet-100/60 rounded-md transition-colors cursor-pointer border border-transparent focus-visible:outline-none focus-visible:shadow-focus-ring"
+          class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
           @click="tab === 'movimientos' ? handleCreateMov() : handleCreateImprenta()"
         >
           <Plus :size="14" /> {{ tab === 'movimientos' ? 'Movimiento' : 'Orden' }}
@@ -260,21 +253,55 @@ watch(createTrigger, (val) => {
 
       <!-- Tab Movimientos -->
       <template v-if="tab === 'movimientos'">
-        <div class="flex flex-col gap-3.5 mb-5 bg-page-bg/40 p-4 border border-border rounded-lg">
-          <div class="flex items-center gap-4 flex-wrap">
-            <span class="text-12 font-medium text-ink-muted w-14 shrink-0 uppercase tracking-wider select-none">Tipo</span>
-            <FilterChips
-              v-model="tipoFilter"
-              :chips="tipoChips"
-            />
+        <div class="mb-5 flex flex-col select-none">
+          <!-- Filtro Tipo -->
+          <div class="fin-filter-row">
+            <span class="lbl">Tipo</span>
+            <button
+              type="button"
+              class="fin-pill"
+              :class="{ active: tipoFilter === 'todos' }"
+              @click="tipoFilter = 'todos'"
+            >
+              Todos
+            </button>
+            <button
+              v-for="t in tipoMovs"
+              :key="t.id"
+              type="button"
+              class="fin-pill"
+              :class="{ active: tipoFilter === t.id }"
+              @click="tipoFilter = t.id"
+            >
+              <span
+                class="dot"
+                :style="{ background: t.color }"
+              />
+              {{ t.label }}
+            </button>
           </div>
 
-          <div class="flex items-center gap-4 flex-wrap">
-            <span class="text-12 font-medium text-ink-muted w-14 shrink-0 uppercase tracking-wider select-none">Cuenta</span>
-            <FilterChips
-              v-model="cuentaFilter"
-              :chips="cuentaChips"
-            />
+          <!-- Filtro Cuenta -->
+          <div class="fin-filter-row last">
+            <span class="lbl">Cuenta</span>
+            <button
+              type="button"
+              class="fin-pill"
+              :class="{ active: cuentaFilter === 'todas' }"
+              @click="cuentaFilter = 'todas'"
+            >
+              Todas
+            </button>
+            <button
+              v-for="c in cuentas"
+              :key="c.id"
+              type="button"
+              class="fin-pill"
+              :class="{ active: cuentaFilter === c.id }"
+              @click="cuentaFilter = c.id"
+            >
+              {{ c.label }}
+            </button>
           </div>
         </div>
 
@@ -288,15 +315,15 @@ watch(createTrigger, (val) => {
               {{ formatFecha(m.fecha) }}
             </td>
             <td class="px-4 py-3.5 align-middle select-none" @dblclick="handleEditMov(m)">
-              <StatusBadge
-                :label="tipoMovs.find(t => t.id === m.tipo)?.label || m.tipo"
-                :tone="esEgreso(m.tipo) ? 'danger' : 'ok'"
-              />
+              <span class="fin-tipo-badge" :style="esEgreso(m.tipo) ? 'background: var(--color-coral-50); color: var(--color-coral-500);' : 'background: var(--color-teal-50); color: var(--color-teal-700);'">
+                <span class="dot"></span>
+                {{ tipoMovs.find(t => t.id === m.tipo)?.label || m.tipo }}
+              </span>
             </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink select-none" @dblclick="handleEditMov(m)">
+            <td class="px-4 py-3.5 align-middle fin-cuenta-cell select-none" @dblclick="handleEditMov(m)">
               {{ m.cuenta }}
             </td>
-            <td class="px-4 py-3.5 align-middle text-13 text-ink-muted font-mono select-none" @dblclick="handleEditMov(m)">
+            <td class="px-4 py-3.5 align-middle fin-ref-cell select-none" @dblclick="handleEditMov(m)">
               {{ m.referencia || '—' }}
             </td>
             <td class="px-4 py-3.5 align-middle text-13 text-ink" @dblclick="handleEditMov(m)">
@@ -306,8 +333,8 @@ watch(createTrigger, (val) => {
               {{ m.nroFactura || '—' }}
             </td>
             <td
-              class="px-4 py-3.5 align-middle text-13 font-semibold text-right tabular-nums select-none"
-              :class="[esEgreso(m.tipo) ? 'text-coral-600' : 'text-teal-650']"
+              class="px-4 py-3.5 align-middle text-right select-none"
+              :class="[esEgreso(m.tipo) ? 'fin-monto-neg' : 'fin-monto-pos']"
               @dblclick="handleEditMov(m)"
             >
               {{ signedMoney(Number(m.monto), m.tipo) }}
@@ -368,10 +395,10 @@ watch(createTrigger, (val) => {
               {{ o.metodoPago }}
             </td>
             <td class="px-4 py-3.5 align-middle select-none" @dblclick="handleEditOrden(o)">
-              <StatusBadge
-                :label="o.pagado ? 'Pagado' : 'Pendiente'"
-                :tone="o.pagado ? 'ok' : 'danger'"
-              />
+              <span class="fin-pagado-badge" :class="o.pagado ? 'si' : 'no'">
+                <span class="dot"></span>
+                {{ o.pagado ? 'Pagado' : 'Pendiente' }}
+              </span>
             </td>
             <td class="px-4 py-3.5 align-middle w-[80px]">
               <RowActions

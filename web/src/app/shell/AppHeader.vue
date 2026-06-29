@@ -82,22 +82,15 @@ function onKeydown(e: KeyboardEvent) {
     showDropdown.value = false
   }
 }
-
-const BADGE_COLORS: Record<string, string> = {
-  insumo: 'bg-violet-50 text-violet-700 border border-violet-100',
-  producto: 'bg-violet-100 text-violet-700 border border-lavender',
-  cliente: 'bg-teal-50 text-teal-700 border border-teal-100',
-  presupuesto: 'bg-mint text-green-700 border border-green-500/20',
-}
 </script>
 
 <template>
-  <div class="h-14 sticky top-0 z-10 flex items-center gap-4 px-8 bg-surface/80 backdrop-blur-sm border-b border-border">
-    <div class="flex items-center gap-3.5 flex-1 min-w-0">
-      <h1 v-if="!editorMode" class="text-22 font-medium text-violet-700 m-0 truncate">{{ title }}</h1>
+  <div class="app-header">
+    <div class="header-left">
+      <h1 v-if="!editorMode">{{ title }}</h1>
       
       <template v-if="editorMode">
-        <span class="text-18 font-semibold text-violet-700 tracking-[-0.01em] truncate">
+        <span class="editor-mode-title">
           {{ editorTitle || 'Nuevo' }}
         </span>
         
@@ -122,7 +115,7 @@ const BADGE_COLORS: Record<string, string> = {
       </template>
       
       <!-- Destino del badge de estado del editor -->
-      <div :id="EDITOR_STATUS_SLOT_ID" class="inline-flex items-center empty:hidden"></div>
+      <div :id="EDITOR_STATUS_SLOT_ID" class="header-status-slot"></div>
       
       <BaseButton
         v-if="!editorMode && showCreate"
@@ -136,58 +129,240 @@ const BADGE_COLORS: Record<string, string> = {
     </div>
 
     <!-- Buscador global -->
-    <div class="relative w-80 shrink-0" ref="searchContainer">
-      <div class="flex items-center gap-2 bg-page-bg rounded-md px-3 h-9 border border-border/10 focus-within:border-teal-500/50 focus-within:bg-surface focus-within:shadow-[0_0_0_2px_rgba(117,204,206,0.2)] transition-all">
-        <Search :size="16" :stroke-width="1.5" class="text-ink-muted shrink-0" />
+    <div class="search-wrap" ref="searchContainer">
+      <div class="search">
+        <Search :size="16" :stroke-width="1.5" />
         <input
           v-model="query"
           type="text"
-          placeholder="Buscar presupuestos, clientes..."
-          class="w-full bg-transparent border-0 text-13 text-ink outline-none placeholder:text-ink-muted/70"
+          placeholder="Buscar presupuestos, clientes, productos…"
           @focus="onFocus"
           @input="onInput"
           @keydown="onKeydown"
         />
-        <div v-if="loading" class="shrink-0 text-ink-muted">
-          <Loader class="animate-spin" :size="14" />
+        <div v-if="loading" class="search-loader">
+          <Loader class="spin" :size="14" />
         </div>
       </div>
 
       <!-- Dropdown de resultados -->
-      <div v-if="showDropdown && query.trim().length >= 2" class="absolute top-full mt-1.5 left-0 right-0 bg-surface border border-border rounded-md shadow-pop z-50 max-h-[380px] overflow-y-auto">
-        <div v-if="loading && results.length === 0" class="p-4 text-center text-13 text-ink-muted">
+      <div v-if="showDropdown && query.trim().length >= 2" class="search-dropdown">
+        <div v-if="loading && results.length === 0" class="dropdown-status">
           Buscando...
         </div>
-        <div v-else-if="results.length === 0" class="p-4 text-center text-13 text-ink-muted">
+        <div v-else-if="results.length === 0" class="dropdown-status">
           Sin resultados para "{{ query }}"
         </div>
-        <div v-else class="p-1.5 flex flex-col gap-0.5">
+        <div v-else class="results-list">
           <div
             v-for="(r, idx) in results"
             :key="r.tipo + '-' + r.id"
-            class="p-2.5 rounded-sm cursor-pointer flex flex-col gap-1 transition-colors select-none"
-            :class="[activeIndex === idx ? 'bg-violet-50' : '']"
+            class="result-item"
+            :class="{ active: activeIndex === idx }"
             @click="navigateToResult(r)"
             @mouseenter="activeIndex = idx"
           >
-            <div class="flex items-center gap-2">
-              <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-pill tracking-wider" :class="[BADGE_COLORS[r.tipo] || '']">
+            <div class="result-meta">
+              <span class="type-badge" :class="r.tipo">
                 {{ r.tipo }}
               </span>
-              <span class="font-mono text-11 text-ink-muted">{{ r.codigo }}</span>
+              <span class="code">{{ r.codigo }}</span>
             </div>
-            <div class="text-13 font-semibold text-ink leading-tight">{{ r.titulo }}</div>
-            <div class="text-11 text-ink-muted">{{ r.subtitulo }}</div>
+            <div class="result-title">{{ r.titulo }}</div>
+            <div class="result-subtitle">{{ r.subtitulo }}</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Botón campana de notificaciones -->
-    <div class="flex items-center shrink-0">
+    <div class="header-right">
       <BaseButton variant="ghost" icon title="Notificaciones">
         <Bell :size="20" :stroke-width="1.5" />
       </BaseButton>
     </div>
   </div>
 </template>
+
+<style scoped>
+.app-header {
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.85);
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  height: 56px;
+  padding: 0px 32px;
+  display: grid;
+  position: sticky;
+  top: 0px;
+}
+.header-left {
+  justify-self: start;
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+.header-left h1 {
+  color: var(--color-violet-700);
+  letter-spacing: -0.01em;
+  margin: 0px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+}
+.editor-mode-title {
+  color: var(--color-violet-700);
+  letter-spacing: -0.01em;
+  font-size: 18px;
+  font-weight: 600;
+}
+.header-status-slot {
+  align-items: center;
+  display: inline-flex;
+}
+.header-status-slot:empty {
+  display: none;
+}
+.search-wrap {
+  position: relative;
+  justify-self: center;
+  min-width: 360px;
+  max-width: 520px;
+}
+.search {
+  width: 100%;
+  position: relative;
+}
+.search input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  font-family: var(--font-sans);
+  background: var(--color-page-bg);
+  border: 1px solid var(--border);
+  color: var(--color-ink);
+  border-radius: 8px;
+  padding: 0px 10px 0px 32px;
+  font-size: 13px;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+.search input:focus {
+  outline: none;
+  border-color: rgba(117, 204, 206, 0.5);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 2px rgba(117, 204, 206, 0.2);
+}
+.search input::placeholder {
+  color: var(--color-ink-muted);
+}
+.search svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-ink-muted);
+  position: absolute;
+  top: 9px;
+  left: 10px;
+}
+.search-loader {
+  color: var(--color-ink-muted);
+  align-items: center;
+  display: flex;
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.search-dropdown {
+  background: var(--color-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  z-index: 100;
+  max-height: 380px;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0px;
+  right: 0px;
+  overflow-y: auto;
+}
+.dropdown-status {
+  text-align: center;
+  color: var(--color-ink-muted);
+  padding: 16px;
+  font-size: 13px;
+}
+.results-list {
+  padding: 6px;
+}
+.result-item {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  transition: background 0.12s;
+  display: flex;
+}
+.result-item.active {
+  background: var(--color-violet-50);
+}
+.result-meta {
+  align-items: center;
+  gap: 8px;
+  display: flex;
+}
+.type-badge {
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.type-badge.insumo {
+  background: var(--color-violet-50);
+  color: var(--color-violet-700);
+  border: 1px solid var(--color-violet-100);
+}
+.type-badge.producto {
+  background: var(--color-violet-100);
+  color: var(--color-violet-700);
+  border: 1px solid var(--color-lavender);
+}
+.type-badge.cliente {
+  background: var(--color-teal-50);
+  color: var(--color-teal-700);
+  border: 1px solid var(--color-teal-100);
+}
+.type-badge.presupuesto {
+  background: var(--color-mint);
+  color: var(--color-green-700);
+  border: 1px solid rgba(52, 165, 108, 0.2);
+}
+.result-item .code {
+  font-family: var(--font-mono);
+  color: var(--color-ink-muted);
+  font-size: 11px;
+}
+.result-item .result-title {
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.result-item .result-subtitle {
+  color: var(--color-ink-muted);
+  font-size: 11px;
+}
+.header-right {
+  justify-self: end;
+}
+</style>

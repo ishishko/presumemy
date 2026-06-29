@@ -52,7 +52,7 @@ onUnmounted(() => {
     <Transition name="overlay">
       <div
         v-if="open"
-        class="fixed top-14 left-60 right-0 bottom-0 z-30 bg-page-bg grid grid-rows-[1fr_auto] overflow-hidden"
+        class="fixed top-[56px] left-[240px] right-0 bottom-0 z-30 bg-page-bg grid grid-rows-[1fr_auto] overflow-hidden"
       >
         <div class="flex-1 overflow-y-auto">
           <slot name="body" />

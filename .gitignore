@@ -35,3 +35,10 @@ Thumbs.db
 
 # Uploads
 api/uploads/
+
+# Capturas / screenshots temporales
+/*.png
+docs/**/*.png
+
+# Herramientas MCP
+.playwright-mcp/

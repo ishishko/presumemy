@@ -97,7 +97,7 @@ function handleEditorClose() {
         @editor-save="handleEditorSave"
         @editor-close="handleEditorClose"
       />
-      <main class="flex-1 p-8">
+      <main class="flex-1 p-8 relative">
         <RouterView @set-editor-mode="handleSetEditorMode" />
       </main>
     </div>

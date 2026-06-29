@@ -196,11 +196,11 @@ onMounted(loadDashboard)
 
           <!-- Panel Próximos a entregar -->
           <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-border">
-              <h3 class="text-15 font-medium text-ink m-0">Próximos a entregar</h3>
+            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
+              <h3 class="text-16 font-medium text-violet-700 m-0">Próximos a entregar</h3>
               <button
                 type="button"
-                class="text-13 text-violet-700 hover:text-violet-950 font-medium flex items-center gap-1 bg-transparent border-0 cursor-pointer focus-visible:outline-none focus-visible:underline"
+                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
                 @click="router.push({ name: 'presupuestos' })"
               >
                 Ver todos <ArrowRight :size="14" :stroke-width="2" />
@@ -248,11 +248,11 @@ onMounted(loadDashboard)
 
           <!-- Panel Presupuestos recientes -->
           <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-border">
-              <h3 class="text-15 font-medium text-ink m-0">Presupuestos recientes</h3>
+            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
+              <h3 class="text-16 font-medium text-violet-700 m-0">Presupuestos recientes</h3>
               <button
                 type="button"
-                class="text-13 text-violet-700 hover:text-violet-950 font-medium flex items-center gap-1 bg-transparent border-0 cursor-pointer focus-visible:outline-none focus-visible:underline"
+                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
                 @click="router.push({ name: 'presupuestos' })"
               >
                 Ver todos <ArrowRight :size="14" :stroke-width="2" />
@@ -300,11 +300,11 @@ onMounted(loadDashboard)
         <div class="flex flex-col gap-4">
           <!-- Panel Capacidad de fabricación -->
           <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-border">
-              <h3 class="text-15 font-medium text-ink m-0">Capacidad de fabricación</h3>
+            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
+              <h3 class="text-16 font-medium text-violet-700 m-0">Capacidad de fabricación</h3>
               <button
                 type="button"
-                class="text-13 text-violet-700 hover:text-violet-950 font-medium flex items-center gap-1 bg-transparent border-0 cursor-pointer focus-visible:outline-none focus-visible:underline"
+                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
                 @click="router.push({ name: 'productos' })"
               >
                 Ver catálogo <ArrowRight :size="14" :stroke-width="2" />
@@ -342,11 +342,11 @@ onMounted(loadDashboard)
 
           <!-- Panel Insumos a reponer (Top 5) -->
           <BaseCard :padded="false" class="flex flex-col">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-border">
-              <h3 class="text-15 font-medium text-ink m-0">Insumos a reponer</h3>
+            <div class="flex justify-between items-center pt-[18px] px-5 pb-[14px] m-0">
+              <h3 class="text-16 font-medium text-violet-700 m-0">Insumos a reponer</h3>
               <button
                 type="button"
-                class="text-13 text-violet-700 hover:text-violet-950 font-medium flex items-center gap-1 bg-transparent border-0 cursor-pointer focus-visible:outline-none focus-visible:underline"
+                class="inline-flex items-center gap-1 text-13 text-violet-700 hover:bg-violet-50 font-medium px-2.5 py-1.5 rounded-sm transition cursor-pointer border-0 bg-transparent"
                 @click="router.push({ name: 'insumos' })"
               >
                 Ver inventario <ArrowRight :size="14" :stroke-width="2" />

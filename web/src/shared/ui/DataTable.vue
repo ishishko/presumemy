@@ -19,11 +19,6 @@ withDefaults(
   }
 )
 
-const ALIGNS = {
-  left: 'text-left',
-  center: 'text-center',
-  right: 'text-right',
-}
 </script>
 
 <template>
@@ -34,8 +29,7 @@ const ALIGNS = {
           <th
             v-for="col in columns"
             :key="col.key"
-            class="text-11 uppercase tracking-[0.06em] text-ink-muted font-semibold px-4 py-3 border-b border-border select-none"
-            :class="[col.align ? ALIGNS[col.align] : 'text-left']"
+            class="text-11 uppercase tracking-[0.06em] text-ink-muted font-semibold px-4 py-3 border-b border-border select-none text-left"
             :style="col.width ? { width: col.width } : {}"
           >
             {{ col.label }}

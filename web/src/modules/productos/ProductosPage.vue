@@ -228,31 +228,27 @@ watch(createTrigger, (val) => {
         No hay productos con los filtros seleccionados
       </div>
 
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div v-else class="prod-grid">
         <div
           v-for="p in filtered"
           :key="p.id"
-          class="bg-surface border border-border rounded-lg p-4 shadow-1 flex flex-col relative cursor-pointer select-none group hover:border-border-strong hover:shadow-2"
+          class="prod-card"
           @click="handleEdit(p)"
         >
           <button
             type="button"
-            class="absolute top-2 left-2 border p-1.5 rounded-full grid place-items-center transition-all duration-120 z-10 cursor-pointer"
-            :class="[
-              p.favorito
-                ? 'text-amber-600 border-amber-200 bg-amber-50/80 hover:bg-amber-50 hover:scale-110'
-                : 'bg-white/80 border-border text-ink-muted hover:bg-surface hover:text-amber-600 hover:scale-110'
-            ]"
+            class="prod-fav-btn"
+            :class="{ active: p.favorito }"
             @click.stop="toggleFavorite(p)"
             :title="p.favorito ? 'Quitar de favoritos' : 'Marcar como favorito'"
           >
             <Star :size="14" :class="[p.favorito ? 'fill-amber-600 text-amber-600' : 'fill-none']" />
           </button>
 
-          <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-120 z-10">
+          <div class="prod-actions">
             <button
               type="button"
-              class="bg-surface border border-border text-ink-muted hover:bg-page-bg hover:text-ink p-1.5 rounded-md grid place-items-center transition-colors duration-120 cursor-pointer"
+              class="prod-action-btn"
               @click.stop="handleEdit(p)"
               title="Editar"
             >
@@ -260,7 +256,7 @@ watch(createTrigger, (val) => {
             </button>
             <button
               type="button"
-              class="bg-surface border border-border text-ink-muted hover:bg-coral-50 hover:text-coral-500 p-1.5 rounded-md grid place-items-center transition-colors duration-120 cursor-pointer"
+              class="prod-action-btn prod-action-danger"
               @click.stop="handleDeleteClick(p)"
               title="Eliminar"
             >
@@ -268,26 +264,26 @@ watch(createTrigger, (val) => {
             </button>
           </div>
 
-          <div class="w-full aspect-square border border-border rounded bg-page-bg/40 flex items-center justify-center overflow-hidden mb-3 select-none">
+          <div class="prod-thumb">
             <img v-if="p.imagenes && p.imagenes.length > 0" :src="getImageUrl(p.imagenes[0])" :alt="p.nombre" class="w-full h-full object-cover" />
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-12 h-12 text-ink-muted/40">
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
               <path d="m21 15-5-5L5 21" />
             </svg>
           </div>
-          <div class="text-14 font-medium text-ink line-clamp-1 mb-1">{{ p.nombre }}</div>
-          <div class="flex items-center gap-1.5 text-12 text-ink-muted mb-3 select-none">
-            <span class="font-mono text-11">{{ p.codigo }}</span>
-            <span class="w-1 h-1 rounded-full bg-border-strong" />
+          <div class="prod-name">{{ p.nombre }}</div>
+          <div class="prod-meta-1">
+            <span class="code">{{ p.codigo }}</span>
+            <span class="sep" />
             <span>{{ p.categoria?.nombre }}</span>
           </div>
           <div v-if="p.desactualizado" class="inline-flex items-center gap-1 text-11 font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full mt-2 self-start select-none">
             Reajustar precio
           </div>
-          <div class="mt-auto pt-2 border-t border-border/65 flex justify-between items-center select-none">
-            <span class="text-12 text-ink-muted">Receta: <strong class="text-ink font-semibold">{{ p.bomLineas?.length || 0 }} líneas</strong></span>
-            <span class="text-15 font-semibold text-ink font-mono tabular-nums">{{ money(p.precio) }}</span>
+          <div class="prod-foot">
+            <span class="stock">Receta: <strong>{{ p.bomLineas?.length || 0 }} líneas</strong></span>
+            <span class="price">{{ money(p.precio) }}</span>
           </div>
         </div>
       </div>
@@ -320,3 +316,174 @@ watch(createTrigger, (val) => {
     @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />
 </template>
+
+<style scoped>
+.prod-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  display: grid;
+}
+@media (max-width: 1024px) {
+  .prod-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  .prod-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .prod-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.prod-card {
+  background: var(--color-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  user-select: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  transition: border-color 120ms ease, transform 80ms ease;
+  display: flex;
+  position: relative;
+}
+.prod-card:hover {
+  border-color: var(--color-border-strong);
+}
+.prod-card:active {
+  transform: translateY(1px);
+}
+.prod-fav-btn {
+  border: 1px solid var(--border);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  place-items: center;
+  padding: 6px;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+  display: grid;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+}
+.prod-fav-btn:hover {
+  background: var(--color-surface);
+  color: #D97706;
+  transform: scale(1.1);
+}
+.prod-fav-btn.active {
+  color: #D97706;
+  background: #FEF3C7;
+  border-color: #FBBF24;
+}
+.prod-actions {
+  opacity: 0;
+  z-index: 5;
+  gap: 4px;
+  transition: opacity 120ms ease;
+  display: flex;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.prod-card:hover .prod-actions {
+  opacity: 1;
+}
+.prod-action-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--border);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  place-items: center;
+  padding: 6px;
+  transition: background 120ms ease, color 120ms ease;
+  display: grid;
+}
+.prod-action-btn:hover {
+  background: var(--color-page-bg);
+  color: var(--color-ink);
+}
+.prod-action-btn.prod-action-danger:hover {
+  background: var(--color-coral-50);
+  color: var(--color-coral-500);
+}
+.prod-thumb {
+  aspect-ratio: 4 / 3;
+  color: rgba(28, 26, 30, 0.28);
+  background: #f0eef4;
+  border-radius: 8px;
+  place-items: center;
+  width: 100%;
+  display: grid;
+  overflow: hidden;
+}
+.prod-thumb img {
+  width: 100%;
+  height: 100%;
+  object-cover: cover;
+}
+.prod-thumb svg {
+  width: 30px;
+  height: 30px;
+}
+.prod-card .prod-name {
+  color: var(--color-ink);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  display: -webkit-box;
+  overflow: hidden;
+}
+.prod-card .prod-meta-1 {
+  color: var(--color-ink-muted);
+  align-items: center;
+  gap: 8px;
+  margin-top: -4px;
+  font-size: 12px;
+  display: flex;
+}
+.prod-card .prod-meta-1 .code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-muted);
+}
+.prod-card .prod-meta-1 .sep {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+  width: 3px;
+  height: 3px;
+}
+.prod-card .prod-foot {
+  border-top: 1px solid var(--border);
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 8px;
+  font-size: 12px;
+  display: flex;
+}
+.prod-card .prod-foot .stock {
+  color: var(--color-ink-muted);
+}
+.prod-card .prod-foot .stock strong {
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.prod-card .prod-foot .price {
+  color: var(--color-violet-700);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  font-size: 15px;
+  font-weight: 500;
+}
+</style>

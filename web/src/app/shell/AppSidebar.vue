@@ -50,37 +50,37 @@ const navDatos = [
 </script>
 
 <template>
-  <aside class="w-60 h-screen sticky top-0 bg-violet-700 text-white flex flex-col p-4 gap-6 box-border shrink-0 select-none">
-    <div class="bg-surface rounded-[10px] p-2.5 flex items-center justify-center">
+  <aside class="w-[240px] h-screen sticky top-0 bg-violet-700 text-white flex flex-col py-[20px] px-[14px] gap-[24px] box-border shrink-0 select-none">
+    <div class="bg-surface rounded-[10px] py-[10px] px-[12px] flex items-center justify-center">
       <img src="/memydeni-logo.png" alt="MemyDeni" class="block w-[140px] h-auto" />
     </div>
 
-    <div class="flex flex-col gap-0.5">
-      <div class="text-11 uppercase tracking-[0.06em] text-white/60 px-3 py-1 font-medium select-none">Operación</div>
+    <div class="flex flex-col gap-[2px]">
+      <div class="text-11 uppercase tracking-[0.08em] text-white/55 px-[10px] pb-[6px] font-medium select-none">Operación</div>
       <button
         v-for="item in navOperacion"
         :key="item.id"
         type="button"
-        class="flex items-center gap-3 px-3 py-2 rounded-md text-white/85 hover:bg-violet-900/50 transition-colors text-left font-medium w-full cursor-pointer text-14 border-0 bg-transparent focus-visible:outline-none focus-visible:bg-violet-900/50"
-        :class="[currentRoute === item.id ? 'bg-violet-900 text-white' : '']"
+        class="flex items-center gap-[10px] px-[10px] py-[9px] rounded-md text-white/85 hover:bg-white/8 hover:text-white transition-colors text-left font-medium w-full cursor-pointer text-14 border border-transparent focus-visible:outline-none focus-visible:bg-white/8"
+        :class="[currentRoute === item.id ? 'bg-white/12 border-white/20! text-white' : '']"
         @click="emit('navigate', item.id)"
       >
-        <component :is="item.icon" :size="20" :stroke-width="1.5" />
+        <component :is="item.icon" :size="18" :stroke-width="1.5" />
         <span>{{ item.label }}</span>
       </button>
     </div>
 
-    <div class="flex flex-col gap-0.5">
-      <div class="text-11 uppercase tracking-[0.06em] text-white/60 px-3 py-1 font-medium select-none">Datos</div>
+    <div class="flex flex-col gap-[2px]">
+      <div class="text-11 uppercase tracking-[0.08em] text-white/55 px-[10px] pb-[6px] font-medium select-none">Datos</div>
       <button
         v-for="item in navDatos"
         :key="item.id"
         type="button"
-        class="flex items-center gap-3 px-3 py-2 rounded-md text-white/85 hover:bg-violet-900/50 transition-colors text-left font-medium w-full cursor-pointer text-14 border-0 bg-transparent focus-visible:outline-none focus-visible:bg-violet-900/50"
-        :class="[currentRoute === item.id ? 'bg-violet-900 text-white' : '']"
+        class="flex items-center gap-[10px] px-[10px] py-[9px] rounded-md text-white/85 hover:bg-white/8 hover:text-white transition-colors text-left font-medium w-full cursor-pointer text-14 border border-transparent focus-visible:outline-none focus-visible:bg-white/8"
+        :class="[currentRoute === item.id ? 'bg-white/12 border-white/20! text-white' : '']"
         @click="emit('navigate', item.id)"
       >
-        <component :is="item.icon" :size="20" :stroke-width="1.5" />
+        <component :is="item.icon" :size="18" :stroke-width="1.5" />
         <span>{{ item.label }}</span>
       </button>
     </div>
@@ -88,11 +88,11 @@ const navDatos = [
     <div class="mt-auto flex flex-col gap-2 pt-3 border-t border-white/10">
       <button
         type="button"
-        class="flex items-center gap-3 px-3 py-2 rounded-md text-white/85 hover:bg-violet-900/50 transition-colors text-left font-medium w-full cursor-pointer text-14 border-0 bg-transparent focus-visible:outline-none focus-visible:bg-violet-900/50"
-        :class="[currentRoute === 'ajustes' ? 'bg-violet-900 text-white' : '']"
+        class="flex items-center gap-[10px] px-[10px] py-[9px] rounded-md text-white/85 hover:bg-white/8 hover:text-white transition-colors text-left font-medium w-full cursor-pointer text-14 border border-transparent focus-visible:outline-none focus-visible:bg-white/8"
+        :class="[currentRoute === 'ajustes' ? 'bg-white/12 border-white/20! text-white' : '']"
         @click="emit('navigate', 'ajustes')"
       >
-        <Settings :size="20" :stroke-width="1.5" />
+        <Settings :size="18" :stroke-width="1.5" />
         <span>Ajustes</span>
       </button>
       
@@ -107,7 +107,7 @@ const navDatos = [
         <div class="flex-1" />
         <button
           type="button"
-          class="flex items-center justify-center p-1.5 w-7 h-7 rounded-md hover:bg-violet-900/50 text-white/85 transition-colors border-0 bg-transparent cursor-pointer focus-visible:outline-none focus-visible:bg-violet-900/50"
+          class="flex items-center justify-center p-1.5 w-7 h-7 rounded-md hover:bg-white/8 text-white/85 transition-colors border-0 bg-transparent cursor-pointer focus-visible:outline-none focus-visible:bg-white/8"
           title="Cerrar sesión"
           @click="emit('logout')"
         >
