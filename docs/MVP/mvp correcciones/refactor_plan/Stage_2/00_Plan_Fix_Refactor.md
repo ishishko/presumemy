@@ -2,35 +2,28 @@
 
 Este plan tiene como objetivo resolver los problemas de visualización en los formularios de creación/edición, recuperar el CRUD de categorías (solucionando la regresión funcional), unificar la moneda a ARS / es-AR, y avanzar hacia la meta de **Tailwind v4 puro** eliminando estilos scoped y reduciendo la dependencia del CSS legacy. 
 
-Asimismo, se aborda la deuda arquitectónica de inversión de dependencias (DIP) y la preservación/expansión de tests automáticos.
+Asimismo, se aborda la deuda arquitectónica de inversión de dependencias (DIP).
 
 ---
 
-## 1. Preservación y Expansión de Tests Automáticos
-
-Contrario a la idea de eliminar Vitest o vaciar la suite de pruebas, mantendremos los tests de integración existentes en el backend y añadiremos pruebas para verificar los cambios en el formateador del frontend.
-
-### Acciones
-* **Preservar los 5 tests de integración del backend** en [api/src/test/](file:///d:/Desarrollando/presumemy/api/src/test/) (`ajustes.test.ts`, `auth.test.ts`, etc.) y corregirlos si es necesario tras el refactor.
-* **`[NEW]` [format.test.ts](file:///d:/Desarrollando/presumemy/web/src/shared/lib/__tests__/format.test.ts)**:
-  * Crear un archivo de pruebas unitarias para validar que `formatMoney` y otros formateadores en [format.ts](file:///d:/Desarrollando/presumemy/web/src/shared/lib/format.ts) procesen correctamente los montos bajo el locale de Argentina (`es-AR`) y con el sufijo de pesos argentinos (`ARS`).
-
----
-
-## 2. Inversión de Dependencias (DIP) en los Componentes
+## 1. Inversión de Dependencias (DIP) en los Componentes
 
 Para evitar que la descomposición multiplique la violación de dependencias (DIP), la lógica de acceso a datos directa (`shared/api/client` -> `get`/`post`/`put`/`del`) será retirada de la capa de presentación (UI) y trasladada a los stores de Pinia de cada módulo.
 
+> **⚠️ Estado real de los stores (verificar antes de ejecutar):** hoy los stores **no** exponen acciones de creación/edición. `insumos` y `productos` exponen `fetch`, `remove` (ya absorbió el `del()`), `upsert` (solo muta el array en memoria, **no** pega a la API) y el CRUD de categorías; `presupuestos` solo expone `fetch`, `remove`, `upsert`. Los componentes hacen el `post`/`put` directo a `shared/api` y luego llaman `upsert`. Por lo tanto este paso **primero crea** la capa de acciones y **recién después** reemplaza en la UI.
+
 ### Modificación del Flujo de Datos
-* **Insumos**: `InsumoDetalle` y sus nuevos hijos delegarán las llamadas a la API a las acciones `store.createInsumo()`, `store.updateInsumo()` y `store.deleteInsumo()`.
-* **Productos**: `ProductoDetalle` delegará las llamadas a `store.createProducto()`, `store.updateProducto()`, etc.
-* **Presupuestos**: `PresupuestoEditor` usará las acciones correspondientes en `presupuestosStore`.
+1. **Crear las acciones faltantes en cada store** (async: hacen el `post`/`put` sobre `shared/api/client` y luego `upsert` local):
+   * **Insumos**: `createInsumo(payload)`, `updateInsumo(id, payload)` en `modules/insumos/store.ts`. El borrado ya existe como `remove(id)` (reutilizarlo; no se llama `deleteInsumo`).
+   * **Productos**: `createProducto(payload)`, `updateProducto(id, payload)` en `modules/productos/store.ts`. Borrado = `remove(id)` existente.
+   * **Presupuestos**: `createPresupuesto`/`updatePresupuesto` (y `patch` de estado FSM) en `modules/presupuestos/store.ts`. Borrado = `remove(id)` existente.
+2. **Reemplazar en la UI**: `InsumoDetalle` (y sus nuevos hijos), `ProductoDetalle` y `PresupuestoEditor` dejan de importar `shared/api/client` y delegan en las acciones del store recién creadas.
 
 La UI solo conocerá la interfaz expuesta por sus respectivos stores.
 
 ---
 
-## 3. Recuperación del CRUD de Categorías (Regresión Funcional)
+## 2. Recuperación del CRUD de Categorías (Regresión Funcional)
 
 Recuperaremos la funcionalidad perdida para administrar categorías inline de insumos y productos.
 
@@ -45,7 +38,7 @@ Recuperaremos la funcionalidad perdida para administrar categorías inline de in
 
 ---
 
-## 4. Unificación de Moneda y Locale (ARS vs MXN)
+## 3. Unificación de Moneda y Locale (ARS vs MXN)
 
 * **`[MODIFY]` [format.ts](file:///d:/Desarrollando/presumemy/web/src/shared/lib/format.ts)**:
   * Ajustar locale a `es-AR` (formato con miles en `.` y decimales en `,`).
@@ -55,7 +48,7 @@ Recuperaremos la funcionalidad perdida para administrar categorías inline de in
 
 ---
 
-## 5. Corrección de Errores de Visualización en Edición/Creación
+## 4. Corrección de Errores de Visualización en Edición/Creación
 
 ### A. Posicionamiento en Pantalla Completa y Tailwind Puro (Adiós a components.css)
 * **PresupuestoEditor.vue**: Eliminar la redefinición local `.editor-overlay` con `position: absolute` y los estilos scoped. En su lugar, aplicar clases Tailwind puro en la envoltura principal: `fixed top-0 right-0 bottom-0 left-[240px] z-30 bg-page-bg display-grid grid-rows-[auto_1fr_auto] overflow-hidden`.
@@ -72,12 +65,13 @@ Esto impacta y requiere modificaciones en 6 archivos:
 6. [PresupuestoEditor.vue](file:///d:/Desarrollando/presumemy/web/src/modules/presupuestos/components/PresupuestoEditor.vue): Mover la barra de estado y los controles para que se rendericen dentro de su propio encabezado local en vez de usar un Teleport a la cabecera global.
 
 ### C. Estilos de Drawers
-* Remover bloques `<style scoped>` y estilos inline de [ClienteDrawer.vue](file:///d:/Desarrollando/presumemy/web/src/modules/clientes/components/ClienteDrawer.vue), [MovimientoDrawer.vue](file:///d:/Desarrollando/presumemy/web/src/modules/finanzas/components/MovimientoDrawer.vue) y [ImprentaDrawer.vue](file:///d:/Desarrollando/presumemy/web/src/modules/finanzas/components/ImprentaDrawer.vue).
-* Reemplazar las clases duplicadas por la estructura nativa de Tailwind v4 que emule el comportamiento del drawer del design system, o utilizar las variables CSS globales para lograr Tailwind puro sin depender del components.css legacy.
+* Remover los bloques `<style scoped>` de **layout/estilo redundante** y los estilos inline de [ClienteDrawer.vue](file:///d:/Desarrollando/presumemy/web/src/modules/clientes/components/ClienteDrawer.vue), [MovimientoDrawer.vue](file:///d:/Desarrollando/presumemy/web/src/modules/finanzas/components/MovimientoDrawer.vue) y [ImprentaDrawer.vue](file:///d:/Desarrollando/presumemy/web/src/modules/finanzas/components/ImprentaDrawer.vue).
+* **Conservar la transición del drawer** (slide desde la derecha + scrim) como `<style scoped>` mínimo o `@utility`. Es una **excepción explícita** del plan Stage_1 (00_Plan §"Transiciones" y G2.8): las animaciones de `drawer`/`toast`/`confirm` y la "wave" de `FloatingField` no se fuerzan a Tailwind porque pierden claridad. No las elimines al limpiar el resto del scoped.
+* Reemplazar las clases duplicadas de layout por la estructura nativa de Tailwind v4 que emule el drawer del design system, o utilizar las variables CSS globales, logrando Tailwind puro sin depender del `components.css` legacy.
 
 ---
 
-## 6. Optimización de la Componentización (Nombres Canónicos)
+## 5. Optimización de la Componentización (Nombres Canónicos)
 
 Para descomponer los componentes sobredimensionados (~1500 líneas), separaremos las secciones complejas de los formularios en subcomponentes atómicos utilizando la nomenclatura canónica definida en la arquitectura del proyecto (`00_Arquitectura_Modular.md`).
 
@@ -109,7 +103,7 @@ La reducción de líneas se logrará mediante la eliminación de los estilos sco
 
 ```mermaid
 graph TD
-    A[Paso 1: Restaurar CategoriaPills y Dialog de Git] --> B[Paso 2: Pruebas unitarias de format.ts y unificacion ARS]
+    A[Paso 1: Restaurar CategoriaPills y Dialog de Git] --> B[Paso 2: Unificacion Moneda y Locale ARS]
     B --> C[Paso 3: Desacoplar editorMode de AppHeader, App, Router]
     C --> D[Paso 4: Limpieza de CSS Scoped en Drawers a Tailwind v4]
     D --> E[Paso 5: Ajustes de posicion de overlays a Tailwind v4]
@@ -122,7 +116,7 @@ graph TD
 
 ---
 
-## 7. Alcance y Exclusiones (Stage 3)
+## 6. Alcance y Exclusiones (Stage 3)
 
 Quedan fuera del alcance del presente plan (`Stage 2`) y se posponen para la fase de consolidación arquitectónica final (`Stage 3`):
 * El saneamiento completo y estandarización de barrels `index.ts` por módulo.
@@ -130,3 +124,20 @@ Quedan fuera del alcance del presente plan (`Stage 2`) y se posponen para la fas
 * La migración de esquemas de validación Zod y tipos compartidos a sus módulos correspondientes.
 * La actualización integral del archivo `AGENTS.md` (debido a la regla de preservación de archivos ajenos).
 * La eliminación final del archivo temporal `components.css`.
+
+---
+
+## 7. Plan de Verificación (checkpoint por grupo)
+
+La migración de CSS complejo a Tailwind v4 puro es de **alto riesgo de regresión visual**: el `Audit_Report` de Stage_1 ya documentó que esa migración rompió medidas (sidebar de 210px en vez de 240 por el `root: 14px` + escala `rem` de Tailwind, donde `w-60` = 15rem = 210px). Por eso se valida **tras cada paso** que toque estilos o datos (pasos 4, 5, 7, 8, 9), no solo al final.
+
+### Por cada grupo
+1. **Typecheck:** `cd web && npx vue-tsc -b` sin errores.
+2. **Paridad visual:** `npm run dev` y comparar el archivo migrado contra el prototipo pixel-perfect (`docs/MVP/design-system/project/ui_kits/presumemi/index.html`) — atención a: ancho de sidebar (240px), alto de header (56px), overlays anclados a `left: 240px / top: 0`, transición de drawers, focus rings y hover.
+
+### Verificación funcional final (paso 10, en navegador)
+* Los overlays (`InsumoDetalle`, `ProductoDetalle`, `PresupuestoEditor`) abren a pantalla completa respetando el sidebar, sin recuadros cortados ni doble botonera de guardado.
+* El CRUD inline de categorías (crear, renombrar, borrar con reasignación) funciona en Insumos y Productos.
+* El formato de moneda muestra `$ 1.250,00 ARS` de manera uniforme.
+* Los drawers (`ClienteDrawer`, `MovimientoDrawer`, `ImprentaDrawer`) se deslizan desde la derecha con su transición intacta.
+* Ninguna vista/componente de los módulos tocados importa `shared/api/client` directo (DIP cerrado en insumos/productos/presupuestos).
