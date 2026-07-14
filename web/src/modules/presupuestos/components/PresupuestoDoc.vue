@@ -36,7 +36,7 @@ const props = defineProps<{
 
 const docDate = computed(() => {
   const d = props.doc.fecha ? new Date(props.doc.fecha) : new Date()
-  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
 })
 
 const negocio = computed(() => props.config?.nombre || 'MemyDeni')
@@ -51,14 +51,14 @@ const contactoLinea = computed(() => {
 })
 
 function money(n: number): string {
-  return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `$ ${n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function niceDate(iso: string): string {
   if (!iso) return ''
   const d = new Date(iso + 'T00:00:00')
   if (isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
+  return d.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: 'short' })
 }
 </script>
 

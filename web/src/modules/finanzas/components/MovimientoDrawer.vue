@@ -7,6 +7,7 @@ import type { Transaccion, Presupuesto, PaginationResult } from '@/types'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const props = defineProps<{
   open: boolean
@@ -68,7 +69,7 @@ const tipoMeta = computed(() => tipoMovs.find(t => t.id === tipo.value))
 const monto = computed(() => parseFloat(String(valor.value)) || 0)
 
 const moneyAbs = computed(() => {
-  return `$ ${(parseFloat(String(valor.value)) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `$ ${(parseFloat(String(valor.value)) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 })
 
 const showConfirmExit = ref(false)
@@ -197,22 +198,27 @@ defineExpose({ loadTransaccion })
 <template>
   <Teleport to="body">
     <Transition name="drawer">
-      <div v-if="open" class="drawer-container">
-        <div class="drawer-scrim" @click="handleClose"></div>
-        <aside class="drawer-panel">
-          <div class="drawer-head">
-            <div class="drawer-title-block">
-              <span class="drawer-eyebrow">{{ isEdit ? 'Editar movimiento' : 'Nuevo movimiento' }}</span>
-              <h3>{{ tipoMeta?.label || 'Movimiento' }}</h3>
+      <div v-if="open" class="fixed inset-0 z-80 pointer-events-none">
+        <!-- Scrim -->
+        <div class="absolute inset-0 bg-ink/40 pointer-events-auto" @click="handleClose"></div>
+        
+        <!-- Panel -->
+        <aside class="absolute top-0 right-0 bottom-0 w-[520px] bg-surface border-l border-border grid grid-rows-[auto_1fr_auto] pointer-events-auto shadow-2 z-81">
+          <!-- Header -->
+          <div class="flex items-center gap-3.5 px-5.5 py-4.5 border-b border-border">
+            <div class="flex flex-col gap-1 flex-1 min-w-0">
+              <span class="text-11 uppercase tracking-[0.08em] text-ink-muted font-medium">{{ isEdit ? 'Editar movimiento' : 'Nuevo movimiento' }}</span>
+              <h3 class="text-[17px] font-medium m-0 leading-tight">{{ tipoMeta?.label || 'Movimiento' }}</h3>
             </div>
-            <button class="icon-btn" @click="handleClose" title="Cerrar">
+            <button class="w-8.5 h-8.5 grid place-items-center border border-border bg-surface rounded-lg text-ink cursor-pointer hover:bg-page-bg" @click="handleClose" title="Cerrar">
               <X :size="18" />
             </button>
           </div>
 
-          <div class="drawer-body">
-            <div class="fd-row">
-              <div class="field">
+          <!-- Body -->
+          <div class="flex-1 overflow-y-auto p-5.5">
+            <div class="flex gap-3 mb-3">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-m-fecha"
                   label="Fecha"
@@ -221,14 +227,14 @@ defineExpose({ loadTransaccion })
                   v-model="fecha"
                 />
               </div>
-              <div class="field">
+              <div class="field flex-1 min-w-0">
                 <FloatingSelect id="fd-m-cuenta" label="Cuenta" v-model="cuenta">
                   <option v-for="c in cuentas" :key="c.id" :value="c.id">{{ c.label }}</option>
                 </FloatingSelect>
               </div>
             </div>
 
-            <div class="fd-row single">
+            <div class="flex flex-col mb-3">
               <div class="field">
                 <FloatingSelect id="fd-m-tipo" label="Tipo de movimiento" v-model="tipo">
                   <option v-for="t in tipoMovs" :key="t.id" :value="t.id">{{ t.label }}</option>
@@ -236,36 +242,39 @@ defineExpose({ loadTransaccion })
               </div>
             </div>
 
-            <div class="fd-row single">
+            <div class="flex flex-col mb-3">
               <div class="field">
-                <label>Valor</label>
-                <div class="fd-sign-toggle" role="group" aria-label="Signo">
+                <label class="text-13 font-medium text-ink mb-1.5 block">Valor</label>
+                <div class="flex gap-1.5 mb-2" role="group" aria-label="Signo">
                   <button
                     type="button"
-                    :class="{ active: signo === 'in', in: true }"
+                    class="flex-1 py-2 px-3 border border-border-strong rounded-lg bg-page-bg text-ink-muted text-13 font-medium cursor-pointer transition-colors duration-120 hover:text-ink"
+                    :class="{ 'bg-teal-50! text-teal-700! border-teal-500!': signo === 'in' }"
                     @click="signo = 'in'"
                   >+ Ingreso</button>
                   <button
                     type="button"
-                    :class="{ active: signo === 'out', out: true }"
+                    class="flex-1 py-2 px-3 border border-border-strong rounded-lg bg-page-bg text-ink-muted text-13 font-medium cursor-pointer transition-colors duration-120 hover:text-ink"
+                    :class="{ 'bg-coral-50! text-coral-500! border-coral-500!': signo === 'out' }"
                     @click="signo = 'out'"
                   >− Egreso</button>
                 </div>
                 <input
-                  :class="['fd-money-input', signo === 'in' ? 'income' : 'expense']"
+                  class="w-full font-sans text-20 font-medium text-right px-4 py-3 border border-border-strong rounded-lg bg-surface focus:outline-none focus:border-teal-500 focus:shadow-focus-ring"
+                  :class="[signo === 'in' ? 'text-teal-700!' : 'text-coral-500!']"
                   type="number"
                   min="0"
                   step="0.01"
                   v-model.number="valor"
                   placeholder="0"
                 />
-                <span class="hint">
+                <span class="block text-12 text-ink-muted mt-1.5">
                   Equivale a {{ signo === 'in' ? '+ ' : '− ' }}{{ moneyAbs }} en la cuenta {{ cuentas.find(c => c.id === cuenta)?.label }}.
                 </span>
               </div>
             </div>
 
-            <div class="fd-row single">
+            <div class="flex flex-col mb-3">
               <div class="field">
                 <FloatingField
                   id="fd-m-detalle"
@@ -277,8 +286,8 @@ defineExpose({ loadTransaccion })
               </div>
             </div>
 
-            <div class="fd-row">
-              <div class="field">
+            <div class="flex gap-3 mb-3">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-m-nrofactura"
                   label="Nro. de factura"
@@ -286,7 +295,7 @@ defineExpose({ loadTransaccion })
                   placeholder="Opcional"
                 />
               </div>
-              <div class="field">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-m-presupuesto"
                   label="Presupuesto"
@@ -300,29 +309,30 @@ defineExpose({ loadTransaccion })
               </div>
             </div>
 
-            <div class="fd-summary">
-              <div class="row">
-                <span style="color: var(--ink-muted)">Tipo</span>
-                <span>{{ tipoMeta?.label }}</span>
+            <div class="bg-page-bg border border-border rounded-lg p-3.5 mt-4.5 flex flex-col gap-2">
+              <div class="flex justify-between text-13">
+                <span class="text-ink-muted">Tipo</span>
+                <span class="font-medium">{{ tipoMeta?.label }}</span>
               </div>
-              <div class="row">
-                <span style="color: var(--ink-muted)">Cuenta</span>
-                <span>{{ cuentas.find(c => c.id === cuenta)?.label }}</span>
+              <div class="flex justify-between text-13">
+                <span class="text-ink-muted">Cuenta</span>
+                <span class="font-medium">{{ cuentas.find(c => c.id === cuenta)?.label }}</span>
               </div>
-              <div class="row grand">
+              <div class="flex justify-between text-13 border-t border-border pt-2 mt-1 font-semibold">
                 <span>Impacto</span>
-                <span :style="{ color: signo === 'in' ? '#2E6F70' : 'var(--coral-500)' }">
+                <span :class="[signo === 'in' ? 'text-teal-700!' : 'text-coral-500!']">
                   {{ signo === 'in' ? '+ ' : '− ' }}{{ moneyAbs }}
                 </span>
               </div>
             </div>
           </div>
 
-          <div class="drawer-foot">
-            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
-            <button class="btn btn-primary" @click="handleSave">
+          <!-- Footer -->
+          <div class="flex items-center gap-2.5 px-5.5 py-3.5 border-t border-border justify-end">
+            <BaseButton variant="ghost" @click="handleClose">Cancelar</BaseButton>
+            <BaseButton variant="primary" @click="handleSave">
               <Check :size="16" /> Guardar
-            </button>
+            </BaseButton>
           </div>
         </aside>
 
@@ -342,179 +352,6 @@ defineExpose({ loadTransaccion })
 </template>
 
 <style scoped>
-.drawer-container {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  pointer-events: none;
-}
-
-.drawer-scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(28, 26, 30, 0.40);
-  pointer-events: auto;
-}
-
-.drawer-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 520px;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  pointer-events: auto;
-  box-shadow: var(--shadow-2);
-  z-index: 81;
-}
-
-.drawer-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-}
-
-.drawer-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.drawer-eyebrow {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-muted);
-  font-weight: 500;
-}
-
-.drawer-head h3 {
-  font-size: 17px;
-  font-weight: 500;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 22px;
-}
-
-.drawer-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 22px;
-  border-top: 1px solid var(--border);
-  justify-content: flex-end;
-}
-
-.fd-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.fd-row > .field {
-  flex: 1;
-  min-width: 0;
-}
-
-.fd-row.single { grid-template-columns: 1fr; }
-
-.fd-sign-toggle {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.fd-sign-toggle button {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--page-bg);
-  color: var(--ink-muted);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 120ms ease;
-}
-
-.fd-sign-toggle button.active.in {
-  background: var(--teal-100);
-  color: #2E6F70;
-  border-color: var(--teal-500);
-}
-
-.fd-sign-toggle button.active.out {
-  background: var(--coral-50);
-  color: var(--coral-500);
-  border-color: var(--coral-500);
-}
-
-.fd-money-input {
-  width: 100%;
-  font-family: var(--font-sans);
-  font-size: 20px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  padding: 12px 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.fd-money-input:focus {
-  outline: none;
-  border-color: var(--teal-500);
-  box-shadow: var(--focus-ring);
-}
-
-.fd-money-input.income { color: #2E6F70; }
-.fd-money-input.expense { color: var(--coral-500); }
-
-.hint {
-  display: block;
-  font-size: 12px;
-  color: var(--ink-muted);
-  margin-top: 6px;
-}
-
-.fd-summary {
-  background: var(--page-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 14px 16px;
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fd-summary .row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-}
-
-.fd-summary .row.grand {
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
-  margin-top: 4px;
-  font-weight: 500;
-}
-
 /* Transitions */
 .drawer-enter-active .drawer-panel,
 .drawer-leave-active .drawer-panel {
@@ -536,3 +373,4 @@ defineExpose({ loadTransaccion })
   opacity: 0;
 }
 </style>
+

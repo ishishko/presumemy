@@ -8,6 +8,8 @@ import { patch } from '@/shared/api/client'
 import ProductoDetalle from './components/ProductoDetalle.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FilterChips from '@/shared/ui/FilterChips.vue'
+import CategoriaPills from '@/shared/ui/CategoriaPills.vue'
+import CategoriaDeleteDialog from '@/shared/ui/CategoriaDeleteDialog.vue'
 import { useToast } from '@/shared/lib/useToast'
 import { Pencil, Trash2, Star, Image } from '@lucide/vue'
 import type { Producto } from '@/types'
@@ -26,6 +28,9 @@ const showOverlay = ref(false)
 const editingProducto = ref<Producto | null>(null)
 const showConfirmDelete = ref(false)
 const deletingProducto = ref<Producto | null>(null)
+
+const showConfirmDeleteCat = ref(false)
+const deletingCat = ref<any | null>(null)
 
 const showLoading = computed(() => !store.hasFetched)
 
@@ -130,6 +135,44 @@ async function toggleFavorite(p: Producto) {
   }
 }
 
+async function handleCreateCat(nombre: string) {
+  try {
+    await store.createCategoria(nombre)
+    toast('Categoría creada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al crear categoría', 'error')
+  }
+}
+
+async function handleRenameCat(payload: { id: number; nombre: string }) {
+  try {
+    await store.updateCategoria(payload.id, payload.nombre)
+    toast('Categoría actualizada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al actualizar categoría', 'error')
+  }
+}
+
+function handleRemoveCatClick(cat: any) {
+  deletingCat.value = cat
+  showConfirmDeleteCat.value = true
+}
+
+async function handleDeleteCatConfirm(reasignarA?: number) {
+  if (!deletingCat.value) return
+  try {
+    await store.removeCategoria(deletingCat.value.id, reasignarA)
+    toast('Categoría eliminada', 'info')
+    if (catFilter.value === deletingCat.value.id) {
+      catFilter.value = 'todas'
+    }
+  } catch (e: any) {
+    toast(e.message || 'Error al eliminar categoría', 'error')
+  }
+  showConfirmDeleteCat.value = false
+  deletingCat.value = null
+}
+
 function handleClose() {
   showOverlay.value = false
   emit('set-editor-mode', false, '', () => {}, () => {})
@@ -172,6 +215,15 @@ watch(createTrigger, (val) => {
           @update:model-value="stateFilter = $event === null ? 'todos' : ($event as any)"
         />
       </div>
+
+      <CategoriaPills
+        v-model="catFilter"
+        all-label="Todos"
+        :categorias="store.categorias"
+        @create="handleCreateCat"
+        @rename="handleRenameCat"
+        @remove="handleRemoveCatClick"
+      />
 
       <div v-if="filtered.length === 0" class="bg-surface border border-border rounded-lg p-8 text-center">
         <p class="text-14 text-ink-muted">No hay productos con los filtros seleccionados</p>
@@ -251,5 +303,13 @@ watch(createTrigger, (val) => {
     variant="danger"
     @confirm="handleDeleteConfirm"
     @cancel="showConfirmDelete = false; deletingProducto = null"
+  />
+
+  <CategoriaDeleteDialog
+    :open="showConfirmDeleteCat"
+    :categoria="deletingCat"
+    :categorias="store.categorias"
+    @confirm="handleDeleteCatConfirm"
+    @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />
 </template>

@@ -11,6 +11,8 @@ import FilterChips from '@/shared/ui/FilterChips.vue'
 import DataTable from '@/shared/ui/DataTable.vue'
 import RowActions from '@/shared/ui/RowActions.vue'
 import StockBar from './components/StockBar.vue'
+import CategoriaPills from '@/shared/ui/CategoriaPills.vue'
+import CategoriaDeleteDialog from '@/shared/ui/CategoriaDeleteDialog.vue'
 import { useToast } from '@/shared/lib/useToast'
 import type { Insumo } from '@/types'
 
@@ -23,10 +25,14 @@ const emit = defineEmits<{
 }>()
 
 const stateFilter = ref('todos')
+const catFilter = ref<number | 'todas'>('todas')
 const showOverlay = ref(false)
 const editingInsumo = ref<Insumo | null>(null)
 const showConfirmDelete = ref(false)
 const deletingInsumo = ref<Insumo | null>(null)
+
+const showConfirmDeleteCat = ref(false)
+const deletingCat = ref<any | null>(null)
 
 const showLoading = computed(() => !store.hasFetched)
 
@@ -41,6 +47,7 @@ const counts = computed(() => {
 const filtered = computed(() => {
   return store.data.filter((i) => {
     if (stateFilter.value !== 'todos' && getNivel(Number(i.stock), Number(i.stockMinimo)) !== stateFilter.value) return false
+    if (catFilter.value !== 'todas' && i.categoriaId !== catFilter.value) return false
     return true
   })
 })
@@ -55,6 +62,7 @@ const stateChips = computed(() => [
 
 const columns = [
   { key: 'nombre', label: 'Insumo' },
+  { key: 'categoria', label: 'Categoría' },
   { key: 'stock', label: 'Stock', align: 'right' as const },
   { key: 'stockMinimo', label: 'Mínimo', align: 'right' as const },
   { key: 'costoUnitario', label: 'Costo unitario', align: 'right' as const },
@@ -102,6 +110,44 @@ async function handleDeleteConfirm() {
   }
   showConfirmDelete.value = false
   deletingInsumo.value = null
+}
+
+async function handleCreateCat(nombre: string) {
+  try {
+    await store.createCategoria(nombre)
+    toast('Categoría creada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al crear categoría', 'error')
+  }
+}
+
+async function handleRenameCat(payload: { id: number; nombre: string }) {
+  try {
+    await store.updateCategoria(payload.id, payload.nombre)
+    toast('Categoría actualizada', 'success')
+  } catch (e: any) {
+    toast(e.message || 'Error al actualizar categoría', 'error')
+  }
+}
+
+function handleRemoveCatClick(cat: any) {
+  deletingCat.value = cat
+  showConfirmDeleteCat.value = true
+}
+
+async function handleDeleteCatConfirm(reasignarA?: number) {
+  if (!deletingCat.value) return
+  try {
+    await store.removeCategoria(deletingCat.value.id, reasignarA)
+    toast('Categoría eliminada', 'info')
+    if (catFilter.value === deletingCat.value.id) {
+      catFilter.value = 'todas'
+    }
+  } catch (e: any) {
+    toast(e.message || 'Error al eliminar categoría', 'error')
+  }
+  showConfirmDeleteCat.value = false
+  deletingCat.value = null
 }
 
 function handleHeaderUpdate(payload: any) {
@@ -155,6 +201,15 @@ watch(createTrigger, (val) => {
         />
       </div>
 
+      <CategoriaPills
+        v-model="catFilter"
+        all-label="Todas"
+        :categorias="store.categorias"
+        @create="handleCreateCat"
+        @rename="handleRenameCat"
+        @remove="handleRemoveCatClick"
+      />
+
       <DataTable
         :columns="columns"
         :rows="filtered"
@@ -166,6 +221,9 @@ watch(createTrigger, (val) => {
               <span>{{ i.nombre }}</span>
               <span class="text-11 text-ink-muted font-mono">{{ i.codigo }}</span>
             </div>
+          </td>
+          <td class="px-4 py-3.5 align-middle text-13 text-ink-muted select-none" @dblclick="handleEdit(i)">
+            {{ i.categoria?.nombre }}
           </td>
           <td class="px-4 py-3.5 align-middle text-13 text-ink font-medium text-right tabular-nums select-none" @dblclick="handleEdit(i)">
             {{ i.stock }} <span class="text-ink-muted text-12 font-normal">{{ i.unidad }}</span>
@@ -206,5 +264,13 @@ watch(createTrigger, (val) => {
     variant="danger"
     @confirm="handleDeleteConfirm"
     @cancel="showConfirmDelete = false; deletingInsumo = null"
+  />
+
+  <CategoriaDeleteDialog
+    :open="showConfirmDeleteCat"
+    :categoria="deletingCat"
+    :categorias="store.categorias"
+    @confirm="handleDeleteCatConfirm"
+    @cancel="showConfirmDeleteCat = false; deletingCat = null"
   />
 </template>

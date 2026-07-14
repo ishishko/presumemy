@@ -56,6 +56,18 @@ export const useInsumosStore = defineStore('insumos', () => {
     await fetch()
   }
 
+  async function create(payload: any): Promise<Insumo> {
+    const res = await post<Insumo>('/insumos', payload)
+    upsert(res)
+    return res
+  }
+
+  async function update(id: number, payload: any): Promise<Insumo> {
+    const res = await put<Insumo>('/insumos', id, payload)
+    upsert(res)
+    return res
+  }
+
   return {
     data,
     categorias,
@@ -65,6 +77,8 @@ export const useInsumosStore = defineStore('insumos', () => {
     fetch,
     remove,
     upsert,
+    create,
+    update,
     createCategoria,
     updateCategoria,
     removeCategoria,

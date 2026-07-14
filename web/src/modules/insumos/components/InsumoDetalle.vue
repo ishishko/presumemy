@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { ArrowLeft, Check, Trash2, Plus, Lock } from '@lucide/vue'
-import { get, post, put, del } from '@/shared/api/client'
+import { Lock } from '@lucide/vue'
+import { get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
+import { useInsumosStore } from '../store'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
 import ToggleSwitch from '@/shared/ui/ToggleSwitch.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 import type { Insumo, CategoriaInsumo, Proveedor } from '@/types'
+import InsumoStockForm from './InsumoStockForm.vue'
+import ProveedoresEditor from './ProveedoresEditor.vue'
 
 const props = defineProps<{
   open: boolean
@@ -22,6 +26,7 @@ const emit = defineEmits<{
 }>()
 
 const { toast } = useToast()
+const store = useInsumosStore()
 
 const isEdit = computed(() => !!props.insumo)
 
@@ -46,50 +51,6 @@ const showConfirmExit = ref(false)
 const errors = ref<Record<string, string>>({})
 
 const overlayRef = ref<HTMLElement | null>(null)
-const provTableRef = ref<HTMLElement | null>(null)
-const activeRowIdx = ref<number | null>(null)
-const isConfirmingProv = ref(false)
-const showConfirmCreateProv = ref(false)
-const pendingProvIdx = ref<number | null>(null)
-const pendingProvName = ref('')
-
-const showConfirmDeleteGlobalProv = ref(false)
-const pendingDeleteProvId = ref<number | null>(null)
-const pendingDeleteProvName = ref('')
-
-const nivel = computed(() => {
-  const s = parseFloat(String(stockActual.value)) || 0
-  const m = parseFloat(String(stockMinimo.value)) || 0
-  if (s === 0) return 'sin_unidades'
-  if (m > 0) {
-    if (s <= m * 0.2) return 'critico'
-    if (s < m) return 'bajo'
-  }
-  return 'ok'
-})
-
-const nivelMeta: Record<string, { label: string; color: string; bg: string }> = {
-  sin_unidades: { label: 'Sin unidades', color: 'var(--coral-700)', bg: 'var(--coral-50)' },
-  critico: { label: 'Crítico', color: 'var(--orange-ink)', bg: 'var(--orange-50)' },
-  bajo: { label: 'Bajo', color: 'var(--yellow-ink)', bg: 'var(--yellow)' },
-  ok: { label: 'OK', color: 'var(--green-700)', bg: 'var(--green-50)' },
-}
-
-const fillPct = computed(() => {
-  const s = parseFloat(String(stockActual.value)) || 0
-  const m = parseFloat(String(stockMinimo.value)) || 0
-  if (m <= 0) return s > 0 ? 100 : 0
-  return Math.max(2, Math.min(100, (s / m) * 100))
-})
-
-const costoUnitario = computed(() => {
-  if (esSimple.value) {
-    return parseFloat(String(costoPaquete.value)) || 0
-  }
-  const c = parseFloat(String(costoPaquete.value)) || 0
-  const q = parseFloat(String(cantidadPack.value)) || 0
-  return q > 0 ? c / q : 0
-})
 
 const dirty = computed(() => {
   if (!props.insumo) return true
@@ -128,9 +89,6 @@ const dirty = computed(() => {
   )
 })
 
-function money(n: number): string {
-  return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 function reset() {
   nombre.value = ''
   categoriaId.value = 0
@@ -179,257 +137,6 @@ watch(esSimple, (simpleVal) => {
   }
 })
 
-function focusProviderInput(idx: number, isPrice = false) {
-  nextTick(() => {
-    if (provTableRef.value) {
-      const rows = provTableRef.value.querySelectorAll('tbody tr')
-      const row = rows[idx]
-      if (row) {
-        const selector = isPrice ? '.num-input' : '.cell-input'
-        const input = row.querySelector(selector) as HTMLInputElement | null
-        input?.focus()
-      }
-    }
-  })
-}
-
-function addProveedor() {
-  if (proveedores.value.length >= 3) return
-  proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: false, nombreTemp: '' })
-  focusProviderInput(proveedores.value.length - 1, false)
-}
-
-function removeProveedor(idx: number) {
-  proveedores.value.splice(idx, 1)
-  if (proveedores.value.length === 0) {
-    proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' })
-  }
-  if (!proveedores.value.some(p => p.esPrincipal)) {
-    proveedores.value[0].esPrincipal = true
-  }
-}
-
-function setPrincipal(idx: number) {
-  proveedores.value.forEach((p, i) => p.esPrincipal = i === idx)
-}
-
-function onProveedorChange(idx: number) {
-  const row = proveedores.value[idx]
-  const nombreTrim = row.nombreTemp?.trim() || ''
-  if (!nombreTrim) {
-    row.proveedorId = 0
-    return
-  }
-
-  // Buscar coincidencia exacta (case-insensitive)
-  const pr = proveedoresList.value.find(p => p.nombre.toLowerCase() === nombreTrim.toLowerCase())
-  if (pr) {
-    row.proveedorId = pr.id
-    row.nombreTemp = pr.nombre // Normalizar mayúsculas/minúsculas
-  } else {
-    row.proveedorId = 0
-  }
-}
-
-function onProveedorBlur(idx: number) {
-  const row = proveedores.value[idx]
-  const nombreTrim = row.nombreTemp?.trim() || ''
-  if (!nombreTrim) {
-    row.proveedorId = 0
-    cleanupEmptyProveedores()
-    return
-  }
-
-  // Buscar coincidencia exacta (case-insensitive)
-  const pr = proveedoresList.value.find(p => p.nombre.toLowerCase() === nombreTrim.toLowerCase())
-  if (pr) {
-    row.proveedorId = pr.id
-    row.nombreTemp = pr.nombre
-    cleanupEmptyProveedores()
-    return
-  }
-
-  isConfirmingProv.value = true
-  pendingProvIdx.value = idx
-  pendingProvName.value = nombreTrim
-  activeRowIdx.value = null // Quitar highlight de la fila activa en la tabla
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur() // Desenfocar el input activo para evitar escritura fantasma detrás del modal
-  }
-  showConfirmCreateProv.value = true
-}
-
-async function handleCreateProvConfirm() {
-  showConfirmCreateProv.value = false
-  const idx = pendingProvIdx.value
-  const nombreTrim = pendingProvName.value
-  if (idx === null || !nombreTrim) {
-    isConfirmingProv.value = false
-    clearPendingProv()
-    return
-  }
-
-  const row = proveedores.value[idx]
-  try {
-    const nuevoProv = await post<Proveedor>('/insumos/proveedores', { nombre: nombreTrim })
-
-    // Agregar a la lista de proveedores global
-    proveedoresList.value.push(nuevoProv)
-    proveedoresList.value.sort((a, b) => a.nombre.localeCompare(b.nombre))
-
-    // Asignar a la fila
-    if (row) {
-      row.proveedorId = nuevoProv.id
-      row.nombreTemp = nuevoProv.nombre
-    }
-    toast('Proveedor creado con éxito', 'success')
-    focusProviderInput(idx, true)
-  } catch (e: any) {
-    toast(e.message || 'Error al crear el proveedor', 'error')
-    if (row) {
-      row.nombreTemp = ''
-      row.proveedorId = 0
-    }
-    focusProviderInput(idx, false)
-  } finally {
-    isConfirmingProv.value = false
-    clearPendingProv()
-    cleanupEmptyProveedores()
-  }
-}
-
-function handleCreateProvCancel() {
-  showConfirmCreateProv.value = false
-  const idx = pendingProvIdx.value
-  if (idx !== null) {
-    const row = proveedores.value[idx]
-    if (row) {
-      row.nombreTemp = ''
-      row.proveedorId = 0
-    }
-    focusProviderInput(idx, false)
-  }
-  isConfirmingProv.value = false
-  clearPendingProv()
-  cleanupEmptyProveedores()
-}
-
-function clearPendingProv() {
-  pendingProvIdx.value = null
-  pendingProvName.value = ''
-}
-
-function triggerDeleteGlobalProv(id: number, name: string) {
-  pendingDeleteProvId.value = id
-  pendingDeleteProvName.value = name
-  activeRowIdx.value = null
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur()
-  }
-  isConfirmingProv.value = true
-  showConfirmDeleteGlobalProv.value = true
-}
-
-async function handleDeleteGlobalProvConfirm() {
-  showConfirmDeleteGlobalProv.value = false
-  const idToDelete = pendingDeleteProvId.value
-  if (idToDelete === null) {
-    isConfirmingProv.value = false
-    clearPendingDeleteProv()
-    return
-  }
-
-  try {
-    await del('/insumos/proveedores', idToDelete)
-
-    // Remover de la lista autocompletable
-    proveedoresList.value = proveedoresList.value.filter(p => p.id !== idToDelete)
-
-    // Limpiar de las filas locales
-    proveedores.value.forEach(row => {
-      if (row.proveedorId === idToDelete) {
-        row.proveedorId = 0
-        row.nombreTemp = ''
-      }
-    })
-
-    toast('Proveedor eliminado del catálogo con éxito', 'success')
-  } catch (e: any) {
-    toast(e.message || 'Error al eliminar el proveedor del catálogo', 'error')
-  } finally {
-    isConfirmingProv.value = false
-    clearPendingDeleteProv()
-    cleanupEmptyProveedores()
-  }
-}
-
-function handleDeleteGlobalProvCancel() {
-  showConfirmDeleteGlobalProv.value = false
-  isConfirmingProv.value = false
-  clearPendingDeleteProv()
-  cleanupEmptyProveedores()
-}
-
-function clearPendingDeleteProv() {
-  pendingDeleteProvId.value = null
-  pendingDeleteProvName.value = ''
-}
-
-function onCellEnter(idx: number) {
-  const nextRow = proveedores.value[idx + 1]
-  if (nextRow) {
-    focusProviderInput(idx + 1, false)
-    return
-  }
-
-  // No hay fila debajo (es la última fila actual)
-  const current = proveedores.value[idx]
-  const isCurrentEmpty = !current.nombreTemp?.trim() && !current.precio
-  if (isCurrentEmpty) {
-    // Foco fuera de la tabla (las notas)
-    document.getElementById('ins-notes')?.focus()
-  } else {
-    // Si no está vacía y hay menos de 3, agregamos una nueva
-    if (proveedores.value.length < 3) {
-      addProveedor()
-    } else {
-      document.getElementById('ins-notes')?.focus()
-    }
-  }
-}
-
-function cleanupEmptyProveedores() {
-  nextTick(() => {
-    const activeEl = document.activeElement
-    if (provTableRef.value && activeEl && provTableRef.value.contains(activeEl)) {
-      return
-    }
-
-    // Foco está fuera de la tabla de proveedores, hacemos la limpieza
-    const kept = proveedores.value.filter(p => p.proveedorId > 0 || (p.nombreTemp && p.nombreTemp.trim() !== '') || p.precio > 0)
-    proveedores.value = kept.length > 0 ? kept : [{ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' }]
-
-    if (!proveedores.value.some(p => p.esPrincipal)) {
-      proveedores.value[0].esPrincipal = true
-    }
-  })
-}
-
-function onProvTableFocusout(e: FocusEvent) {
-  const next = e.relatedTarget as HTMLElement | null
-  if (provTableRef.value && next && provTableRef.value.contains(next)) return
-
-  activeRowIdx.value = null
-
-  if (isConfirmingProv.value) return
-
-  const kept = proveedores.value.filter(p => p.proveedorId > 0 || (p.nombreTemp && p.nombreTemp.trim() !== '') || p.precio > 0)
-  proveedores.value = kept.length > 0 ? kept : [{ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' }]
-
-  if (!proveedores.value.some(p => p.esPrincipal)) {
-    proveedores.value[0].esPrincipal = true
-  }
-}
 
 function validate(): boolean {
   errors.value = {}
@@ -508,10 +215,10 @@ async function handleSave() {
   try {
     let res: Insumo
     if (isEdit.value && props.insumo) {
-      res = await put<Insumo>('/insumos', props.insumo.id, payload)
+      res = await store.update(props.insumo.id, payload)
       toast('Insumo actualizado')
     } else {
-      res = await post<Insumo>('/insumos', payload)
+      res = await store.create(payload)
       toast('Insumo creado')
     }
     emit('saved', res)
@@ -524,7 +231,7 @@ async function handleSave() {
 async function handleDelete() {
   if (!props.insumo) return
   try {
-    await del('/insumos', props.insumo.id)
+    await store.remove(props.insumo.id)
     toast('Insumo eliminado', 'info')
     emit('deleted')
     emit('close')
@@ -674,7 +381,7 @@ defineExpose({ loadInsumo })
 
 <template>
   <Transition name="overlay">
-    <div v-if="open" ref="overlayRef" class="id-overlay">
+    <div v-if="open" ref="overlayRef" class="fixed top-[56px] right-0 bottom-0 left-[240px] z-30 bg-page-bg flex flex-col overflow-hidden">
       <div class="id-body">
         <div class="id-body-grid">
           <!-- COLUMNA IZQUIERDA: Identidad, Costeo, y Control de Stock -->
@@ -744,256 +451,26 @@ defineExpose({ loadInsumo })
               </div>
             </section>
             <hr class="id-section-divider">
-            <!-- SECCIÓN 2: Costeo -->
-            <section class="form-section">
-              <div class="form-section-body">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                  <span class="id-cost-label" style="font-size: 11px; font-weight: 500; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em;">Modalidad de costo</span>
-                  <div class="checkbox-wrapper-10">
-                    <input type="checkbox" id="cb-cost-type" class="tgl tgl-flip" v-model="esSimple">
-                    <label for="cb-cost-type" data-tg-on="Simple" data-tg-off="Pack" class="tgl-btn"></label>
-                  </div>
-                </div>
 
-                <!-- Grid de campos de costo -->
-                <div :class="esSimple ? 'form-row' : 'id-grid-3'">
-                  <div class="field">
-                    <FloatingField
-                      id="ins-costo-paquete"
-                      :label="esSimple ? 'Costo unitario' : 'Costo pack'"
-                      type="number"
-                      prefix="$"
-                      v-model.number="costoPaquete"
-                      min="0"
-                      step="0.01"
-                      :invalid="!!errors.costoPaquete"
-                      :describedby="errors.costoPaquete ? 'err-costo-paquete' : undefined"
-                    />
-                    <div v-if="errors.costoPaquete" id="err-costo-paquete" class="field-error" role="alert">
-                      {{ errors.costoPaquete }}
-                    </div>
-                  </div>
-
-                  <!-- Unidades por pack -->
-                  <div v-if="!esSimple" class="field">
-                    <FloatingField
-                      id="ins-cantidad-pack"
-                      label="Unidades por pack"
-                      type="number"
-                      v-model.number="cantidadPack"
-                      min="0.01"
-                      step="0.01"
-                      :invalid="!!errors.cantidadPack"
-                      :describedby="errors.cantidadPack ? 'err-cantidad-pack' : undefined"
-                    />
-                    <div v-if="errors.cantidadPack" id="err-cantidad-pack" class="field-error" role="alert">
-                      {{ errors.cantidadPack }}
-                    </div>
-                  </div>
-
-                  <div class="field">
-                    <FloatingField
-                      id="ins-unidad"
-                      label="Unidad de medida"
-                      required
-                      v-model="unidad"
-                      placeholder="Ej. pliego, m, rollo"
-                      :invalid="!!errors.unidad"
-                      :describedby="errors.unidad ? 'err-unidad' : undefined"
-                    />
-                    <div v-if="errors.unidad" id="err-unidad" class="field-error" role="alert">
-                      {{ errors.unidad }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Costo unitario readonly destacado -->
-                <div v-if="!esSimple" class="id-cost-row grand">
-                  <span class="id-cost-label">Costo unitario calculado</span>
-                  <span class="id-cost-value text-mono">
-                    {{ money(costoUnitario) }} <span class="unit-ref">/ {{ unidad || 'u' }}</span>
-                  </span>
-                </div>
-              </div>
-            </section>
-            <hr class="id-section-divider">
-            <!-- SECCIÓN 3: Control de stock -->
-            <section class="form-section">
-              <div class="form-section-head" style="margin-bottom: 4px;">
-                <h4 id="title-stock" style="font-size: 11px; color: var(--ink-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin: 0;">Control de stock</h4>
-              </div>
-              <div class="form-section-body">
-                <div class="id-grid-stock" style="align-items: flex-end;">
-                  <div class="field">
-                    <FloatingField
-                      id="ins-stock-actual"
-                      label="Stock actual"
-                      type="number"
-                      v-model.number="stockActual"
-                      min="0"
-                      step="1"
-                      :invalid="!!errors.stockActual"
-                      :describedby="errors.stockActual ? 'err-stock-actual' : undefined"
-                    />
-                    <div v-if="errors.stockActual" id="err-stock-actual" class="field-error" role="alert">
-                      {{ errors.stockActual }}
-                    </div>
-                  </div>
-
-                  <div class="field">
-                    <FloatingField
-                      id="ins-stock-minimo"
-                      label="Stock mínimo"
-                      type="number"
-                      v-model.number="stockMinimo"
-                      min="0"
-                      step="1"
-                      :invalid="!!errors.stockMinimo"
-                      :describedby="errors.stockMinimo ? 'err-stock-minimo' : undefined"
-                    />
-                    <div v-if="errors.stockMinimo" id="err-stock-minimo" class="field-error" role="alert">
-                      {{ errors.stockMinimo }}
-                    </div>
-                  </div>
-
-                  <!-- Bloque de nivel inline -->
-                  <div class="id-level-block-inline">
-                    <div class="row" style="display: flex; justify-content: space-between; align-items: center;">
-                      <div class="id-level-stats-inline" style="text-align: left;">
-                        <span>{{ stockMinimo > 0 ? Math.round((stockActual / stockMinimo) * 100) + '%' : 'sin mín.' }}</span>
-                      </div>
-                      <span
-                        class="id-level-badge"
-                        :style="{ background: nivelMeta[nivel].bg, color: nivelMeta[nivel].color }"
-                      >
-                        <span class="dot" /> {{ nivelMeta[nivel].label }}
-                      </span>
-                    </div>
-                    <div class="id-level-bar" :class="{ 'sin_unidades': nivel === 'sin_unidades' }" style="margin-top: 4px;">
-                      <div
-                        class="fill"
-                        :style="{ width: fillPct + '%', background: nivelMeta[nivel].color }"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
+            <InsumoStockForm
+              v-model:esSimple="esSimple"
+              v-model:costoPaquete="costoPaquete"
+              v-model:cantidadPack="cantidadPack"
+              v-model:unidad="unidad"
+              v-model:stockActual="stockActual"
+              v-model:stockMinimo="stockMinimo"
+              :errors="errors"
+            />
 
           </fieldset>
 
           <!-- COLUMNA DERECHA: Proveedores y Notas -->
           <div class="id-col-right-stack">
-            <!-- SECCIÓN PROVEEDORES -->
-            <fieldset class="id-prov-card" aria-labelledby="title-prov">
-              <div class="head">
-                <h4 id="title-prov">Proveedores</h4>
-                <span class="hint">Hasta 3 · marcá uno como principal</span>
-              </div>
-
-              <div ref="provTableRef" class="lines-spreadsheet" @focusout="onProvTableFocusout">
-                <table>
-                  <colgroup>
-                    <col />
-                    <col style="width: 150px;" />
-                    <col style="width: 70px;" />
-                    <col style="width: 36px;" />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th>Proveedor</th>
-                      <th class="num">Precio referencia</th>
-                      <th class="center">Principal</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="(p, idx) in proveedores"
-                      :key="idx"
-                      :class="['ln-row', activeRowIdx === idx && 'active']"
-                      @mousedown="activeRowIdx = idx"
-                    >
-                      <td>
-                        <div class="prov-cell-wrapper" style="position: relative; display: flex; align-items: center; width: 100%; height: 100%;">
-                          <input
-                            class="cell-input"
-                            style="padding-right: 28px;"
-                            v-model="p.nombreTemp"
-                            @focus="activeRowIdx = idx"
-                            @keydown.enter.prevent="onCellEnter(idx)"
-                            @change="onProveedorChange(idx)"
-                            @blur="onProveedorBlur(idx)"
-                            placeholder="Escribí o seleccioná"
-                            list="prov-datalist"
-                            :aria-label="'Proveedor ' + (idx + 1)"
-                          />
-                          <button
-                            v-if="p.proveedorId > 0"
-                            type="button"
-                            class="prov-global-del-btn"
-                            @click="triggerDeleteGlobalProv(p.proveedorId, p.nombreTemp || '')"
-                            title="Eliminar este proveedor permanentemente del catálogo"
-                            style="position: absolute; right: 6px; background: transparent; border: none; padding: 4px; cursor: pointer; color: var(--ink-muted); display: flex; align-items: center; justify-content: center; transition: color 120ms ease;"
-                          >
-                            <Trash2 :size="12" />
-                          </button>
-                        </div>
-                      </td>
-                      <td>
-                        <input
-                          class="cell-input num-input"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          v-model.number="p.precio"
-                          @focus="activeRowIdx = idx"
-                          @keydown.enter.prevent="onCellEnter(idx)"
-                          :aria-label="'Precio de referencia ' + (idx + 1)"
-                        />
-                      </td>
-                      <td class="center">
-                        <button
-                          type="button"
-                          :class="['id-radio', { checked: p.esPrincipal }]"
-                          @click="setPrincipal(idx)"
-                          :title="p.esPrincipal ? 'Proveedor principal' : 'Marcar como principal'"
-                          role="radio"
-                          :aria-checked="p.esPrincipal"
-                        />
-                      </td>
-                      <td>
-                        <button
-                          class="del-btn"
-                          @click="removeProveedor(idx)"
-                          :disabled="proveedores.length <= 1"
-                          title="Eliminar proveedor"
-                        >
-                          <Trash2 :size="14" />
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <datalist id="prov-datalist">
-                  <option v-for="pr in proveedoresList" :key="pr.id" :value="pr.nombre" />
-                </datalist>
-
-                <button
-                  type="button"
-                  class="add-line-btn"
-                  @click="addProveedor"
-                  :disabled="proveedores.length >= 3"
-                >
-                  <Plus :size="14" /> Agregar proveedor
-                </button>
-              </div>
-
-              <div v-if="errors.proveedores" class="field-error" role="alert" style="margin-bottom: 6px;">
-                {{ errors.proveedores }}
-              </div>
-            </fieldset>
+            <ProveedoresEditor
+              v-model="proveedores"
+              v-model:proveedoresList="proveedoresList"
+              :errors="errors"
+            />
 
             <!-- SECCIÓN NOTAS -->
             <div class="id-notes-wrapper" style="display: flex; flex-direction: column; gap: 4px;">
@@ -1014,26 +491,17 @@ defineExpose({ loadInsumo })
         </div>
       </div>
 
-      <div class="id-foot">
-        <button class="id-back-btn" @click="handleBack">
-          <ArrowLeft :size="16" /> Volver a insumos
-        </button>
-        <div class="spacer" />
-        <button
-          v-if="isEdit"
-          class="btn btn-danger"
-          @click="showConfirmDelete = true"
-        >
-          <Trash2 :size="16" /> Eliminar
-        </button>
-        <button
-          class="btn btn-primary"
-          @click="handleSave"
-          :disabled="!dirty"
-          :style="{ opacity: dirty ? 1 : 0.5, pointerEvents: dirty ? 'auto' : 'none' }"
-        >
-          <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear insumo' }}
-        </button>
+      <div class="flex items-center justify-between border-t border-border px-5.5 py-3.5 bg-surface min-h-[56px] select-none shrink-0">
+        <div class="flex-1"></div>
+        <div class="flex items-center gap-2">
+          <BaseButton
+            v-if="isEdit"
+            variant="danger"
+            @click="showConfirmDelete = true"
+          >
+            <Trash2 :size="16" /> Eliminar
+          </BaseButton>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -1057,26 +525,6 @@ defineExpose({ loadInsumo })
         @cancel="showConfirmDelete = false"
       />
 
-      <ConfirmDialog
-        :open="showConfirmCreateProv"
-        title="Crear nuevo proveedor"
-        :message="`El proveedor '${pendingProvName}' no existe. ¿Querés crearlo?`"
-        confirm-label="Crear proveedor"
-        cancel-label="Cancelar"
-        @confirm="handleCreateProvConfirm"
-        @cancel="handleCreateProvCancel"
-      />
-
-      <ConfirmDialog
-        :open="showConfirmDeleteGlobalProv"
-        title="Eliminar proveedor de catálogo"
-        :message="`Vas a eliminar permanentemente al proveedor '${pendingDeleteProvName}' del catálogo. Se removerá de este y otros insumos donde esté cargado. Esta acción no se puede deshacer.`"
-        confirm-label="Eliminar"
-        cancel-label="Cancelar"
-        variant="danger"
-        @confirm="handleDeleteGlobalProvConfirm"
-        @cancel="handleDeleteGlobalProvCancel"
-      />
     </div>
   </Transition>
 </template>

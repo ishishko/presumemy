@@ -7,6 +7,7 @@ import type { OrdenImprenta, Presupuesto, PaginationResult } from '@/types'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const props = defineProps<{
   open: boolean
@@ -45,7 +46,7 @@ const metodosPago = [
 const diff = computed(() => (parseFloat(String(valorNuestro.value)) || 0) - (parseFloat(String(valorPatri.value)) || 0))
 
 function money(n: number): string {
-  return `$ ${Math.abs(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `$ ${Math.abs(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function reset() {
@@ -184,22 +185,23 @@ defineExpose({ loadOrden })
 <template>
   <Teleport to="body">
     <Transition name="drawer">
-      <div v-if="open" class="drawer-container">
-        <div class="drawer-scrim" @click="handleClose"></div>
-        <aside class="drawer-panel">
-          <div class="drawer-head">
-            <div class="drawer-title-block">
-              <span class="drawer-eyebrow">{{ isEdit ? 'Editar orden' : 'Nueva orden de imprenta' }}</span>
-              <h3>{{ tematica || 'Orden sin temática' }}</h3>
+      <div v-if="open" class="fixed inset-0 z-80 pointer-events-none">
+        <div class="absolute inset-0 bg-ink/40 pointer-events-auto" @click="handleClose"></div>
+        
+        <aside class="absolute top-0 right-0 bottom-0 w-[520px] bg-surface border-l border-border grid grid-rows-[auto_1fr_auto] pointer-events-auto shadow-2 z-81">
+          <div class="flex items-center gap-3.5 px-5.5 py-4.5 border-b border-border">
+            <div class="flex flex-col gap-1 flex-1 min-w-0">
+              <span class="text-11 uppercase tracking-[0.08em] text-ink-muted font-medium">{{ isEdit ? 'Editar orden' : 'Nueva orden de imprenta' }}</span>
+              <h3 class="text-[17px] font-medium m-0 leading-tight">{{ tematica || 'Orden sin temática' }}</h3>
             </div>
-            <button class="icon-btn" @click="handleClose" title="Cerrar">
+            <button class="w-8.5 h-8.5 grid place-items-center border border-border bg-surface rounded-lg text-ink cursor-pointer hover:bg-page-bg" @click="handleClose" title="Cerrar">
               <X :size="18" />
             </button>
           </div>
 
-          <div class="drawer-body">
-            <div class="fd-row">
-              <div class="field">
+          <div class="flex-1 overflow-y-auto p-5.5">
+            <div class="flex gap-3 mb-3">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-i-fecha"
                   label="Fecha"
@@ -208,7 +210,7 @@ defineExpose({ loadOrden })
                   v-model="fecha"
                 />
               </div>
-              <div class="field">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-i-presupuesto"
                   label="Presupuesto"
@@ -222,7 +224,7 @@ defineExpose({ loadOrden })
               </div>
             </div>
 
-            <div class="fd-row single">
+            <div class="flex flex-col mb-3">
               <div class="field">
                 <FloatingField
                   id="fd-i-tematica"
@@ -234,8 +236,8 @@ defineExpose({ loadOrden })
               </div>
             </div>
 
-            <div class="fd-row">
-              <div class="field">
+            <div class="flex gap-3 mb-3">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-i-hojas"
                   label="Cantidad de hojas"
@@ -245,7 +247,7 @@ defineExpose({ loadOrden })
                   step="1"
                 />
               </div>
-              <div class="field">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-i-tipohoja"
                   label="Tipo de hoja"
@@ -255,10 +257,10 @@ defineExpose({ loadOrden })
               </div>
             </div>
 
-            <div class="fd-section-label">Valores</div>
+            <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mb-2.5 mt-4.5">Valores</div>
 
-            <div class="fd-row">
-              <div class="field">
+            <div class="flex gap-3 mb-3">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-i-valornuestro"
                   label="Valor nuestro"
@@ -270,7 +272,7 @@ defineExpose({ loadOrden })
                   step="0.01"
                 />
               </div>
-              <div class="field">
+              <div class="field flex-1 min-w-0">
                 <FloatingField
                   id="fd-i-valorpatri"
                   label="Valor Patri"
@@ -284,27 +286,27 @@ defineExpose({ loadOrden })
               </div>
             </div>
 
-            <div class="fd-summary">
-              <div class="row">
-                <span style="color: var(--ink-muted)">Valor nuestro</span>
-                <span style="font-variant-numeric: tabular-nums">{{ money(valorNuestro) }}</span>
+            <div class="bg-page-bg border border-border rounded-lg p-3.5 mt-4.5 flex flex-col gap-2">
+              <div class="flex justify-between text-13">
+                <span class="text-ink-muted">Valor nuestro</span>
+                <span class="font-mono tabular-nums">{{ money(valorNuestro) }}</span>
               </div>
-              <div class="row">
-                <span style="color: var(--ink-muted)">Valor Patri</span>
-                <span style="font-variant-numeric: tabular-nums">{{ money(valorPatri) }}</span>
+              <div class="flex justify-between text-13">
+                <span class="text-ink-muted">Valor Patri</span>
+                <span class="font-mono tabular-nums">{{ money(valorPatri) }}</span>
               </div>
-              <div class="row grand">
+              <div class="flex justify-between text-13 border-t border-border pt-2 mt-1 font-semibold">
                 <span>Diferencia</span>
-                <span :class="diff >= 0 ? 'fin-diff-pos' : 'fin-diff-neg'" style="font-size: 16px">
+                <span :class="[diff >= 0 ? 'text-teal-700!' : 'text-coral-500!']" class="font-mono tabular-nums">
                   {{ diff >= 0 ? '+ ' : '− ' }}{{ money(diff) }}
                 </span>
               </div>
             </div>
 
-            <div class="fd-section-label" style="margin-top: 16px">Pago</div>
+            <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mb-2.5 mt-4.5">Pago</div>
 
-            <div class="fd-row">
-              <div class="field">
+            <div class="flex gap-3 mb-3">
+              <div class="field flex-1 min-w-0">
                 <FloatingSelect
                   id="fd-i-metodopago"
                   label="Método de pago"
@@ -313,24 +315,24 @@ defineExpose({ loadOrden })
                   <option v-for="m in metodosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
                 </FloatingSelect>
               </div>
-              <div class="field">
-                <label>Estado</label>
-                <label class="check-row" style="margin-top: 2px">
-                  <input type="checkbox" v-model="pagado" />
-                  <div class="lbl-block">
-                    <span class="t">Pagado a la imprenta</span>
-                    <span class="h">{{ pagado ? 'Registrado como pagado.' : 'Pendiente de pago.' }}</span>
+              <div class="field flex-1 min-w-0">
+                <label class="text-13 font-medium text-ink mb-1.5 block">Estado</label>
+                <label class="flex items-center gap-2 mt-1 cursor-pointer">
+                  <input type="checkbox" v-model="pagado" class="w-4 h-4 accent-teal-500 cursor-pointer" />
+                  <div class="flex flex-col gap-0.5">
+                    <span class="text-13 font-medium text-ink leading-none">Pagado a la imprenta</span>
+                    <span class="text-12 text-ink-muted leading-tight">{{ pagado ? 'Registrado como pagado.' : 'Pendiente de pago.' }}</span>
                   </div>
                 </label>
               </div>
             </div>
           </div>
 
-          <div class="drawer-foot">
-            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
-            <button class="btn btn-primary" @click="handleSave">
+          <div class="flex items-center gap-2.5 px-5.5 py-3.5 border-t border-border justify-end">
+            <BaseButton variant="ghost" @click="handleClose">Cancelar</BaseButton>
+            <BaseButton variant="primary" @click="handleSave">
               <Check :size="16" /> Guardar
-            </button>
+            </BaseButton>
           </div>
         </aside>
 
@@ -350,167 +352,6 @@ defineExpose({ loadOrden })
 </template>
 
 <style scoped>
-.drawer-container {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  pointer-events: none;
-}
-
-.drawer-scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(28, 26, 30, 0.40);
-  pointer-events: auto;
-}
-
-.drawer-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 520px;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  pointer-events: auto;
-  box-shadow: var(--shadow-2);
-  z-index: 81;
-}
-
-.drawer-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-}
-
-.drawer-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.drawer-eyebrow {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-muted);
-  font-weight: 500;
-}
-
-.drawer-head h3 {
-  font-size: 17px;
-  font-weight: 500;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 22px;
-}
-
-.drawer-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 22px;
-  border-top: 1px solid var(--border);
-  justify-content: flex-end;
-}
-
-.fd-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.fd-row > .field {
-  flex: 1;
-  min-width: 0;
-}
-
-.fd-row.single { grid-template-columns: 1fr; }
-
-.fd-section-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-muted);
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.fd-money-input {
-  width: 100%;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  padding: 8px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.fd-money-input:focus {
-  outline: none;
-  border-color: var(--teal-500);
-  box-shadow: var(--focus-ring);
-}
-
-.fd-summary {
-  background: var(--page-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 14px 16px;
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fd-summary .row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-}
-
-.fd-summary .row.grand {
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
-  margin-top: 4px;
-  font-weight: 500;
-}
-
-.fin-diff-pos { color: #2E6F70; }
-.fin-diff-neg { color: var(--coral-500); }
-
-.check-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.check-row input[type="checkbox"] {
-  margin-top: 2px;
-  accent-color: var(--violet-700);
-  width: 16px;
-  height: 16px;
-}
-
-.lbl-block { display: flex; flex-direction: column; gap: 2px; }
-.lbl-block .t { font-size: 13px; font-weight: 500; color: var(--ink); }
-.lbl-block .h { font-size: 12px; color: var(--ink-muted); }
-
 /* Transitions */
 .drawer-enter-active .drawer-panel,
 .drawer-leave-active .drawer-panel {

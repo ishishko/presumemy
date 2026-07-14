@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
-import { ArrowLeft, Check, Trash2, X, Plus, Lock, Image, GripVertical, Ruler } from '@lucide/vue'
+import { Trash2, X, Plus, Lock, Image, Ruler } from '@lucide/vue'
 import { editorDirty } from '@/shared/lib/editorMode'
-import { get, post, put, del } from '@/shared/api/client'
+import { get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
+import { useProductosStore } from '../store'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
 import ToggleSwitch from '@/shared/ui/ToggleSwitch.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 import type { Producto, CategoriaProducto, Insumo, PaginationResult } from '@/types'
+
+import ProductoMedidasForm from './ProductoMedidasForm.vue'
+import BomEditor from './BomEditor.vue'
 
 const props = defineProps<{
   open: boolean
@@ -23,6 +28,7 @@ const emit = defineEmits<{
 }>()
 
 const { toast } = useToast()
+const store = useProductosStore()
 
 const isEdit = computed(() => !!props.producto)
 
@@ -63,9 +69,7 @@ const tipoGanancia = ref<'porcentaje' | 'fijo'>('porcentaje')
 const ganancia = ref(0)
 const precio = ref(0)
 const imagenes = ref<string[]>(['', '', ''])
-const activeRowIdx = ref<number | null>(null)
-const recetaTableRef = ref<HTMLElement | null>(null)
-const overlayEl = ref<HTMLElement | null>(null)
+const errors = ref<Record<string, string>>({})
 
 const bomLineas = ref<Array<{
   tipoLinea: 'insumo' | 'cameo' | 'embalaje' | 'extra'
@@ -112,11 +116,6 @@ const dirty = computed(() => {
   )
 })
 
-function getInsumoUnit(insumoId?: number): string {
-  if (!insumoId) return ''
-  const ins = insumosList.value.find(i => i.id === insumoId)
-  return ins?.unidad || ''
-}
 
 watch([precioCalculado, precioManual], ([newCalc, manual]) => {
   if (!manual) {
@@ -125,7 +124,7 @@ watch([precioCalculado, precioManual], ([newCalc, manual]) => {
 })
 
 function money(n: number): string {
-  return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return `$ ${n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 function reset() {
@@ -139,28 +138,12 @@ function reset() {
   ganancia.value = 0
   precio.value = 0
   imagenes.value = ['', '', '']
-  bomLineas.value = []
+  bomLineas.value = [{ tipoLinea: 'insumo', insumoId: undefined, descripcion: '', cantidad: 1, costoUnitario: 0 }]
   medidasTipo.value = 'plano'
   medidasBase.value = ''
   medidasAltura.value = ''
   medidasProfundidad.value = ''
 }
-
-function syncBomLineasCosts() {
-  if (insumosList.value.length === 0) return
-  bomLineas.value.forEach(l => {
-    if (l.tipoLinea === 'insumo' && l.insumoId) {
-      const ins = insumosList.value.find(i => i.id === l.insumoId)
-      if (ins) {
-        l.costoUnitario = ins.costoUnitario
-      }
-    }
-  })
-}
-
-watch(insumosList, () => {
-  syncBomLineasCosts()
-})
 
 function loadProducto() {
   reset()
@@ -179,13 +162,12 @@ function loadProducto() {
     imagenes.value = [pImgs[0] || '', pImgs[1] || '', pImgs[2] || '']
     cleanAndShiftImages()
     bomLineas.value = (p.bomLineas || []).map(b => ({
-      tipoLinea: b.tipoLinea,
-      insumoId: b.insumoId,
+      tipoLinea: b.tipoLinea || 'insumo',
+      insumoId: b.insumoId || undefined,
       descripcion: b.descripcion || '',
-      cantidad: b.cantidad,
-      costoUnitario: b.costoUnitario,
+      cantidad: Number(b.cantidad),
+      costoUnitario: Number(b.costoUnitario),
     }))
-    syncBomLineasCosts()
     if (p.medidas) {
       medidasTipo.value = p.medidas.tipo
       medidasBase.value = p.medidas.base
@@ -199,31 +181,7 @@ function loadProducto() {
     }
   }
   if (tieneBom.value && bomLineas.value.length === 0) {
-    addBomLinea()
-  }
-}
-
-
-function addBomLinea() {
-  bomLineas.value.push({
-    tipoLinea: 'insumo',
-    descripcion: '',
-    cantidad: 0,
-    costoUnitario: 0,
-  })
-}
-
-function removeBomLinea(idx: number) {
-  bomLineas.value.splice(idx, 1)
-  if (bomLineas.value.length === 0) addBomLinea()
-}
-
-function onInsumoChange(idx: number, insumoId: number) {
-  const ins = insumosList.value.find(i => i.id === insumoId)
-  if (ins) {
-    bomLineas.value[idx].insumoId = ins.id
-    bomLineas.value[idx].descripcion = ins.nombre
-    bomLineas.value[idx].costoUnitario = ins.costoUnitario
+    bomLineas.value = [{ tipoLinea: 'insumo', insumoId: undefined, descripcion: '', cantidad: 1, costoUnitario: 0 }]
   }
 }
 
@@ -282,10 +240,10 @@ async function handleSave() {
   try {
     let res: Producto
     if (isEdit.value && props.producto) {
-      res = await put<Producto>('/productos', props.producto.id, payload)
+      res = await store.update(props.producto.id, payload)
       toast('Producto actualizado')
     } else {
-      res = await post<Producto>('/productos', payload)
+      res = await store.create(payload)
       toast('Producto creado')
     }
     emit('saved', res)
@@ -298,7 +256,7 @@ async function handleSave() {
 async function handleDelete() {
   if (!props.producto) return
   try {
-    await del('/productos', props.producto.id)
+    await store.remove(props.producto.id)
     toast('Producto eliminado', 'info')
     emit('deleted')
     emit('close')
@@ -308,13 +266,6 @@ async function handleDelete() {
   showConfirmDelete.value = false
 }
 
-function handleBack() {
-  if (dirty.value) {
-    showConfirmExit.value = true
-  } else {
-    handleClose()
-  }
-}
 
 function openOverlay() {
   emit('update:header', {
@@ -457,135 +408,12 @@ function focusCategory() {
   document.getElementById('pd-categoria')?.focus()
 }
 
-function getFocusable(): HTMLElement[] {
-  if (!overlayEl.value) return []
-  const sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-  return Array.from(overlayEl.value.querySelectorAll<HTMLElement>(sel))
-    .filter(el => el.offsetParent !== null)
-}
-
-function focusAfterTable() {
-  const table = recetaTableRef.value
-  if (!table) return
-  const focusables = getFocusable()
-  const active = document.activeElement as HTMLElement
-  const fromIdx = focusables.indexOf(active)
-  const next = focusables.find((el, i) => i > fromIdx && !table.contains(el))
-  next?.focus()
-}
-
-const dragId = ref<number | null>(null)
-const dragOverId = ref<number | null>(null)
-
-function onBomDragStart(idx: number) {
-  dragId.value = idx
-}
-
-function onBomDragOver(event: DragEvent, idx: number) {
-  event.preventDefault()
-  dragOverId.value = idx
-}
-
-function onBomDrop(idx: number) {
-  if (dragId.value === null || dragId.value === idx) {
-    dragId.value = null
-    dragOverId.value = null
-    return
-  }
-  
-  const from = dragId.value
-  const to = idx
-  const lines = [...bomLineas.value]
-  const [moved] = lines.splice(from, 1)
-  lines.splice(to, 0, moved)
-  bomLineas.value = lines
-  
-  dragId.value = null
-  dragOverId.value = null
-}
-
-function onBomDragEnd() {
-  dragId.value = null
-  dragOverId.value = null
-}
-
-function cleanupEmptyRecetaLineas() {
-  nextTick(() => {
-    const activeEl = document.activeElement
-    if (recetaTableRef.value && activeEl && recetaTableRef.value.contains(activeEl)) {
-      return
-    }
-
-    const kept = bomLineas.value.filter(l => 
-      (l.insumoId && l.insumoId > 0) || 
-      (l.descripcion && l.descripcion.trim() !== '') || 
-      l.cantidad > 0
-    )
-    
-    bomLineas.value = kept.length > 0 ? kept : [{
-      tipoLinea: 'insumo',
-      descripcion: '',
-      cantidad: 0,
-      costoUnitario: 0,
-    }]
-  })
-}
-
-function onRecetaTableFocusout(e: FocusEvent) {
-  const next = e.relatedTarget as HTMLElement | null
-  if (recetaTableRef.value && next && recetaTableRef.value.contains(next)) return
-  activeRowIdx.value = null
-  cleanupEmptyRecetaLineas()
-}
-
-function focusRecetaInput(idx: number, field: 'tipoLinea' | 'descripcion' | 'cantidad' | 'costoUnitario') {
-  nextTick(() => {
-    if (recetaTableRef.value) {
-      const rows = recetaTableRef.value.querySelectorAll('tbody tr')
-      const row = rows[idx]
-      if (row) {
-        const inputs = row.querySelectorAll('.cell-input, .cell-select')
-        let targetInput: HTMLElement | null = null
-        if (field === 'tipoLinea') {
-          targetInput = inputs[0] as HTMLElement
-        } else if (field === 'descripcion') {
-          targetInput = inputs[1] as HTMLElement
-        } else if (field === 'cantidad') {
-          targetInput = inputs[2] as HTMLElement
-        } else if (field === 'costoUnitario') {
-          targetInput = inputs[3] as HTMLElement
-        }
-        targetInput?.focus()
-      }
-    }
-  })
-}
-
-function onCellEnter(idx: number, field: 'tipoLinea' | 'descripcion' | 'cantidad' | 'costoUnitario') {
-  const current = bomLineas.value[idx]
-  const isCurrentEmpty = !current.descripcion?.trim() && !current.cantidad
-
-  if (isCurrentEmpty) {
-    focusAfterTable()
-    return
-  }
-
-  const nextRow = bomLineas.value[idx + 1]
-  if (nextRow) {
-    focusRecetaInput(idx + 1, field)
-    return
-  }
-
-  addBomLinea()
-  focusRecetaInput(idx + 1, field)
-}
-
 defineExpose({ loadProducto })
 </script>
 
 <template>
   <Transition name="overlay">
-    <div v-if="open" ref="overlayEl" class="pd-overlay">
+    <div v-if="open" ref="overlayEl" class="fixed top-[56px] right-0 bottom-0 left-[240px] z-30 bg-page-bg flex flex-col overflow-hidden">
         <div class="pd-body">
           <div class="pd-top">
             <!-- Bloque Izquierdo (60% del ancho) -->
@@ -693,57 +521,13 @@ defineExpose({ loadProducto })
                     </FloatingSelect>
                   </div>
 
-                  <div class="pd-field">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                      <label class="pd-label-group" style="margin-bottom: 0;">Medidas</label>
-                      <div class="medidas-toggle-group" style="margin-bottom: 0;">
-                        <input
-                          type="checkbox"
-                          id="cb-medidas-tipo"
-                          class="tgl tgl-flip"
-                          :checked="medidasTipo === 'cuerpo'"
-                          @change="medidasTipo = ($event.target as HTMLInputElement).checked ? 'cuerpo' : 'plano'"
-                        />
-                        <label for="cb-medidas-tipo" data-tg-on="Cuerpo" data-tg-off="Plano" class="tgl-btn" style="margin: 0;"></label>
-                      </div>
-                    </div>
-                    
-                    <div class="medidas-inputs-row">
-                      <div class="medida-input-col">
-                        <FloatingField
-                          id="pd-base"
-                          label="Base (cm)"
-                          type="number"
-                          min="0"
-                          step="0.1"
-                          v-model.number="medidasBase"
-                          placeholder="0"
-                        />
-                      </div>
-                      <div class="medida-input-col">
-                        <FloatingField
-                          id="pd-altura"
-                          label="Altura (cm)"
-                          type="number"
-                          min="0"
-                          step="0.1"
-                          v-model.number="medidasAltura"
-                          placeholder="0"
-                        />
-                      </div>
-                      <div v-if="medidasTipo === 'cuerpo'" class="medida-input-col">
-                        <FloatingField
-                          id="pd-profundidad"
-                          label="Profundidad (cm)"
-                          type="number"
-                          min="0"
-                          step="0.1"
-                          v-model.number="medidasProfundidad"
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <ProductoMedidasForm
+                    v-model:medidasTipo="medidasTipo"
+                    v-model:medidasBase="medidasBase"
+                    v-model:medidasAltura="medidasAltura"
+                    v-model:medidasProfundidad="medidasProfundidad"
+                    :errors="errors"
+                  />
 
                   <div class="pd-field">
                     <FloatingField
@@ -848,152 +632,25 @@ defineExpose({ loadProducto })
             </div>
           </div>
 
-          <section v-if="tieneBom" class="pd-bom">
-            <div class="pd-bom-head">
-              <h4>Receta · BOM</h4>
-              <span class="text-hint" style="font-size: 12px">
-                Costos aislados — editar el costo unitario acá no afecta a otros productos.
-              </span>
-            </div>
-
-            <div ref="recetaTableRef" class="lines-spreadsheet pd-bom-table" @focusout="onRecetaTableFocusout">
-              <table>
-                <colgroup>
-                  <col style="width: 22px;" />
-                  <col style="width: 130px;" />
-                  <col />
-                  <col style="width: 100px;" />
-                  <col style="width: 130px;" />
-                  <col style="width: 120px;" />
-                  <col style="width: 36px;" />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>Tipo</th>
-                    <th>Insumo / descripción</th>
-                    <th class="num">Cantidad</th>
-                    <th class="num">Costo unitario</th>
-                    <th class="num">Subtotal</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr 
-                    v-for="(l, idx) in bomLineas" 
-                    :key="idx"
-                    :class="[
-                      'ln-row',
-                      activeRowIdx === idx && 'active',
-                      dragId === idx && 'dragging',
-                      dragOverId === idx && dragId !== idx && 'drag-over'
-                    ]"
-                    draggable="true"
-                    @dragstart="onBomDragStart(idx)"
-                    @dragover="onBomDragOver($event, idx)"
-                    @drop="onBomDrop(idx)"
-                    @dragend="onBomDragEnd"
-                    @mousedown="activeRowIdx = idx"
-                  >
-                    <td class="grip" title="Arrastrar para reordenar">
-                      <GripVertical :size="14" />
-                    </td>
-                    <td>
-                      <select 
-                        class="cell-select" 
-                        v-model="l.tipoLinea" 
-                        @focus="activeRowIdx = idx"
-                        @keydown.enter.prevent="onCellEnter(idx, 'tipoLinea')"
-                      >
-                        <option value="insumo">Insumo</option>
-                        <option value="cameo">Cameo</option>
-                        <option value="embalaje">Embalaje</option>
-                        <option value="extra">Extra</option>
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        class="cell-input"
-                        :value="l.insumoId || 0"
-                        @change="onInsumoChange(idx, +($event.target as HTMLSelectElement).value)"
-                        @focus="activeRowIdx = idx"
-                        @keydown.enter.prevent="onCellEnter(idx, 'descripcion')"
-                      >
-                        <option :value="0">Texto libre</option>
-                        <option v-for="ins in insumosList" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
-                      </select>
-                    </td>
-                    <td style="position: relative;">
-                      <input
-                        class="cell-input num-input"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        v-model.number="l.cantidad"
-                        @focus="activeRowIdx = idx"
-                        @keydown.enter.prevent="onCellEnter(idx, 'cantidad')"
-                        style="padding-right: 45px; text-align: right;"
-                      />
-                      <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink-muted); pointer-events: none;">
-                        {{ getInsumoUnit(l.insumoId) }}
-                      </span>
-                    </td>
-                    <td style="position: relative;">
-                      <input
-                        class="cell-input num-input"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        v-model.number="l.costoUnitario"
-                        @focus="activeRowIdx = idx"
-                        @keydown.enter.prevent="onCellEnter(idx, 'costoUnitario')"
-                        style="padding-right: 45px; text-align: right;"
-                      />
-                      <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink-muted); pointer-events: none;">
-                        {{ l.insumoId ? `/ ${getInsumoUnit(l.insumoId)}` : '' }}
-                      </span>
-                    </td>
-                    <td class="num cell-subtotal">{{ money(l.cantidad * l.costoUnitario) }}</td>
-                    <td>
-                      <button class="del-btn" @click="removeBomLinea(idx)" title="Eliminar línea">
-                        <X :size="14" />
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <button class="add-line-btn" @click="addBomLinea">
-                <Plus :size="14" /> Agregar línea
-              </button>
-            </div>
-
-            <div class="pd-bom-total">
-              <span class="lbl">Total BOM</span>
-              <span class="val">{{ money(bomTotal) }}</span>
-            </div>
-          </section>
+          <BomEditor
+            v-if="tieneBom"
+            v-model="bomLineas"
+            :insumosList="insumosList"
+            :errors="errors"
+          />
         </div>
 
-        <div class="pd-foot">
-          <button id="pd-back-btn" class="pd-back-btn" @click="handleBack">
-            <ArrowLeft :size="16" /> Volver a productos
-          </button>
-          <div class="spacer" />
-          <button
-            v-if="isEdit"
-            class="btn btn-danger"
-            @click="showConfirmDelete = true"
-          >
-            <Trash2 :size="16" /> Eliminar
-          </button>
-          <button
-            class="btn btn-primary"
-            @click="handleSave"
-            :disabled="!dirty"
-            :style="{ opacity: dirty ? 1 : 0.5, pointerEvents: dirty ? 'auto' : 'none' }"
-          >
-            <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear producto' }}
-          </button>
+        <div class="flex items-center justify-between border-t border-border px-5.5 py-3.5 bg-surface min-h-[56px] select-none shrink-0">
+          <div class="flex-1"></div>
+          <div class="flex items-center gap-2">
+            <BaseButton
+              v-if="isEdit"
+              variant="danger"
+              @click="showConfirmDelete = true"
+            >
+              <Trash2 :size="16" /> Eliminar
+            </BaseButton>
+          </div>
         </div>
 
         <ConfirmDialog

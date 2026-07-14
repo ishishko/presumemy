@@ -7,6 +7,7 @@ import type { Cliente, ClienteContacto } from '@/types'
 import { clienteSchema } from '@/schemas/clientes'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
 
 const props = defineProps<{
   open: boolean
@@ -186,21 +187,25 @@ defineExpose({ loadCliente })
 <template>
   <Teleport to="body">
     <Transition name="drawer">
-      <div v-if="open" class="drawer-container">
-        <div class="drawer-scrim" @click="handleClose"></div>
-        <aside class="drawer-panel">
-          <div class="drawer-head">
-            <div class="drawer-title-block">
-              <span class="drawer-eyebrow">{{ isEdit ? 'Editar cliente' : 'Nuevo cliente' }}</span>
-              <h3>{{ isEdit ? cliente!.nombre : 'Crear cliente' }}</h3>
+      <div v-if="open" class="fixed inset-0 z-80 pointer-events-none">
+        <!-- Scrim -->
+        <div class="absolute inset-0 bg-ink/40 pointer-events-auto" @click="handleClose"></div>
+        
+        <!-- Panel -->
+        <aside class="absolute top-0 right-0 bottom-0 w-[520px] bg-surface border-l border-border grid grid-rows-[auto_1fr_auto] pointer-events-auto shadow-2 z-81">
+          <!-- Header -->
+          <div class="flex items-center gap-3.5 px-5.5 py-4.5 border-b border-border">
+            <div class="flex flex-col gap-1 flex-1 min-w-0">
+              <span class="text-11 uppercase tracking-[0.08em] text-ink-muted font-medium">{{ isEdit ? 'Editar cliente' : 'Nuevo cliente' }}</span>
+              <h3 class="text-[17px] font-medium m-0 leading-tight">{{ isEdit ? cliente!.nombre : 'Crear cliente' }}</h3>
             </div>
-            <div class="spacer"></div>
-            <button class="icon-btn" @click="handleClose" title="Cerrar">
+            <button class="w-8.5 h-8.5 grid place-items-center border border-border bg-surface rounded-lg text-ink cursor-pointer hover:bg-page-bg" @click="handleClose" title="Cerrar">
               <X :size="18" />
             </button>
           </div>
 
-          <div class="drawer-body">
+          <!-- Body -->
+          <div class="flex-1 overflow-y-auto p-5.5">
             <div class="field">
               <FloatingField
                 id="cl-nombre"
@@ -212,12 +217,12 @@ defineExpose({ loadCliente })
                 :describedby="errors.nombre ? 'cl-nombre-err' : undefined"
                 autofocus
               />
-              <p v-if="errors.nombre" id="cl-nombre-err" class="err" role="alert">{{ errors.nombre }}</p>
+              <p v-if="errors.nombre" id="cl-nombre-err" class="text-12 text-coral-500 mt-1" role="alert">{{ errors.nombre }}</p>
             </div>
 
-            <div class="fd-section-label" style="margin-top: 18px">Domicilio</div>
+            <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mb-2.5 mt-4.5">Domicilio</div>
 
-            <div class="fd-row">
+            <div class="flex gap-3 mb-3">
               <div class="field" style="flex: 2">
                 <FloatingField id="cl-calle" label="Calle" v-model="calle" />
               </div>
@@ -226,7 +231,7 @@ defineExpose({ loadCliente })
               </div>
             </div>
 
-            <div class="fd-row">
+            <div class="flex gap-3 mb-3">
               <div class="field" style="flex: 1">
                 <FloatingField id="cl-localidad" label="Localidad" v-model="localidad" />
               </div>
@@ -235,31 +240,36 @@ defineExpose({ loadCliente })
               </div>
             </div>
 
-            <div class="fd-section-label" style="margin-top: 18px">
+            <div class="text-11 uppercase tracking-[0.06em] text-ink-muted font-medium mb-2.5 mt-4.5">
               Contactos
-              <span class="hint" style="font-weight: 400; text-transform: none; letter-spacing: 0">· hasta 3</span>
+              <span class="text-hint font-normal normal-case tracking-normal">· hasta 3</span>
             </div>
 
-            <div v-for="(c, idx) in contactos" :key="idx" class="contacto-row">
-              <select class="select contacto-select" v-model="c.canal">
+            <div v-for="(c, idx) in contactos" :key="idx" class="flex items-center gap-2 mb-2">
+              <select class="select w-[120px] shrink-0" v-model="c.canal">
                 <option value="instagram">Instagram</option>
                 <option value="whatsapp">WhatsApp</option>
                 <option value="mail">Mail</option>
                 <option value="otros">Otros</option>
               </select>
               <input
-                class="input contacto-input"
+                class="input flex-1"
                 v-model="c.valor"
                 placeholder="Valor"
               />
               <button
                 type="button"
-                :class="['contacto-radio', { checked: c.esPrincipal }]"
+                :class="[
+                  'w-4.5 h-4.5 rounded-full border border-border-strong bg-surface cursor-pointer grid place-items-center shrink-0 transition-colors duration-120 hover:border-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
+                  c.esPrincipal ? 'border-violet-700' : ''
+                ]"
                 @click="setPrincipal(idx)"
                 :title="c.esPrincipal ? 'Contacto principal' : 'Marcar como principal'"
-              />
+              >
+                <span v-if="c.esPrincipal" class="w-2.25 h-2.25 rounded-full bg-violet-700" />
+              </button>
               <button
-                class="contacto-del"
+                class="bg-transparent border-0 text-ink-muted cursor-pointer p-1 rounded-sm grid place-items-center hover:text-coral-500 hover:bg-coral-50 disabled:opacity-30 disabled:pointer-events-none"
                 @click="removeContacto(idx)"
                 :disabled="contactos.length <= 1"
                 title="Eliminar contacto"
@@ -269,14 +279,14 @@ defineExpose({ loadCliente })
             </div>
 
             <button
-              class="add-contacto-btn"
+              class="self-start bg-transparent border border-dashed border-border-strong text-violet-700 text-12 font-medium px-3.5 py-2 rounded-lg cursor-pointer inline-flex items-center gap-1.5 transition-colors duration-120 hover:bg-violet-50 hover:border-violet-700 disabled:opacity-50 disabled:pointer-events-none"
               @click="addContacto"
               :disabled="contactos.length >= 3"
             >
               <Plus :size="14" /> Agregar contacto
             </button>
 
-            <div class="field" style="margin-top: 18px">
+            <div class="field mt-4.5">
               <FloatingField
                 id="cl-notas"
                 label="Notas"
@@ -287,11 +297,12 @@ defineExpose({ loadCliente })
             </div>
           </div>
 
-          <div class="drawer-foot">
-            <button class="btn btn-ghost" @click="handleClose">Cancelar</button>
-            <button class="btn btn-primary" @click="handleSave">
+          <!-- Footer -->
+          <div class="flex items-center gap-2.5 px-5.5 py-3.5 border-t border-border justify-end">
+            <BaseButton variant="ghost" @click="handleClose">Cancelar</BaseButton>
+            <BaseButton variant="primary" @click="handleSave">
               <Check :size="16" /> {{ isEdit ? 'Guardar cambios' : 'Crear cliente' }}
-            </button>
+            </BaseButton>
           </div>
         </aside>
 
@@ -311,178 +322,6 @@ defineExpose({ loadCliente })
 </template>
 
 <style scoped>
-.drawer-container {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  pointer-events: none;
-}
-
-.drawer-scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(28, 26, 30, 0.40);
-  pointer-events: auto;
-}
-
-.drawer-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 520px;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  pointer-events: auto;
-  box-shadow: var(--shadow-2);
-  z-index: 81;
-}
-
-.drawer-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-}
-
-.drawer-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.drawer-eyebrow {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-muted);
-  font-weight: 500;
-}
-
-.drawer-head h3 {
-  font-size: 17px;
-  font-weight: 500;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 22px;
-}
-
-.drawer-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 22px;
-  border-top: 1px solid var(--border);
-  justify-content: flex-end;
-}
-
-.spacer { flex: 1; }
-
-.fd-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.fd-section-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-muted);
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.contacto-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.contacto-select { width: 120px; flex-shrink: 0; }
-.contacto-input { flex: 1; }
-
-.contacto-radio {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-strong);
-  background: var(--surface);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  transition: border-color 120ms ease;
-}
-
-.contacto-radio.checked {
-  border-color: var(--violet-700);
-}
-
-.contacto-radio.checked::after {
-  content: "";
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--violet-700);
-}
-
-.contacto-del {
-  background: transparent;
-  border: 0;
-  color: var(--ink-muted);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: grid;
-  place-items: center;
-}
-
-.contacto-del:hover { color: var(--coral-500); background: var(--coral-50); }
-.contacto-del:disabled { opacity: 0.3; pointer-events: none; }
-
-.add-contacto-btn {
-  align-self: flex-start;
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  color: var(--violet-700);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 120ms ease, border-color 120ms ease;
-}
-
-.add-contacto-btn:hover { background: var(--violet-50); border-color: var(--violet-700); }
-.add-contacto-btn:disabled { opacity: 0.5; pointer-events: none; }
-
-.field-error .input,
-.field-error .select,
-.field-error .textarea {
-  border-color: var(--coral-500);
-}
-
-.field-error-msg {
-  font-size: 12px;
-  color: var(--coral-500);
-  margin-top: 4px;
-}
-
 /* Transitions */
 .drawer-enter-active .drawer-panel,
 .drawer-leave-active .drawer-panel {

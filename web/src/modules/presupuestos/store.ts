@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get, del } from '@/shared/api/client'
+import { get, post, put, patch, del } from '@/shared/api/client'
 import type { Presupuesto, PaginationResult } from '@/types'
 
 export const usePresupuestosStore = defineStore('presupuestos', () => {
@@ -36,5 +36,34 @@ export const usePresupuestosStore = defineStore('presupuestos', () => {
     }
   }
 
-  return { data, loading, hasFetched, lastFetched, fetch, remove, upsert }
+  async function create(payload: any): Promise<Presupuesto> {
+    const res = await post<Presupuesto>('/presupuestos', payload)
+    upsert(res)
+    return res
+  }
+
+  async function update(id: number, payload: any): Promise<Presupuesto> {
+    const res = await put<Presupuesto>('/presupuestos', id, payload)
+    upsert(res)
+    return res
+  }
+
+  async function updateStatus(id: number, estado: string): Promise<Presupuesto> {
+    const res = await patch<Presupuesto>('/presupuestos', `${id}/estado`, { estado })
+    upsert(res)
+    return res
+  }
+
+  return {
+    data,
+    loading,
+    hasFetched,
+    lastFetched,
+    fetch,
+    remove,
+    upsert,
+    create,
+    update,
+    updateStatus,
+  }
 })

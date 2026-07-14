@@ -67,7 +67,7 @@ function signedMoney(v: number, tipo: string): string {
 }
 
 function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 const filteredMovs = computed(() => {

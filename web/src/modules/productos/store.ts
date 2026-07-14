@@ -56,6 +56,18 @@ export const useProductosStore = defineStore('productos', () => {
     await fetch()
   }
 
+  async function create(payload: any): Promise<Producto> {
+    const res = await post<Producto>('/productos', payload)
+    upsert(res)
+    return res
+  }
+
+  async function update(id: number, payload: any): Promise<Producto> {
+    const res = await put<Producto>('/productos', id, payload)
+    upsert(res)
+    return res
+  }
+
   return {
     data,
     categorias,
@@ -65,6 +77,8 @@ export const useProductosStore = defineStore('productos', () => {
     fetch,
     remove,
     upsert,
+    create,
+    update,
     createCategoria,
     updateCategoria,
     removeCategoria,

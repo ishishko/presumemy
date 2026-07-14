@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { GripVertical, Plus, Trash2, FileText, Download, Link2 } from '@lucide/vue'
-import { get, post, put, patch } from '@/shared/api/client'
+import { FileText, Download, Link2 } from '@lucide/vue'
+import { get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
+import { usePresupuestosStore } from '../store'
 import { editorDirty } from '@/shared/lib/editorMode'
 import type { Presupuesto, Cliente, Producto, PaginationResult, ConfiguracionNegocio } from '@/types'
 import { presupuestoSchema } from '@/schemas/presupuestos'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import PresupuestoDoc from './PresupuestoDoc.vue'
+import BaseButton from '@/shared/ui/BaseButton.vue'
+
+import LinesSpreadsheet from './LinesSpreadsheet.vue'
+import EditorTotals from './EditorTotals.vue'
 
 const props = defineProps<{
   open: boolean
@@ -22,6 +27,7 @@ const emit = defineEmits<{
 }>()
 
 const { toast } = useToast()
+const store = usePresupuestosStore()
 
 const isNew = computed(() => !props.presupuesto)
 const docFolio = computed(() => props.presupuesto?.folio || 'P-...')
@@ -78,7 +84,7 @@ async function confirmReopen() {
   showConfirmReopen.value = false
   if (!props.presupuesto) return
   try {
-    const updated = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: 'en_curso' })
+    const updated = await store.updateStatus(props.presupuesto.id, 'en_curso')
     estado.value = updated.estado
     originalFormSnapshot.value = getFormSnapshot()
     emit('saved', updated)
@@ -107,19 +113,8 @@ const includeNotes = ref(true)
 
 const showConfirmExit = ref(false)
 
-const selectedCliente = computed(() => {
-  return clientes.value.find(c => c.id === clienteId.value)
-})
-
-const mainContacto = computed(() => {
-  return selectedCliente.value?.contactos?.find(co => co.esPrincipal) || selectedCliente.value?.contactos?.[0]
-})
 
 const lineas = ref<Array<{ id: number; producto: string; productoId: number; qty: string; price: string }>>([])
-const activeRow = ref<number | null>(null)
-const cellDirty = ref(false)
-const dragId = ref<number | null>(null)
-const dragOverId = ref<number | null>(null)
 const idRef = ref(1)
 
 const mkId = () => ++idRef.value
@@ -183,9 +178,6 @@ function restoreFocus() {
   prevFocused = null
 }
 
-function money(n: number): string {
-  return `$ ${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 const subtotal = computed(() =>
   lineas.value.reduce((s, l) => s + (parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0), 0)
@@ -241,9 +233,6 @@ function reset() {
   notas.value = ''
   includeNotes.value = true
   lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
-  activeRow.value = null
-  dragId.value = null
-  dragOverId.value = null
   snapshot.value = null
   savedAt.value = ''
   errors.value = {}
@@ -290,129 +279,7 @@ async function loadPresupuesto() {
   originalFormSnapshot.value = getFormSnapshot()
 }
 
-function updateLine(id: number, patch: Partial<{ producto: string; productoId: number; qty: string; price: string }>) {
-  lineas.value = lineas.value.map(l => l.id === id ? { ...l, ...patch } : l)
-}
 
-// input de cantidad/precio: marca la celda como editada
-function onCellInput(id: number, patch: Partial<{ qty: string; price: string }>) {
-  cellDirty.value = true
-  updateLine(id, patch)
-}
-
-// foco de celda: marca la fila activa y resetea el estado de edición
-function onCellFocus(id: number) {
-  activeRow.value = id
-  cellDirty.value = false
-}
-
-function removeLine(id: number) {
-  lineas.value = lineas.value.filter(l => l.id !== id)
-  if (lineas.value.length === 0) {
-    lineas.value = [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
-  }
-}
-
-function handleProductChange(id: number, val: string) {
-  cellDirty.value = true
-  const line = lineas.value.find(l => l.id === id)
-  const p = productos.value.find(p => p.nombre === val)
-  const patch: any = { producto: val }
-  if (p) {
-    patch.productoId = p.id
-    patch.price = p.precio.toString()
-    if (line && line.qty.trim() === '') patch.qty = '1'
-  } else {
-    patch.productoId = 0
-  }
-  updateLine(id, patch)
-}
-
-const isRowEmpty = (l: { producto: string; qty: string; price: string }) =>
-  !l.producto.trim() && !l.qty.trim() && !l.price.trim()
-
-// fila incompleta: tiene algún dato pero le falta producto o una cantidad válida
-const isRowInvalid = (l: { producto: string; qty: string; price: string }) =>
-  !isRowEmpty(l) && (!l.producto.trim() || !(parseFloat(l.qty) > 0))
-
-// enfoca la primera celda editable de una fila por su id
-function focusRowFirstCell(rowId: number) {
-  nextTick(() => {
-    const row = document.querySelector(`.lines-spreadsheet tbody tr[data-id="${rowId}"]`) as HTMLElement | null
-    const input = row?.querySelector('.cell-input') as HTMLInputElement | undefined
-    input?.focus()
-  })
-}
-
-// saca el foco fuera de la tabla, al siguiente focusable de la página
-function focusAfterTable() {
-  const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
-  if (!table) return
-  const focusables = getFocusable()
-  const active = document.activeElement as HTMLElement
-  const fromIdx = focusables.indexOf(active)
-  const next = focusables.find((el, i) => i > fromIdx && !table.contains(el))
-  next?.focus()
-}
-
-// Enter = navegación por fila (distinta de Tab, que es por celda)
-function onCellEnter(rowId: number) {
-  // celda recién editada: confirma y se queda (un segundo Enter avanzará)
-  if (cellDirty.value) {
-    cellDirty.value = false
-    return
-  }
-  const idx = lineas.value.findIndex(l => l.id === rowId)
-  const nextRow = lineas.value[idx + 1]
-  if (nextRow) {
-    focusRowFirstCell(nextRow.id)
-    return
-  }
-  // no hay fila debajo
-  const current = lineas.value[idx]
-  if (current && isRowEmpty(current)) {
-    focusAfterTable()
-  } else {
-    handleAddLine()
-  }
-}
-
-// limpia el resaltado de fila activa y elimina filas vacías al salir de la tabla
-function onTableFocusout(e: FocusEvent) {
-  const next = e.relatedTarget as HTMLElement | null
-  const table = e.currentTarget as HTMLElement
-  if (next && table.contains(next)) return
-  activeRow.value = null
-  cellDirty.value = false
-  const kept = lineas.value.filter(l => !isRowEmpty(l))
-  lineas.value = kept.length > 0 ? kept : [{ id: mkId(), producto: '', productoId: 0, qty: '', price: '' }]
-}
-
-function onDrop(id: number) {
-  if (dragId.value == null || dragId.value === id) {
-    dragId.value = null
-    dragOverId.value = null
-    return
-  }
-  const from = lineas.value.findIndex(l => l.id === dragId.value)
-  const to = lineas.value.findIndex(l => l.id === id)
-  if (from < 0 || to < 0) return
-  const next = [...lineas.value]
-  const [moved] = next.splice(from, 1)
-  next.splice(to, 0, moved)
-  lineas.value = next
-  dragId.value = null
-  dragOverId.value = null
-}
-
-function handleAddLine() {
-  lineas.value.push({ id: mkId(), producto: '', productoId: 0, qty: '', price: '' })
-  nextTick(() => {
-    const table = document.querySelector('.lines-spreadsheet') as HTMLElement | null
-    const inputs = table?.querySelectorAll('tbody tr:last-child .cell-input') as NodeListOf<HTMLInputElement> | undefined
-    inputs?.[0]?.focus()
-  })
-}
 
 function validate(): boolean {
   const detalles = lineas.value
@@ -468,7 +335,7 @@ function captureSnapshot(status: string) {
     notes: notas.value,
     includeNotes: includeNotes.value,
     status,
-    savedAt: now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+    savedAt: now.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
   }
 }
 
@@ -501,22 +368,22 @@ async function handleSave() {
   try {
     let res: Presupuesto
     if (!isNew.value && props.presupuesto) {
-      res = await put<Presupuesto>('/presupuestos', props.presupuesto.id, payload)
+      res = await store.update(props.presupuesto.id, payload)
       if (estado.value !== props.presupuesto.estado) {
-        res = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: estado.value })
+        res = await store.updateStatus(props.presupuesto.id, estado.value)
       }
       toast('Presupuesto actualizado')
     } else {
-      res = await post<Presupuesto>('/presupuestos', payload)
+      res = await store.create(payload)
       if (estado.value !== 'borrador') {
-        res = await patch<Presupuesto>('/presupuestos', `${res.id}/estado`, { estado: estado.value })
+        res = await store.updateStatus(res.id, estado.value)
       }
       toast('Borrador guardado')
     }
 
     snapshot.value = captureSnapshot(estado.value)
     const now = new Date()
-    savedAt.value = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+    savedAt.value = now.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
     originalFormSnapshot.value = getFormSnapshot()
     emit('saved', res)
@@ -526,31 +393,6 @@ async function handleSave() {
   }
 }
 
-async function handleSendToClient() {
-  if (!validate()) return
-
-  if (isDirty.value) {
-    await handleSave()
-  }
-
-  if (isNew.value || !props.presupuesto) return
-
-  try {
-    const updated = await patch<Presupuesto>('/presupuestos', `${props.presupuesto.id}/estado`, { estado: 'en_curso' })
-    estado.value = updated.estado
-    originalFormSnapshot.value = getFormSnapshot()
-    emit('saved', updated)
-    await loadPresupuesto()
-
-    if (mainContacto.value) {
-      toast(`Presupuesto enviado por ${mainContacto.value.canal}: ${mainContacto.value.valor}`)
-    } else {
-      toast('Presupuesto enviado al cliente')
-    }
-  } catch (e: any) {
-    toast(e.message || 'Error al enviar presupuesto', 'error')
-  }
-}
 
 // --- Documento: descarga de PDF y link público ---
 // el documento existe solo con el estado persistido más allá de borrador
@@ -689,7 +531,7 @@ defineExpose({ loadPresupuesto })
     <div
       v-if="open"
       ref="overlayEl"
-      class="editor-overlay"
+      class="fixed top-[56px] right-0 bottom-0 left-[240px] z-30 bg-page-bg flex flex-col overflow-hidden"
       role="dialog"
       aria-modal="true"
       :aria-label="isNew ? 'Nuevo presupuesto' : `Presupuesto ${docFolio}`"
@@ -870,129 +712,18 @@ defineExpose({ loadPresupuesto })
 
           <section class="form-section">
             <div class="form-section-body">
-              <div
-                class="lines-spreadsheet"
-                @focusout="onTableFocusout"
-              >
-                <table>
-                  <colgroup>
-                    <col style="width: 22px" />
-                    <col />
-                    <col style="width: 58px" />
-                    <col style="width: 86px" />
-                    <col style="width: 110px" />
-                    <col style="width: 30px" />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th><strong class="th-producto">Producto</strong> / descripción</th>
-                      <th class="num">Cant.</th>
-                      <th class="num">Precio</th>
-                      <th class="num">Subtotal</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="l in lineas"
-                      :key="l.id"
-                      :class="[
-                        'ln-row',
-                        activeRow === l.id && 'active',
-                        isRowInvalid(l) && 'error',
-                        dragId === l.id && 'dragging',
-                        dragOverId === l.id && dragId !== l.id && 'drag-over',
-                      ].filter(Boolean).join(' ')"
-                      :data-id="l.id"
-                      :draggable="isEditable"
-                      @dragstart="isEditable && (dragId = l.id)"
-                      @dragover.prevent="isEditable && (dragOverId = l.id)"
-                      @drop="isEditable && onDrop(l.id)"
-                      @dragend="dragId = null; dragOverId = null"
-                      @mousedown="isEditable && (activeRow = l.id)"
-                    >
-                      <td class="grip" title="Arrastrar para reordenar" aria-hidden="true">
-                        <GripVertical :size="14" />
-                      </td>
-                      <td>
-                        <input
-                          class="cell-input"
-                          :value="l.producto"
-                          @input="handleProductChange(l.id, ($event.target as HTMLInputElement).value)"
-                          @focus="onCellFocus(l.id)"
-                          @keydown.enter.prevent="onCellEnter(l.id)"
-                          :placeholder="l.id === lineas[0]?.id ? 'Producto, descripción o catálogo...' : ''"
-                          list="ed-products"
-                          :disabled="!isEditable"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          class="cell-input num-input"
-                          type="number"
-                          min="0"
-                          step="1"
-                          :value="l.qty"
-                          @input="onCellInput(l.id, { qty: ($event.target as HTMLInputElement).value })"
-                          @focus="onCellFocus(l.id)"
-                          @keydown.enter.prevent="onCellEnter(l.id)"
-                          :disabled="!isEditable"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          class="cell-input num-input"
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          :value="l.price"
-                          @input="onCellInput(l.id, { price: ($event.target as HTMLInputElement).value })"
-                          @focus="onCellFocus(l.id)"
-                          @keydown.enter.prevent="onCellEnter(l.id)"
-                          :disabled="!isEditable"
-                        />
-                      </td>
-                      <td class="num cell-subtotal">
-                        {{ money((parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0)) }}
-                      </td>
-                      <td>
-                        <button
-                          class="del-btn"
-                          @click="removeLine(l.id)"
-                          title="Eliminar línea"
-                          aria-label="Eliminar línea"
-                          :disabled="!isEditable"
-                          v-if="isEditable"
-                        >
-                          <Trash2 :size="14" aria-hidden="true" />
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <datalist id="ed-products">
-                  <option v-for="p in productos" :key="p.id" :value="p.nombre" />
-                </datalist>
-
-                <button
-                  v-if="isEditable"
-                  type="button"
-                  class="add-line-btn"
-                  @click="handleAddLine"
-                >
-                  <Plus :size="14" /> Agregar línea
-                </button>
-              </div>
+              <LinesSpreadsheet
+                v-model="lineas"
+                :productosList="productos"
+                :errors="errors"
+              />
 
               <p v-if="errors.detalles" class="err" role="alert">{{ errors.detalles }}</p>
 
-              <div class="ed-totals">
-                <div class="r"><span>Subtotal</span><span class="num">{{ money(subtotal) }}</span></div>
-                <div class="r grand">
-                  <span>Total</span><span class="num v">{{ money(total) }}</span>
-                </div>
-              </div>
+              <EditorTotals
+                :subtotal="subtotal"
+                :total="total"
+              />
             </div>
           </section>
 
@@ -1028,37 +759,18 @@ defineExpose({ loadPresupuesto })
         </div>
       </div>
 
-      <div class="editor-foot">
-        <div class="editor-foot-left">
-          <button class="btn btn-ghost" @click="triggerClose">{{ isEditable ? 'Cancelar' : 'Cerrar' }}</button>
-          <div class="spacer"></div>
-          <button
-            v-if="isEditable && estado === 'borrador' && !isNew"
-            class="btn btn-secondary"
-            @click="handleSendToClient"
-          >
-            Enviar a {{ mainContacto ? (mainContacto.valor ? `${mainContacto.canal} (${mainContacto.valor})` : mainContacto.canal) : 'cliente' }}
-          </button>
-          <button
-            v-if="isEditable"
-            class="btn btn-primary"
-            @click="handleSave"
-            :disabled="!isDirty"
-            :style="{ opacity: isDirty ? 1 : 0.5, pointerEvents: isDirty ? 'auto' : 'none' }"
-          >
-            {{ isNew ? 'Crear presupuesto' : 'Guardar cambios' }}
-          </button>
-        </div>
-        <div class="editor-foot-right">
+      <div class="flex items-center justify-between border-t border-border px-5.5 py-3.5 bg-surface min-h-[56px] select-none shrink-0">
+        <div class="flex-1"></div>
+        <div class="flex items-center gap-2">
           <template v-if="canShareDoc">
-            <button class="btn btn-secondary" type="button" @click="handleCopyLink">
+            <BaseButton variant="secondary" type="button" @click="handleCopyLink">
               <Link2 :size="16" aria-hidden="true" />
               Copiar link
-            </button>
-            <button class="btn btn-secondary" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
+            </BaseButton>
+            <BaseButton variant="secondary" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
               <Download :size="16" aria-hidden="true" />
               {{ pdfLoading ? 'Generando...' : 'Descargar PDF' }}
-            </button>
+            </BaseButton>
           </template>
         </div>
       </div>
