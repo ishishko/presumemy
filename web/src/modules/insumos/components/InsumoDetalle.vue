@@ -483,7 +483,7 @@ defineExpose({ loadInsumo })
                 rows="3"
                 aria-describedby="notes-hint"
               />
-              <span id="notes-hint" class="hint" style="font-size: 11px; color: var(--ink-muted); padding-left: 4px;">
+              <span id="notes-hint" class="hint" style="font-size: 11px; color: var(--color-ink-muted); padding-left: 4px;">
                 Información interna · solo visible para tu equipo
               </span>
             </div>
@@ -541,7 +541,7 @@ defineExpose({ loadInsumo })
   bottom: 0;
   left: 240px;
   z-index: 30;
-  background: var(--page-bg);
+  background: var(--color-page-bg);
   display: grid;
   grid-template-rows: 1fr auto;
   overflow: hidden;
@@ -552,8 +552,8 @@ defineExpose({ loadInsumo })
   align-items: center;
   gap: 14px;
   padding: 18px 28px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .id-title {
@@ -575,8 +575,8 @@ defineExpose({ loadInsumo })
   gap: 8px;
   font-size: 12px;
   padding: 6px 12px;
-  background: var(--yellow);
-  color: var(--yellow-ink);
+  background: var(--color-yellow);
+  color: var(--color-yellow-ink);
   border-radius: 999px;
 }
 
@@ -584,7 +584,7 @@ defineExpose({ loadInsumo })
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--yellow-ink);
+  background: var(--color-yellow-ink);
 }
 
 .id-body {
@@ -609,9 +609,9 @@ defineExpose({ loadInsumo })
 }
 
 .id-card {
-  /* background: var(--surface); */
-  /* border: 1px solid var(--border); */
-  border-radius: var(--r-lg);
+  /* background: var(--color-surface); */
+  /* border: 1px solid var(--color-border); */
+  border-radius: var(--radius-lg);
   padding: 20px;
   /* box-shadow: var(--shadow-1); */
   display: flex;
@@ -629,7 +629,7 @@ defineExpose({ loadInsumo })
 
 .id-card-head h4 {
   font-size: 11px;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -644,8 +644,8 @@ defineExpose({ loadInsumo })
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   padding: 3px 10px;
-  background: var(--violet-100);
-  color: var(--violet-700);
+  background: var(--color-violet-100);
+  color: var(--color-violet-700);
   border-radius: 999px;
 }
 
@@ -675,10 +675,10 @@ defineExpose({ loadInsumo })
   align-items: center;
   padding: 0 10px;
   font-size: 12px;
-  color: var(--ink-muted);
-  background: var(--page-bg);
-  border: 1.5px solid var(--border-strong);
-  border-radius: var(--r-md);
+  color: var(--color-ink-muted);
+  background: var(--color-page-bg);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   min-width: 64px;
   height: 43px; /* Mismo alto del input de FloatingField */
   box-sizing: border-box;
@@ -692,19 +692,19 @@ defineExpose({ loadInsumo })
   justify-content: space-between;
   padding: 10px 0;
   gap: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 
 .id-toggle-row .lbl { display: flex; flex-direction: column; gap: 2px; }
-.id-toggle-row .lbl .t { font-size: 13px; font-weight: 500; color: var(--ink); }
-.id-toggle-row .lbl .h { font-size: 12px; color: var(--ink-muted); }
+.id-toggle-row .lbl .t { font-size: 13px; font-weight: 500; color: var(--color-ink); }
+.id-toggle-row .lbl .h { font-size: 12px; color: var(--color-ink-muted); }
 
 .id-level-block {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 
 .id-level-block .row {
@@ -718,7 +718,7 @@ defineExpose({ loadInsumo })
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   font-weight: 500;
 }
 
@@ -742,7 +742,7 @@ defineExpose({ loadInsumo })
 .id-level-bar {
   height: 8px;
   border-radius: 999px;
-  background: var(--border);
+  background: var(--color-border);
   overflow: hidden;
 }
 
@@ -757,10 +757,10 @@ defineExpose({ loadInsumo })
   justify-content: space-between;
   align-items: baseline;
   font-size: 12px;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
 }
 
-.id-level-stats .strong { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.id-level-stats .strong { color: var(--color-ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 
 .form-section-body {
   display: flex;
@@ -777,7 +777,7 @@ defineExpose({ loadInsumo })
 
 .id-cost-label {
   font-size: 11px;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 500;
@@ -787,20 +787,20 @@ defineExpose({ loadInsumo })
   font-family: var(--font-sans);
   font-size: 18px;
   font-weight: 500;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
   font-variant-numeric: tabular-nums;
 }
 
 .id-cost-value .unit-ref {
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   font-weight: 400;
   font-size: 13px;
 }
 
 .id-prov-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-1);
   padding: 20px;
   display: flex;
@@ -816,8 +816,8 @@ defineExpose({ loadInsumo })
   gap: 12px;
 }
 
-.id-prov-card .head h4 { font-size: 16px; color: var(--ink); font-weight: 500; margin: 0; }
-.id-prov-card .head .hint { font-size: 12px; color: var(--ink-muted); }
+.id-prov-card .head h4 { font-size: 16px; color: var(--color-ink); font-weight: 500; margin: 0; }
+.id-prov-card .head .hint { font-size: 12px; color: var(--color-ink-muted); }
 
 
 
@@ -825,8 +825,8 @@ defineExpose({ loadInsumo })
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1.5px solid var(--border-strong);
-  background: var(--surface);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
   cursor: pointer;
   display: inline-grid;
   place-items: center;
@@ -834,15 +834,15 @@ defineExpose({ loadInsumo })
   padding: 0;
 }
 
-.id-radio:hover { border-color: var(--violet-700); }
-.id-radio.checked { border-color: var(--violet-700); }
+.id-radio:hover { border-color: var(--color-violet-700); }
+.id-radio.checked { border-color: var(--color-violet-700); }
 
 .id-radio.checked::after {
   content: "";
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--violet-700);
+  background: var(--color-violet-700);
 }
 
 
@@ -853,8 +853,8 @@ defineExpose({ loadInsumo })
   align-items: center;
   gap: 10px;
   padding: 14px 28px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
 }
 
 .id-back-btn {
@@ -869,15 +869,15 @@ defineExpose({ loadInsumo })
   align-items: center;
   gap: 8px;
   background: transparent;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
   transition: background 120ms ease;
 }
 
-.id-back-btn:hover { background: var(--violet-50); }
+.id-back-btn:hover { background: var(--color-violet-50); }
 
 .field-error {
   font-size: 11px;
-  color: var(--coral-700);
+  color: var(--color-coral-700);
   margin-top: 4px;
   padding-left: 4px;
 }
@@ -915,7 +915,7 @@ defineExpose({ loadInsumo })
 }
 
 .id-switch:focus-visible {
-  outline: 2px solid var(--violet-700);
+  outline: 2px solid var(--color-violet-700);
   outline-offset: 2px;
 }
 
@@ -942,11 +942,11 @@ defineExpose({ loadInsumo })
 
 .id-level-stats-inline {
   font-size: 10px;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   text-align: right;
 }
 
 .prov-global-del-btn:hover {
-  color: var(--coral-500) !important;
+  color: var(--color-coral-500) !important;
 }
 </style>

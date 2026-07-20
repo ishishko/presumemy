@@ -50,7 +50,7 @@ const navDatos = [
 </script>
 
 <template>
-  <aside class="w-60 h-screen bg-violet-700 flex flex-col flex-shrink-0">
+  <aside class="w-[240px] h-screen bg-violet-700 flex flex-col flex-shrink-0">
     <!-- Brand -->
     <div class="px-5 pt-5 pb-4">
       <img src="/memydeni-logo.png" alt="MemyDeni" class="w-full h-auto" />

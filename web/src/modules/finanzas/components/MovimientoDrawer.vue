@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { Check, X } from '@lucide/vue'
 import { post, put, get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
+import { formatMoney } from '@/shared/lib/format'
 import type { Transaccion, Presupuesto, PaginationResult } from '@/types'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
@@ -69,7 +70,7 @@ const tipoMeta = computed(() => tipoMovs.find(t => t.id === tipo.value))
 const monto = computed(() => parseFloat(String(valor.value)) || 0)
 
 const moneyAbs = computed(() => {
-  return `$ ${(parseFloat(String(valor.value)) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatMoney(parseFloat(String(valor.value)) || 0)
 })
 
 const showConfirmExit = ref(false)

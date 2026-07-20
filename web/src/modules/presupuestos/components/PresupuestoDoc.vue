@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatMoney } from '@/shared/lib/format'
 import type { ConfiguracionNegocio } from '@/types'
 
 export interface PresupuestoDocLine {
@@ -51,7 +52,7 @@ const contactoLinea = computed(() => {
 })
 
 function money(n: number): string {
-  return `$ ${n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatMoney(n)
 }
 
 function niceDate(iso: string): string {
@@ -151,7 +152,7 @@ function niceDate(iso: string): string {
     </div>
 
     <footer class="doc-foot text-hint">
-      Precios en {{ config?.moneda || 'MXN' }}. Vigencia 14 días. Gracias por confiar en {{ negocio }}
+      Precios en {{ config?.moneda || 'ARS' }}. Vigencia 14 días. Gracias por confiar en {{ negocio }}
     </footer>
   </div>
 </template>

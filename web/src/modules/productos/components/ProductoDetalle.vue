@@ -4,6 +4,7 @@ import { Trash2, X, Plus, Lock, Image, Ruler } from '@lucide/vue'
 import { editorDirty } from '@/shared/lib/editorMode'
 import { get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
+import { formatMoney } from '@/shared/lib/format'
 import { useProductosStore } from '../store'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
@@ -124,7 +125,7 @@ watch([precioCalculado, precioManual], ([newCalc, manual]) => {
 })
 
 function money(n: number): string {
-  return `$ ${n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return formatMoney(n, { decimals: 0 })
 }
 
 function reset() {
@@ -435,7 +436,7 @@ defineExpose({ loadProducto })
                     />
                   </div>
                   <div v-if="isEdit" style="padding-bottom: 8px; display: flex; gap: 6px; align-items: center;">
-                    <span v-if="localMedidasFormatted" class="pd-code-badge" title="Medidas" style="flex-shrink: 0; background: var(--violet-50); color: var(--violet-700)">
+                    <span v-if="localMedidasFormatted" class="pd-code-badge" title="Medidas" style="flex-shrink: 0; background: var(--color-violet-50); color: var(--color-violet-700)">
                       <Ruler :size="10" /> {{ localMedidasFormatted }}
                     </span>
                     <span class="pd-code-badge" title="Código autogenerado" style="flex-shrink: 0;">
@@ -597,7 +598,7 @@ defineExpose({ loadProducto })
                 </div>
 
                 <div v-if="tieneBom" class="pd-price-row">
-                  <span class="pd-price-label">Costo del producto <span style="margin-left: 6px; font-size: 10px; color: var(--ink-muted)">(desde BOM)</span></span>
+                  <span class="pd-price-label">Costo del producto <span style="margin-left: 6px; font-size: 10px; color: var(--color-ink-muted)">(desde BOM)</span></span>
                   <input class="pd-money-input readonly" :value="money(costoProducto)" readonly />
                 </div>
 
@@ -621,7 +622,7 @@ defineExpose({ loadProducto })
                     step="1"
                     v-model.number="precio"
                     :readonly="!precioManual"
-                    style="font-size: 18px; font-weight: 500; color: var(--violet-700); width: 150px"
+                    style="font-size: 18px; font-weight: 500; color: var(--color-violet-700); width: 150px"
                   />
                 </div>
 
@@ -685,7 +686,7 @@ defineExpose({ loadProducto })
   bottom: 0;
   left: 240px;
   z-index: 30;
-  background: var(--page-bg);
+  background: var(--color-page-bg);
   display: grid;
   grid-template-rows: 1fr auto;
   overflow: hidden;
@@ -720,9 +721,9 @@ defineExpose({ loadProducto })
 }
 
 .pd-name-header-card {
-  /* background: var(--surface); */
-  /* border: 1px solid var(--border); */
-  border-radius: var(--r-lg);
+  /* background: var(--color-surface); */
+  /* border: 1px solid var(--color-border); */
+  border-radius: var(--radius-lg);
   padding: 16px 20px;
   /* box-shadow: var(--shadow-1); */
 }
@@ -734,9 +735,9 @@ defineExpose({ loadProducto })
 }
 
 .pd-card {
-  /* background: var(--surface); */
-  /* border: 1px solid var(--border); */
-  /* border-radius: var(--r-lg); */
+  /* background: var(--color-surface); */
+  /* border: 1px solid var(--color-border); */
+  /* border-radius: var(--radius-lg); */
   padding: 20px;
   /* box-shadow: var(--shadow-1); */
   display: flex;
@@ -761,7 +762,7 @@ defineExpose({ loadProducto })
 
 .pd-card-head h4 {
   font-size: 11px;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -772,19 +773,19 @@ defineExpose({ loadProducto })
   aspect-ratio: 4 / 3;
   width: 100%;
   background: #F0EEF4;
-  border-radius: var(--r-md);
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
   color: rgba(28, 26, 30, 0.30);
   overflow: hidden;
   position: relative;
   cursor: pointer;
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed var(--color-border-strong);
   transition: border-color 120ms ease;
 }
 
 .pd-photo-main:hover {
-  border-color: var(--violet-700);
+  border-color: var(--color-violet-700);
 }
 
 .pd-photo-main img {
@@ -814,19 +815,19 @@ defineExpose({ loadProducto })
   aspect-ratio: 4 / 3;
   width: 100%;
   background: #F0EEF4;
-  border-radius: var(--r-md);
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
   color: rgba(28, 26, 30, 0.30);
   overflow: hidden;
   position: relative;
   cursor: pointer;
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed var(--color-border-strong);
   transition: border-color 120ms ease;
 }
 
 .pd-photo-thumb:hover {
-  border-color: var(--violet-700);
+  border-color: var(--color-violet-700);
 }
 
 .pd-photo-thumb img {
@@ -860,7 +861,7 @@ defineExpose({ loadProducto })
 }
 
 .remove-img-btn:hover {
-  background: var(--coral-600);
+  background: var(--color-coral-700);
 }
 
 .pd-code-badge {
@@ -871,8 +872,8 @@ defineExpose({ loadProducto })
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   padding: 3px 10px;
-  background: var(--violet-100);
-  color: var(--violet-700);
+  background: var(--color-violet-100);
+  color: var(--color-violet-700);
   border-radius: 999px;
 }
 
@@ -887,7 +888,7 @@ defineExpose({ loadProducto })
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
 }
 
 /* Nombre unificado estéticamente pero con fuente grande (copiado de ins-nombre) */
@@ -915,31 +916,31 @@ defineExpose({ loadProducto })
   justify-content: space-between;
   padding: 10px 0;
   gap: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 
 .pd-toggle-row .lbl { display: flex; flex-direction: column; gap: 2px; }
-.pd-toggle-row .lbl .t { font-size: 13px; font-weight: 500; color: var(--ink); }
-.pd-toggle-row .lbl .h { font-size: 12px; color: var(--ink-muted); }
+.pd-toggle-row .lbl .t { font-size: 13px; font-weight: 500; color: var(--color-ink); }
+.pd-toggle-row .lbl .h { font-size: 12px; color: var(--color-ink-muted); }
 
 .pd-price-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
   font-size: 13px;
 }
 
 .pd-price-row.grand {
-  border-top: 1px solid var(--border-strong);
+  border-top: 1px solid var(--color-border-strong);
   margin-top: 6px;
   padding-top: 14px;
 }
 
 .pd-price-label {
   font-size: 12px;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -951,28 +952,28 @@ defineExpose({ loadProducto })
   font-variant-numeric: tabular-nums;
   text-align: right;
   padding: 8px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  color: var(--ink);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
 }
 
 .pd-money-input:focus {
   outline: none;
-  border-color: var(--teal-500);
-  box-shadow: var(--focus-ring);
+  border-color: var(--color-teal-500);
+  box-shadow: var(--shadow-focus-ring);
 }
 
 .pd-money-input.readonly {
-  background: var(--page-bg);
-  color: var(--ink-muted);
-  border-color: var(--border);
+  background: var(--color-page-bg);
+  color: var(--color-ink-muted);
+  border-color: var(--color-border);
 }
 
 .pd-bom {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-1);
   padding: 20px;
   display: flex;
@@ -987,12 +988,12 @@ defineExpose({ loadProducto })
   gap: 12px;
 }
 
-.pd-bom .pd-bom-head h4 { font-size: 16px; color: var(--ink); font-weight: 500; }
+.pd-bom .pd-bom-head h4 { font-size: 16px; color: var(--color-ink); font-weight: 500; }
 
 .pd-bom-table {
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--color-border-strong);
   border-radius: 10px;
-  background: var(--surface);
+  background: var(--color-surface);
   overflow: hidden;
 }
 
@@ -1005,16 +1006,16 @@ defineExpose({ loadProducto })
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink-muted);
-  background: var(--page-bg);
-  border-bottom: 1px solid var(--border);
+  color: var(--color-ink-muted);
+  background: var(--color-page-bg);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .pd-bom-table thead th.num { text-align: right; }
 
 .pd-bom-table tbody td {
   padding: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .pd-bom-table tbody tr:last-child td { border-bottom: 0; }
@@ -1025,13 +1026,13 @@ defineExpose({ loadProducto })
   background: transparent;
   font-family: var(--font-sans);
   font-size: 13px;
-  color: var(--ink);
+  color: var(--color-ink);
   padding: 11px 8px;
   outline: none;
   cursor: pointer;
 }
 
-.cell-select:focus { background: var(--teal-100); }
+.cell-select:focus { background: var(--color-teal-100); }
 
 .cell-input {
   width: 100%;
@@ -1039,12 +1040,12 @@ defineExpose({ loadProducto })
   background: transparent;
   font-family: var(--font-sans);
   font-size: 13px;
-  color: var(--ink);
+  color: var(--color-ink);
   padding: 11px 12px;
   outline: none;
 }
 
-.cell-input:focus { background: var(--teal-100); }
+.cell-input:focus { background: var(--color-teal-100); }
 .cell-input.num-input { text-align: right; font-variant-numeric: tabular-nums; }
 
 .cell-subtotal {
@@ -1056,14 +1057,14 @@ defineExpose({ loadProducto })
 .del-btn {
   background: transparent;
   border: 0;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   cursor: pointer;
   padding: 8px;
   display: grid;
   place-items: center;
 }
 
-.del-btn:hover { color: var(--coral-500); }
+.del-btn:hover { color: var(--color-coral-500); }
 
 .add-line-btn {
   display: flex;
@@ -1071,20 +1072,20 @@ defineExpose({ loadProducto })
   gap: 8px;
   width: 100%;
   padding: 12px 16px;
-  background: var(--surface);
+  background: var(--color-surface);
   border: 0;
-  border-top: 1px dashed var(--border-strong);
+  border-top: 1px dashed var(--color-border-strong);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 500;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
   cursor: pointer;
   text-align: left;
   transition: background 120ms ease;
 }
 
 .add-line-btn:hover {
-  background: var(--violet-50);
+  background: var(--color-violet-50);
 }
 
 .pd-bom-total {
@@ -1095,11 +1096,11 @@ defineExpose({ loadProducto })
   padding-top: 8px;
 }
 
-.pd-bom-total .lbl { font-size: 12px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.pd-bom-total .lbl { font-size: 12px; color: var(--color-ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .pd-bom-total .val {
   font-size: 18px;
   font-weight: 500;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
@@ -1109,8 +1110,8 @@ defineExpose({ loadProducto })
   align-items: center;
   gap: 10px;
   padding: 14px 28px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
 }
 
 .pd-back-btn {
@@ -1125,11 +1126,11 @@ defineExpose({ loadProducto })
   align-items: center;
   gap: 8px;
   background: transparent;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
   transition: background 120ms ease;
 }
 
-.pd-back-btn:hover { background: var(--violet-50); }
+.pd-back-btn:hover { background: var(--color-violet-50); }
 
 /* Transitions */
 .overlay-enter-active {
@@ -1177,7 +1178,7 @@ defineExpose({ loadProducto })
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   font-weight: 500;
   margin-bottom: 6px;
 }

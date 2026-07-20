@@ -29,8 +29,8 @@ const medidasProfundidad = defineModel<number | ''>('medidasProfundidad', { requ
       </div>
     </div>
 
-    <div class="medidas-inputs-row">
-      <div class="medida-input-col">
+    <div class="flex gap-2">
+      <div class="flex-1 min-w-0">
         <FloatingField
           id="prod-base"
           label="Base (ancho)"
@@ -43,7 +43,7 @@ const medidasProfundidad = defineModel<number | ''>('medidasProfundidad', { requ
           :describedby="errors.medidasBase ? 'err-base' : undefined"
         />
       </div>
-      <div class="medida-input-col">
+      <div class="flex-1 min-w-0">
         <FloatingField
           id="prod-altura"
           label="Altura (alto)"
@@ -56,7 +56,7 @@ const medidasProfundidad = defineModel<number | ''>('medidasProfundidad', { requ
           :describedby="errors.medidasAltura ? 'err-altura' : undefined"
         />
       </div>
-      <div v-if="medidasTipo === 'cuerpo'" class="medida-input-col">
+      <div v-if="medidasTipo === 'cuerpo'" class="flex-1 min-w-0">
         <FloatingField
           id="prod-profundidad"
           label="Profundidad"
@@ -72,13 +72,13 @@ const medidasProfundidad = defineModel<number | ''>('medidasProfundidad', { requ
     </div>
 
     <!-- Mensajes de error individuales -->
-    <div v-if="errors.medidasBase" id="err-base" class="field-error" role="alert">
+    <div v-if="errors.medidasBase" id="err-base" class="text-11 text-coral-700 mt-1 pl-1" role="alert">
       {{ errors.medidasBase }}
     </div>
-    <div v-if="errors.medidasAltura" id="err-altura" class="field-error" role="alert">
+    <div v-if="errors.medidasAltura" id="err-altura" class="text-11 text-coral-700 mt-1 pl-1" role="alert">
       {{ errors.medidasAltura }}
     </div>
-    <div v-if="medidasTipo === 'cuerpo' && errors.medidasProfundidad" id="err-profundidad" class="field-error" role="alert">
+    <div v-if="medidasTipo === 'cuerpo' && errors.medidasProfundidad" id="err-profundidad" class="text-11 text-coral-700 mt-1 pl-1" role="alert">
       {{ errors.medidasProfundidad }}
     </div>
   </div>

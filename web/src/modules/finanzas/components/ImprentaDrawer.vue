@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { Check, X } from '@lucide/vue'
 import { post, put, get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
+import { formatMoney } from '@/shared/lib/format'
 import type { OrdenImprenta, Presupuesto, PaginationResult } from '@/types'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
@@ -46,7 +47,7 @@ const metodosPago = [
 const diff = computed(() => (parseFloat(String(valorNuestro.value)) || 0) - (parseFloat(String(valorPatri.value)) || 0))
 
 function money(n: number): string {
-  return `$ ${Math.abs(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatMoney(Math.abs(n))
 }
 
 function reset() {

@@ -803,7 +803,7 @@ defineExpose({ loadPresupuesto })
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: var(--page-bg);
+  background: var(--color-page-bg);
   display: grid;
   grid-template-rows: auto 1fr auto;
   overflow: hidden;
@@ -822,12 +822,12 @@ defineExpose({ loadPresupuesto })
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   font-weight: 500;
 }
 
 .editor-title .eyebrow .folio {
-  color: var(--violet-700);
+  color: var(--color-violet-700);
   font-variant-numeric: tabular-nums;
 }
 
@@ -835,7 +835,7 @@ defineExpose({ loadPresupuesto })
   font-size: 22px;
   line-height: 1.1;
   margin: 0;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
 }
 
 .save-chip {
@@ -844,7 +844,7 @@ defineExpose({ loadPresupuesto })
   gap: 8px;
   font-size: 12px;
   padding: 6px 12px;
-  background: var(--mint);
+  background: var(--color-mint);
   color: #1F5A3E;
   border-radius: 999px;
 }
@@ -866,17 +866,17 @@ defineExpose({ loadPresupuesto })
 .editor-form {
   overflow-y: auto;
   padding: 28px 28px 24px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: 26px;
-  background: var(--page-bg);
+  background: var(--color-page-bg);
 }
 
 .editor-preview {
   overflow-y: auto;
   padding: 28px 32px;
-  background: radial-gradient(circle at 50% 0%, rgba(139, 37, 112, 0.04), transparent 240px), var(--page-bg);
+  background: radial-gradient(circle at 50% 0%, rgba(139, 37, 112, 0.04), transparent 240px), var(--color-page-bg);
 }
 
 .form-tailspace { height: 4px; }
@@ -895,16 +895,16 @@ defineExpose({ loadPresupuesto })
 
 .form-section-head h4 {
   font-size: 16px;
-  color: var(--ink);
+  color: var(--color-ink);
   font-weight: 500;
   letter-spacing: -0.005em;
 }
 
 /* subtítulo inline del header (ej. "Método de envío") */
 .form-subhead {
-  font-size: var(--fs-12);
+  font-size: var(--text-12);
   font-weight: 500;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
 }
 
 .step-pill {
@@ -913,8 +913,8 @@ defineExpose({ loadPresupuesto })
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--violet-50);
-  color: var(--violet-700);
+  background: var(--color-violet-50);
+  color: var(--color-violet-700);
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -952,7 +952,7 @@ defineExpose({ loadPresupuesto })
 }
 .envio-head h4 {
   font-size: 16px;
-  color: var(--ink);
+  color: var(--color-ink);
   font-weight: 500;
   letter-spacing: -0.005em;
 }
@@ -960,7 +960,7 @@ defineExpose({ loadPresupuesto })
 /* marca de inicio de la tabla de productos */
 .th-producto {
   font-weight: 700;
-  color: var(--ink);
+  color: var(--color-ink);
 }
 
 .date-input { padding-left: 36px; }
@@ -972,7 +972,7 @@ defineExpose({ loadPresupuesto })
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
   font-size: 13px;
   pointer-events: none;
 }
@@ -989,17 +989,17 @@ defineExpose({ loadPresupuesto })
   gap: 8px;
   width: 100%;
   padding: 12px 16px;
-  background: var(--surface);
+  background: var(--color-surface);
   border: 0;
-  border-top: 1px dashed var(--border-strong);
+  border-top: 1px dashed var(--color-border-strong);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 500;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
   cursor: pointer;
   text-align: left;
 }
-.add-line-btn:hover { background: var(--violet-50); }
+.add-line-btn:hover { background: var(--color-violet-50); }
 .add-line-btn svg { width: 14px; height: 14px; }
 
 .ed-totals {
@@ -1021,20 +1021,20 @@ defineExpose({ loadPresupuesto })
   align-items: baseline;
   padding: 6px 0;
   font-size: 14px;
-  color: var(--ink-muted);
+  color: var(--color-ink-muted);
 }
 
 .ed-totals .r.grand {
-  border-top: 1px solid var(--border-strong);
+  border-top: 1px solid var(--color-border-strong);
   margin-top: 8px;
   padding-top: 12px;
   font-size: 24px;
   font-weight: 500;
-  color: var(--ink);
+  color: var(--color-ink);
   letter-spacing: -0.01em;
 }
 
-.ed-totals .r.grand .v { color: var(--violet-700); }
+.ed-totals .r.grand .v { color: var(--color-violet-700); }
 
 .check-row {
   display: flex;
@@ -1043,14 +1043,14 @@ defineExpose({ loadPresupuesto })
   margin-top: 8px;
   font-size: 13px;
   font-weight: 400;
-  color: var(--ink);
+  color: var(--color-ink);
   cursor: pointer;
 }
 
 .check-row input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: var(--teal-500);
+  accent-color: var(--color-teal-500);
   cursor: pointer;
 }
 
@@ -1058,8 +1058,8 @@ defineExpose({ loadPresupuesto })
   display: grid;
   grid-template-columns: 1fr 1fr;
   padding: 14px 28px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
   position: relative;
   z-index: 5;
 }
@@ -1069,7 +1069,7 @@ defineExpose({ loadPresupuesto })
   align-items: center;
   gap: 10px;
   padding-right: 28px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--color-border);
 }
 
 .editor-foot-right {
@@ -1093,10 +1093,10 @@ defineExpose({ loadPresupuesto })
   justify-content: center;
   gap: 10px;
   padding: 40px;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  color: var(--ink-muted);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
   text-align: center;
 }
 
@@ -1105,17 +1105,17 @@ defineExpose({ loadPresupuesto })
   height: 44px;
   opacity: 0.45;
   margin-bottom: 6px;
-  color: var(--violet-700);
+  color: var(--color-violet-700);
 }
 
 .preview-empty p {
   font-size: 15px;
   font-weight: 500;
-  color: var(--ink);
+  color: var(--color-ink);
   margin: 0;
 }
 
-.preview-empty small { font-size: 12px; color: var(--ink-muted); }
+.preview-empty small { font-size: 12px; color: var(--color-ink-muted); }
 
 .editor-slide-enter-active,
 .editor-slide-leave-active {

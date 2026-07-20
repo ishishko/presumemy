@@ -57,7 +57,7 @@ const state = computed(() => {
 })
 const isInvalid = computed(() => state.value === 'invalid')
 
-const labelChars = computed(() => Array.from(props.label).map(c => (c === ' ' ? ' ' : c)))
+const labelChars = computed(() => Array.from(props.label).map(c => (c === ' ' ? ' ' : c)))
 
 const placeholderShown = computed(() =>
   (isFocused.value || effectiveAlwaysFloat.value) ? props.placeholder : ' '

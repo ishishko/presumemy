@@ -123,7 +123,7 @@ function cancelRename() {
   editName.value = ''
 }
 
-// Iniciar creaci├│n
+// Iniciar creación
 async function startCreate() {
   if (props.categorias.length >= 12) return
   isCreating.value = true
@@ -132,7 +132,7 @@ async function startCreate() {
   createInputRef.value?.focus()
 }
 
-// Guardar creaci├│n
+// Guardar creación
 function saveCreate() {
   const name = createName.value.trim()
   if (name) {
@@ -142,13 +142,13 @@ function saveCreate() {
   createName.value = ''
 }
 
-// Cancelar creaci├│n
+// Cancelar creación
 function cancelCreate() {
   isCreating.value = false
   createName.value = ''
 }
 
-// Confirmar eliminaci├│n
+// Confirmar eliminación
 function startRemove(c: Categoria) {
   emit('remove', c)
 }
@@ -182,9 +182,9 @@ onUnmounted(() => {
       {{ allLabel }}
     </button>
 
-    <!-- Lista de Categor├¡as -->
+    <!-- Lista de Categorías -->
     <template v-for="c in categorias" :key="c.id">
-      <!-- Input de Edici├│n Inline -->
+      <!-- Input de Edición Inline -->
       <div v-if="editingId === c.id" class="inline-flex items-center">
         <input
           ref="editInputRef"
@@ -212,9 +212,9 @@ onUnmounted(() => {
         @mouseleave="handleMouseleave"
       >
         <span class="white-space-nowrap">{{ c.nombre }}</span>
-        <span v-if="getCount(c) > 0" class="text-11 opacity-60 font-mono tabular-nums">┬À {{ getCount(c) }}</span>
+        <span v-if="getCount(c) > 0" class="text-11 opacity-60 font-mono tabular-nums">· {{ getCount(c) }}</span>
         
-        <!-- Botones de Acci├│n (l├ípiz y X) -->
+        <!-- Botones de Acción (lápiz y X) -->
         <span class="pill-actions" @mousedown.stop @mouseup.stop>
           <span class="action-btn" @click.stop="startRename(c)" title="Renombrar">
             <Pencil :size="12" />
@@ -226,7 +226,7 @@ onUnmounted(() => {
       </button>
     </template>
 
-    <!-- Input de Creaci├│n Inline -->
+    <!-- Input de Creación Inline -->
     <div v-if="isCreating" class="inline-flex items-center">
       <input
         ref="createInputRef"
@@ -241,13 +241,13 @@ onUnmounted(() => {
       />
     </div>
 
-    <!-- Bot├│n de Agregar (+) -->
+    <!-- Botón de Agregar (+) -->
     <button
       v-else
       type="button"
       class="font-sans text-12 font-medium px-3 py-1.5 rounded-pill border border-border bg-transparent text-ink-muted cursor-pointer transition-colors duration-120 hover:text-ink hover:border-border-strong select-none focus-visible:outline-none focus-visible:shadow-focus-ring inline-flex items-center justify-center min-w-[32px] px-0"
       :disabled="categorias.length >= 12"
-      :title="categorias.length >= 12 ? 'M├íximo 12 categor├¡as' : 'Agregar categor├¡a'"
+      :title="categorias.length >= 12 ? 'Máximo 12 categorías' : 'Agregar categoría'"
       @click="startCreate"
     >
       <Plus :size="14" />

@@ -227,7 +227,7 @@ async function handleDeleteGlobalProvConfirm() {
                   class="prov-global-del-btn"
                   @click="triggerDeleteGlobalProv(p.proveedorId, p.nombreTemp || '')"
                   title="Eliminar este proveedor permanentemente del catálogo"
-                  style="position: absolute; right: 6px; background: transparent; border: none; padding: 4px; cursor: pointer; color: var(--ink-muted); display: flex; align-items: center; justify-content: center; transition: color 120ms ease;"
+                  style="position: absolute; right: 6px; background: transparent; border: none; padding: 4px; cursor: pointer; color: var(--color-ink-muted); display: flex; align-items: center; justify-content: center; transition: color 120ms ease;"
                 >
                   <Trash2 :size="12" />
                 </button>

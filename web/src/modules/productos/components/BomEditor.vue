@@ -251,7 +251,7 @@ function money(n: number): string {
                 @keydown.enter.prevent="onCellEnter(idx)"
                 style="padding-right: 45px; text-align: right;"
               />
-              <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink-muted); pointer-events: none;">
+              <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--color-ink-muted); pointer-events: none;">
                 {{ getInsumoUnit(l.insumoId) }}
               </span>
             </td>
@@ -267,7 +267,7 @@ function money(n: number): string {
                 style="padding-right: 45px; text-align: right;"
                 :disabled="!!l.insumoId"
               />
-              <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--ink-muted); pointer-events: none;">
+              <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--color-ink-muted); pointer-events: none;">
                 {{ l.insumoId ? `/ ${getInsumoUnit(l.insumoId)}` : '' }}
               </span>
             </td>
@@ -288,7 +288,7 @@ function money(n: number): string {
       </button>
     </div>
 
-    <div class="pd-bom-totals" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 12px; background: var(--page-bg)/30; border: 1px solid var(--border); border-radius: var(--r-md);">
+    <div class="pd-bom-totals" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 12px; background: var(--color-page-bg)/30; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
       <span class="text-12 text-ink-muted">Total receta BOM:</span>
       <span class="text-15 font-semibold text-ink font-mono">{{ money(bomTotal) }}</span>
     </div>

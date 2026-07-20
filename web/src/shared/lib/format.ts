@@ -8,7 +8,8 @@
  */
 export function formatMoney(value: number, opts: { ars?: boolean; decimals?: number } = {}): string {
   const decimals = opts.decimals !== undefined ? opts.decimals : 2
-  const base = `$ ${value.toLocaleString('es-AR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
+  const n = Number(value) || 0
+  const base = `$ ${n.toLocaleString('es-AR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
   return opts.ars ? `${base} ARS` : base
 }
 
