@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { Lock } from '@lucide/vue'
+import { Lock, Trash2 } from '@lucide/vue'
 import { get } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
 import { useInsumosStore } from '../store'
