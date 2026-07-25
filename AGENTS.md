@@ -42,20 +42,59 @@ cd web && npx vue-tsc -b    # typecheck sin build
 Ambos servidores deben correr simultaneamente. Vite tiene `usePolling: true` para WSL + NTFS.
 El frontend hace proxy de `/api` → `http://localhost:3000`.
 
-## Frontend (web/) — estructura
+## Frontend (web/) — estructura modular por dominio
+
+La organizacion es **modular por dominio**, no por tipo de artefacto. Todo lo
+de un dominio vive en su carpeta.
 
 | Directorio | Contenido |
 |---|---|
-| `src/views/` | 7 vistas: Dashboard, Insumos, Catalogo, Clientes, Presupuestos, Finanzas, Ajustes |
-| `src/components/drawers/` | ClienteDrawer, PresupuestoDrawer, MovimientoDrawer, ImprentaDrawer |
-| `src/components/overlays/` | InsumoDetalle, ProductoDetalle (fullscreen) |
-| `src/components/ui/` | DrawerShell, ConfirmDialog, ToastContainer |
-| `src/components/layout/` | AppHeader, PageHead, TheSidebar |
-| `src/composables/` | useCreateTrigger, useDirty, useToast |
-| `src/schemas/` | Zod v4 schemas: insumos, productos, clientes, presupuestos, finanzas |
-| `src/services/` | api.ts (ofetch con JWT), dashboard.ts |
-| `src/stores/` | auth.ts (Pinia + Supabase) |
-| `src/types/` | TypeScript types centralizados |
+| `src/app/` | Arranque de la SPA: `main.ts`, `App.vue`, `router.ts`, `pinia.ts`, `styles/main.css` y el shell (`shell/AppHeader.vue`, `shell/AppSidebar.vue`) |
+| `src/modules/<dominio>/` | Un modulo por dominio: auth, dashboard, insumos, productos, clientes, presupuestos, finanzas, ajustes, search |
+| `src/shared/api/` | `client.ts` — adapter HTTP (ofetch + JWT). **Unico** que conoce ofetch |
+| `src/shared/lib/` | Utilidades sin dominio: `format`, `useToast`, `useDirty`, `usePagination`, `useFormSnapshot`, `editorSlot`, `createTrigger` |
+| `src/shared/ui/` | Primitivos sin dominio: BaseButton, BaseCard, BaseKpi, DataTable, DrawerShell, ConfirmDialog, FloatingField/Select, StatusBadge, OverlayShell, etc. |
+| `src/shared/types.ts` | Solo lo transversal de verdad (`PaginationResult`) |
+| `src/assets/css/components.css` | CSS legacy que queda por migrar. **No agregar nada aca** |
+
+### Anatomia de un modulo
+
+```
+modules/<dominio>/
+  <Dominio>Page.vue    # pagina de la ruta (la importa el router con import() lazy)
+  api.ts               # unico punto del modulo que habla HTTP
+  store.ts             # estado Pinia; el unico que consume api.ts
+  types.ts             # tipos del dominio
+  schema.ts            # schemas Zod del dominio
+  stock.ts             # reglas de negocio puras (ejemplo de insumos)
+  components/          # componentes internos del modulo
+  index.ts             # API publica del modulo (barrel)
+```
+
+### Reglas que hay que respetar
+
+- **DIP:** ningun `.vue` importa `shared/api/client`. La UI usa acciones del
+  store; el store usa `api.ts`. Verificable:
+  `grep -rn "shared/api/client" web/src --include=*.vue` debe dar vacio.
+- **Regla de dependencia:** `app → modules → shared`. `shared` no conoce
+  ningun dominio y `modules` no importa de `app`.
+- **Cruce entre modulos:** por el barrel (`@/modules/<otro>`), y para datos
+  siempre a traves del **store** del otro modulo, nunca con HTTP propio.
+  Los tipos se importan con `import type`, que TypeScript borra en
+  compilacion y por eso no genera ciclos entre barrels.
+- **Los barrels no exportan las paginas:** el router las importa por ruta
+  directa con `import()` para no romper el code splitting.
+- **Cambios sin guardar:** se detectan con `useFormSnapshot`, que fotografia
+  el formulario al cargarlo y lo compara contra si mismo. No comparar campo
+  por campo contra el registro de la API: se rompe por orden de claves de un
+  JSON, Decimals serializados como string o valores derivados. Al snapshot
+  entra solo lo que edita el usuario.
+- **Editores fullscreen:** son duenos de sus controles y los teletransportan
+  al header con `EDITOR_SLOT_ID` (`shared/lib/editorSlot`). El shell solo
+  sabe si hay un editor abierto, para ocultar "Crear nuevo".
+- **Salir con cambios:** todo editor registra `onBeforeRouteLeave` y expone
+  `requestClose()` para que la pagina pueda cerrarlo cuando el aside pide
+  volver a la lista.
 
 ### Auth
 - `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` requeridos en `.env`
@@ -91,6 +130,18 @@ El frontend hace proxy de `/api` → `http://localhost:3000`.
 - **Todo Decimal**, nunca Float
 - **Campos calculados** (`costo_unitario`, `subtotal`, `total`) se computan en app antes de guardar
 - **FSM presupuestos**: `borrador → enviado → en_curso → cerrado → facturado`. Cualquiera (excepto facturado) → `cancelado`
+- **Modo de calculo del BOM** (`costo_producto_insumo.modo_calculo`): cada linea
+  de receta declara como participa en el precio del producto.
+  - `normal` — entra al costo BOM y recibe el margen.
+  - `fijo` — no entra al costo BOM; se suma al precio **despues** del margen.
+  - `extra` — no suma ni al costo ni al precio (informativo).
+
+  La API es la fuente de verdad de `costoBOM` y `precioSugerido`: el front
+  previsualiza con la misma regla, pero el backend recalcula al guardar.
+- **Nivel de stock de un insumo** (`modules/insumos/stock.ts`, en el front):
+  con stock y minimo en 0 el insumo no esta bajo control de inventario y se
+  reporta como `sin_control`, no como faltante. Sin minimo cargado la barra
+  va llena.
 
 ## Design system — leer antes de tocar UI
 
