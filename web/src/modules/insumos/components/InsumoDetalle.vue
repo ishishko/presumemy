@@ -5,6 +5,7 @@ import { Lock, Trash2 } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { useInsumosStore } from '../store'
+import { useFormSnapshot } from '@/shared/lib/useFormSnapshot'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
@@ -45,8 +46,10 @@ async function cargarCatalogos() {
 const nombre = ref('')
 const categoriaId = ref(0)
 const unidad = ref('')
-const stockActual = ref(0)
-const stockMinimo = ref(0)
+// Vacío = sin control de inventario. La BD exige un número, así que la app
+// traduce vacío a 0 al guardar y 0 a vacío al cargar.
+const stockActual = ref<number | ''>('')
+const stockMinimo = ref<number | ''>('')
 const activo = ref(true)
 const costoPaquete = ref(0)
 const cantidadPack = ref(1)
@@ -62,60 +65,39 @@ const errors = ref<Record<string, string>>({})
 const overlayRef = ref<HTMLElement | null>(null)
 
 /**
- * Deja las filas de proveedores comparables entre sí: descarta la fila vacía
- * que el formulario agrega como placeholder, ignora el `nombreTemp` de UI y
- * normaliza el precio (la API lo serializa como string).
+ * Estado editable del insumo. Es lo que se compara para saber si hay cambios
+ * sin guardar, y refleja exactamente lo que viaja en el payload.
  */
-function normalizarProvs(rows: Array<{ proveedorId: number; precio: any; esPrincipal: boolean }>) {
-  return rows
-    .filter(p => p.proveedorId > 0)
-    .map(p => ({
-      proveedorId: p.proveedorId,
-      precio: Number(p.precio) || 0,
-      esPrincipal: !!p.esPrincipal,
-    }))
-    .sort((a, b) => a.proveedorId - b.proveedorId)
+function snapshotFormulario() {
+  return {
+    nombre: nombre.value,
+    categoriaId: categoriaId.value,
+    unidad: unidad.value,
+    stock: Number(stockActual.value) || 0,
+    stockMinimo: Number(stockMinimo.value) || 0,
+    activo: activo.value,
+    notas: notas.value,
+    costoPaquete: Number(costoPaquete.value) || 0,
+    cantidadPack: esSimple.value ? 1 : Number(cantidadPack.value) || 1,
+    proveedores: proveedores.value
+      // La fila vacía es un placeholder del formulario, no un dato.
+      .filter(p => p.proveedorId > 0)
+      .map(p => ({
+        proveedorId: p.proveedorId,
+        precio: Number(p.precio) || 0,
+        esPrincipal: !!p.esPrincipal,
+      })),
+  }
 }
 
-const dirty = computed(() => {
-  if (!props.insumo) return true
-  const i = props.insumo
-  const matchesNombre = nombre.value === i.nombre
-  const matchesCategoria = categoriaId.value === i.categoriaId
-  const matchesUnidad = unidad.value === i.unidad
-  const matchesStock = Number(stockActual.value) === Number(i.stock)
-  const matchesStockMin = Number(stockMinimo.value) === Number(i.stockMinimo)
-  const matchesActivo = activo.value === i.activo
-  const matchesNotas = notas.value === (i.notas || '')
-  
-  let matchesCosteo = false
-  if (esSimple.value) {
-    matchesCosteo = Number(i.cantidadPack) === 1 && Number(costoPaquete.value) === Number(i.costoPaquete)
-  } else {
-    matchesCosteo = Number(costoPaquete.value) === Number(i.costoPaquete) && Number(cantidadPack.value) === Number(i.cantidadPack)
-  }
-
-  const matchesProvs = JSON.stringify(normalizarProvs(proveedores.value)) === JSON.stringify(normalizarProvs(i.proveedores || []))
-
-  return !(
-    matchesNombre &&
-    matchesCategoria &&
-    matchesUnidad &&
-    matchesStock &&
-    matchesStockMin &&
-    matchesActivo &&
-    matchesNotas &&
-    matchesCosteo &&
-    matchesProvs
-  )
-})
+const { dirty, sincronizar } = useFormSnapshot(snapshotFormulario)
 
 function reset() {
   nombre.value = ''
   categoriaId.value = 0
   unidad.value = ''
-  stockActual.value = 0
-  stockMinimo.value = 0
+  stockActual.value = ''
+  stockMinimo.value = ''
   activo.value = true
   costoPaquete.value = 0
   cantidadPack.value = 1
@@ -132,8 +114,8 @@ function loadInsumo() {
     nombre.value = i.nombre
     categoriaId.value = i.categoriaId
     unidad.value = i.unidad
-    stockActual.value = Number(i.stock)
-    stockMinimo.value = Number(i.stockMinimo)
+    stockActual.value = Number(i.stock) || ''
+    stockMinimo.value = Number(i.stockMinimo) || ''
     activo.value = i.activo
     notas.value = i.notas || ''
     proveedores.value = (i.proveedores || []).map(p => ({
@@ -150,6 +132,7 @@ function loadInsumo() {
   if (proveedores.value.length === 0) {
     proveedores.value.push({ proveedorId: 0, precio: 0, esPrincipal: true, nombreTemp: '' })
   }
+  sincronizar()
 }
 
 watch(esSimple, (simpleVal) => {
@@ -176,10 +159,10 @@ function validate(): boolean {
   if (!esSimple.value && cantidadPack.value <= 0) {
     errors.value.cantidadPack = 'La cantidad por presentación debe ser mayor a 0'
   }
-  if (stockActual.value < 0) {
+  if (Number(stockActual.value) < 0) {
     errors.value.stockActual = 'El stock actual no puede ser negativo'
   }
-  if (stockMinimo.value < 0) {
+  if (Number(stockMinimo.value) < 0) {
     errors.value.stockMinimo = 'El stock mínimo no puede ser negativo'
   }
 
@@ -242,6 +225,7 @@ async function handleSave() {
       res = await store.create(payload)
       toast('Insumo creado')
     }
+    sincronizar()
     emit('saved', res)
     emit('close')
   } catch (e: any) {

@@ -35,10 +35,19 @@ export interface CategoriaProducto {
   _count?: { productos: number }
 }
 
+/**
+ * Cómo participa una línea de receta en el precio del producto.
+ * - `normal`: entra al costo BOM y recibe el margen.
+ * - `fijo`: no entra al costo BOM; se suma al precio ya con el margen aplicado.
+ * - `extra`: no suma ni al costo ni al precio (informativo).
+ */
+export type ModoCalculoBOM = 'normal' | 'fijo' | 'extra'
+
 export interface CostoProductoInsumo {
   id: number
   productoId: number
   tipoLinea: 'insumo' | 'cameo' | 'embalaje' | 'extra'
+  modoCalculo: ModoCalculoBOM
   insumoId?: number
   insumo?: Insumo
   descripcion?: string

@@ -10,9 +10,10 @@ const props = defineProps<{
 const nivel = computed(() => getNivel(props.stock, props.minimo))
 const fillPct = computed(() => getFillPct(props.stock, props.minimo))
 
+// Misma paleta que el bloque de nivel del formulario de edición.
 const BAR_COLORS: Record<string, string> = {
   ok: 'bg-canal-whatsapp',
-  sin_control: 'bg-canal-whatsapp',
+  sin_control: 'bg-teal-600',
   bajo: 'bg-yellow',
   critico: 'bg-coral-500',
   sin_unidades: 'bg-coral-500',

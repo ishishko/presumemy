@@ -122,6 +122,7 @@ model CostoProductoInsumo {
   id            Int            @id @default(autoincrement())
   productoId    Int            @map("producto_id")
   tipoLinea     TipoLineaBOM   @map("tipo_linea")
+  modoCalculo   ModoCalculoBOM @default(normal) @map("modo_calculo")
   insumoId      Int?           @map("insumo_id")
   insumo        Insumo?        @relation(fields: [insumoId], references: [id])
   descripcion   String?
@@ -271,6 +272,16 @@ enum TipoLineaBOM {
   insumo
   cameo
   embalaje
+  extra
+}
+
+/// Cómo participa la línea en el precio del producto.
+/// normal: entra al costo BOM y recibe el margen.
+/// fijo:   no entra al costo BOM; se suma al precio ya con margen aplicado.
+/// extra:  no suma ni al costo ni al precio (informativo).
+enum ModoCalculoBOM {
+  normal
+  fijo
   extra
 }
 

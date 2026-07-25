@@ -13,6 +13,7 @@ export const productoSchema = z.object({
   precio: z.coerce.number().min(0).default(0),
   bomLineas: z.array(z.object({
     tipoLinea: z.enum(['insumo', 'cameo', 'embalaje', 'extra']),
+    modoCalculo: z.enum(['normal', 'fijo', 'extra']).default('normal'),
     insumoId: z.coerce.number().int().positive().optional(),
     descripcion: z.string().optional(),
     cantidad: z.coerce.number().min(0),

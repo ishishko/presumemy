@@ -14,8 +14,13 @@ const esSimple = defineModel<boolean>('esSimple', { required: true })
 const costoPaquete = defineModel<number>('costoPaquete', { required: true })
 const cantidadPack = defineModel<number>('cantidadPack', { required: true })
 const unidad = defineModel<string>('unidad', { required: true })
-const stockActual = defineModel<number>('stockActual', { required: true })
-const stockMinimo = defineModel<number>('stockMinimo', { required: true })
+// Se aceptan vacíos: un insumo sin control de inventario no tiene por qué
+// mostrar ceros. El overlay los traduce a 0 al guardar.
+const stockActual = defineModel<number | ''>('stockActual', { required: true })
+const stockMinimo = defineModel<number | ''>('stockMinimo', { required: true })
+
+const stockActualNum = computed(() => Number(stockActual.value) || 0)
+const stockMinimoNum = computed(() => Number(stockMinimo.value) || 0)
 
 const costoUnitario = computed(() => {
   if (esSimple.value) return costoPaquete.value
@@ -23,17 +28,19 @@ const costoUnitario = computed(() => {
 })
 
 const nivel = computed(() => {
-  return getNivel(stockActual.value, stockMinimo.value)
+  return getNivel(stockActualNum.value, stockMinimoNum.value)
 })
 
-const fillPct = computed(() => getFillPct(stockActual.value, stockMinimo.value))
+const fillPct = computed(() => getFillPct(stockActualNum.value, stockMinimoNum.value))
 
+// Misma paleta que StockBar en el listado: verde OK, celeste sin control,
+// amarillo bajo, coral faltante.
 const nivelMeta = {
   sin_control: { label: 'Sin control', color: 'var(--color-teal-600)', bg: 'var(--color-teal-50)' },
   sin_unidades: { label: 'Sin unidades', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)' },
   critico: { label: 'Crítico', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)' },
-  bajo: { label: 'Bajo', color: 'var(--color-orange-ink)', bg: 'var(--color-orange-50)' },
-  ok: { label: 'OK', color: 'var(--color-teal-600)', bg: 'var(--color-teal-50)' },
+  bajo: { label: 'Bajo', color: 'var(--color-yellow-ink)', bg: 'var(--color-yellow)' },
+  ok: { label: 'OK', color: 'var(--color-canal-whatsapp)', bg: 'var(--color-green-50)' },
 }
 
 function money(n: number): string {
@@ -160,7 +167,7 @@ function money(n: number): string {
         <div class="flex flex-col gap-1 justify-end pb-0.5">
           <div class="flex justify-between items-center">
             <div class="text-10 text-ink-muted text-left">
-              <span>{{ stockMinimo > 0 ? Math.round((stockActual / stockMinimo) * 100) + '%' : 'sin mín.' }}</span>
+              <span>{{ stockMinimoNum > 0 ? Math.round((stockActualNum / stockMinimoNum) * 100) + '%' : 'sin mín.' }}</span>
             </div>
             <span
               class="inline-flex items-center gap-2 text-13 font-medium px-3 py-[5px] rounded-full"

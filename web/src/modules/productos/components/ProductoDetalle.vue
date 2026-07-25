@@ -6,13 +6,14 @@ import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { formatMoney } from '@/shared/lib/format'
 import { useProductosStore } from '../store'
+import { useFormSnapshot } from '@/shared/lib/useFormSnapshot'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
 import ToggleSwitch from '@/shared/ui/ToggleSwitch.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import { useInsumosStore } from '@/modules/insumos'
-import type { Producto } from '../types'
+import type { Producto, ModoCalculoBOM } from '../types'
 
 import ProductoMedidasForm from './ProductoMedidasForm.vue'
 import BomEditor from './BomEditor.vue'
@@ -76,6 +77,7 @@ const errors = ref<Record<string, string>>({})
 
 const bomLineas = ref<Array<{
   tipoLinea: 'insumo' | 'cameo' | 'embalaje' | 'extra'
+  modoCalculo: ModoCalculoBOM
   insumoId?: number
   descripcion: string
   cantidad: number
@@ -85,44 +87,87 @@ const bomLineas = ref<Array<{
 const showConfirmDelete = ref(false)
 const showConfirmExit = ref(false)
 
+function subtotalLinea(l: { cantidad: number; costoUnitario: number }) {
+  return (l.cantidad || 0) * (l.costoUnitario || 0)
+}
+
+/** Solo las líneas normales forman el costo de receta: son las que llevan margen. */
 const bomTotal = computed(() =>
-  bomLineas.value.reduce((s, l) => s + l.cantidad * l.costoUnitario, 0)
+  bomLineas.value
+    .filter(l => (l.modoCalculo || 'normal') === 'normal')
+    .reduce((s, l) => s + subtotalLinea(l), 0)
+)
+
+/** Cargos fijos: se suman al precio después del margen. */
+const fijosTotal = computed(() =>
+  bomLineas.value
+    .filter(l => l.modoCalculo === 'fijo')
+    .reduce((s, l) => s + subtotalLinea(l), 0)
 )
 
 const costoProducto = computed(() => bomTotal.value)
 
 const precioCalculado = computed(() => {
   const v = parseFloat(String(ganancia.value)) || 0
-  if (tipoGanancia.value === 'porcentaje') return costoProducto.value * (1 + v / 100)
-  return costoProducto.value + v
+  const conMargen = tipoGanancia.value === 'porcentaje'
+    ? costoProducto.value * (1 + v / 100)
+    : costoProducto.value + v
+  return redondear(conMargen + fijosTotal.value)
 })
 
-const dirty = computed(() => {
-  if (!props.producto) return true
-  const p = props.producto
-  const pImgs = p.imagenes || []
-  const localImgs = imagenes.value
-  const imgsChanged = localImgs[0] !== (pImgs[0] || '') ||
-                      localImgs[1] !== (pImgs[1] || '') ||
-                      localImgs[2] !== (pImgs[2] || '')
-  return (
-    nombre.value !== p.nombre ||
-    categoriaId.value !== p.categoriaId ||
-    JSON.stringify(p.medidas || null) !== JSON.stringify(medidasPayload.value) ||
-    descripcion.value !== (p.descripcion || '') ||
-    activo.value !== p.activo ||
-    precioManual.value !== p.precioManual ||
-    tipoGanancia.value !== p.tipoGanancia ||
-    Number(ganancia.value) !== Number(p.ganancia) ||
-    Number(precio.value) !== Number(p.precio) ||
-    imgsChanged
-  )
-})
+/** Los importes se manejan con 2 decimales para que no arrastren ruido flotante. */
+function redondear(n: number): number {
+  return Math.round((Number(n) + Number.EPSILON) * 100) / 100
+}
+
+/**
+ * El aviso compara a la precisión que el usuario ve en pantalla (pesos enteros).
+ * Si no, una diferencia de centavos por redondeo dispara la advertencia aunque
+ * los dos importes se muestren iguales.
+ */
+const precioBajoSugerido = computed(
+  () => Math.round(precio.value) < Math.round(precioCalculado.value)
+)
+
+/**
+ * Estado editable del producto. Es lo que se compara para saber si hay cambios
+ * sin guardar, y refleja exactamente lo que viaja en el payload.
+ */
+function snapshotFormulario() {
+  return {
+    nombre: nombre.value,
+    categoriaId: categoriaId.value,
+    descripcion: descripcion.value,
+    activo: activo.value,
+    medidas: medidasPayload.value,
+    imagenes: imagenes.value.filter(img => img.trim() !== ''),
+    precioManual: precioManual.value,
+    tipoGanancia: tipoGanancia.value,
+    ganancia: Number(ganancia.value) || 0,
+    // El precio solo cuenta como dato editable cuando lo fija el usuario: en
+    // automático lo recalcula la app y no es un cambio suyo.
+    precio: precioManual.value ? redondear(Number(precio.value)) : null,
+    receta: bomLineas.value
+      .filter(l => (l.descripcion || '').trim() !== '')
+      .map(l => ({
+        tipoLinea: l.tipoLinea,
+        modoCalculo: l.modoCalculo || 'normal',
+        insumoId: l.insumoId || null,
+        descripcion: (l.descripcion || '').trim(),
+        cantidad: Number(l.cantidad) || 0,
+        // El costo de una línea enganchada a un insumo baja del catálogo y se
+        // resincroniza al abrir: no es edición del usuario.
+        costoUnitario: l.insumoId ? null : Number(l.costoUnitario) || 0,
+      })),
+  }
+}
+
+const { dirty, sincronizar } = useFormSnapshot(snapshotFormulario)
 
 
 watch([precioCalculado, precioManual], ([newCalc, manual]) => {
   if (!manual) {
-    precio.value = Number(Number(newCalc).toFixed(2))
+    precio.value = redondear(Number(newCalc))
   }
 })
 
@@ -141,7 +186,7 @@ function reset() {
   ganancia.value = 0
   precio.value = 0
   imagenes.value = ['', '', '']
-  bomLineas.value = [{ tipoLinea: 'insumo', insumoId: undefined, descripcion: '', cantidad: 1, costoUnitario: 0 }]
+  bomLineas.value = [{ tipoLinea: 'insumo', modoCalculo: 'normal', insumoId: undefined, descripcion: '', cantidad: 1, costoUnitario: 0 }]
   medidasTipo.value = 'plano'
   medidasBase.value = ''
   medidasAltura.value = ''
@@ -166,6 +211,7 @@ function loadProducto() {
     cleanAndShiftImages()
     bomLineas.value = (p.bomLineas || []).map(b => ({
       tipoLinea: b.tipoLinea || 'insumo',
+      modoCalculo: b.modoCalculo || 'normal',
       insumoId: b.insumoId || undefined,
       descripcion: b.descripcion || '',
       cantidad: Number(b.cantidad),
@@ -184,8 +230,9 @@ function loadProducto() {
     }
   }
   if (tieneBom.value && bomLineas.value.length === 0) {
-    bomLineas.value = [{ tipoLinea: 'insumo', insumoId: undefined, descripcion: '', cantidad: 1, costoUnitario: 0 }]
+    bomLineas.value = [{ tipoLinea: 'insumo', modoCalculo: 'normal', insumoId: undefined, descripcion: '', cantidad: 1, costoUnitario: 0 }]
   }
+  sincronizar()
 }
 
 async function handleSave() {
@@ -233,6 +280,7 @@ async function handleSave() {
       .filter(l => l.descripcion && l.cantidad > 0)
       .map(l => ({
         tipoLinea: l.tipoLinea,
+        modoCalculo: l.modoCalculo || 'normal',
         insumoId: l.insumoId || undefined,
         descripcion: l.descripcion,
         cantidad: l.cantidad,
@@ -249,6 +297,7 @@ async function handleSave() {
       res = await store.create(payload)
       toast('Producto creado')
     }
+    sincronizar()
     emit('saved', res)
     emit('close')
   } catch (e: any) {
@@ -626,7 +675,7 @@ defineExpose({ loadProducto })
                   />
                 </div>
 
-                <div v-if="precio < precioCalculado" class="price-warning-banner">
+                <div v-if="precioBajoSugerido" class="price-warning-banner">
                   ⚠️ El precio de venta final está por debajo del sugerido (costo de receta + margen)
                 </div>
               </section>

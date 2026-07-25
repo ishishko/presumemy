@@ -3,6 +3,7 @@ import { ref, computed, nextTick, watch } from 'vue'
 import { Trash2, Plus, GripVertical } from '@lucide/vue'
 import { formatMoney } from '@/shared/lib/format'
 import type { Insumo } from '@/modules/insumos'
+import type { ModoCalculoBOM } from '../types'
 
 // Props & Models
 const props = defineProps<{
@@ -13,19 +14,39 @@ const props = defineProps<{
 // V-Models
 const bomLineas = defineModel<Array<{
   tipoLinea: 'insumo' | 'cameo' | 'embalaje' | 'extra'
+  modoCalculo: ModoCalculoBOM
   insumoId?: number
   descripcion: string
   cantidad: number
   costoUnitario: number
 }>>({ required: true })
 
+const MODOS: Array<{ id: ModoCalculoBOM; label: string; hint: string }> = [
+  { id: 'normal', label: 'Normal', hint: 'Entra al costo de receta y recibe el margen' },
+  { id: 'fijo', label: 'Fijo', hint: 'No entra al costo: se suma al precio ya con margen' },
+  { id: 'extra', label: 'Extra', hint: 'No suma al costo ni al precio' },
+]
+
 const activeRowIdx = ref<number | null>(null)
 const recetaTableRef = ref<HTMLElement | null>(null)
 const dragIdx = ref<number | null>(null)
 const dragOverIdx = ref<number | null>(null)
 
+function subtotalDe(l: { cantidad: number; costoUnitario: number }) {
+  return (l.cantidad || 0) * (l.costoUnitario || 0)
+}
+
+/** Solo las líneas normales: es lo que se muestra como "Total receta BOM". */
 const bomTotal = computed(() =>
-  bomLineas.value.reduce((s, l) => s + (l.cantidad || 0) * (l.costoUnitario || 0), 0)
+  bomLineas.value
+    .filter(l => (l.modoCalculo || 'normal') === 'normal')
+    .reduce((s, l) => s + subtotalDe(l), 0)
+)
+
+const fijosTotal = computed(() =>
+  bomLineas.value
+    .filter(l => l.modoCalculo === 'fijo')
+    .reduce((s, l) => s + subtotalDe(l), 0)
 )
 
 watch(() => props.insumosList, (newInsumos) => {
@@ -57,6 +78,7 @@ function focusRecetaInput(idx: number) {
 function addBomLinea() {
   bomLineas.value.push({
     tipoLinea: 'insumo',
+    modoCalculo: 'normal',
     insumoId: undefined,
     cantidad: 1,
     descripcion: '',
@@ -70,19 +92,25 @@ function removeBomLinea(idx: number) {
   if (bomLineas.value.length === 0) addBomLinea()
 }
 
-function onInsumoChange(idx: number, insumoId: number) {
+/**
+ * El campo es de texto libre con autocompletado sobre el catálogo de insumos:
+ * si lo escrito coincide con un insumo se engancha la referencia y su costo;
+ * si no, la línea queda como descripción suelta con costo editable.
+ */
+function onInsumoInput(idx: number, valor: string) {
   const row = bomLineas.value[idx]
-  if (insumoId === 0) {
-    row.insumoId = undefined
-    row.costoUnitario = 0
-    return
-  }
+  row.descripcion = valor
 
-  const ins = props.insumosList.find(i => i.id === insumoId)
+  const ins = props.insumosList.find(
+    i => i.nombre.toLowerCase() === valor.trim().toLowerCase()
+  )
   if (ins) {
     row.insumoId = ins.id
     row.descripcion = ins.nombre
     row.costoUnitario = Number(ins.costoUnitario)
+  } else if (row.insumoId) {
+    // Se despegó del insumo: conserva el costo como punto de partida editable.
+    row.insumoId = undefined
   }
 }
 
@@ -111,6 +139,7 @@ function cleanupEmptyReceta() {
   )
   bomLineas.value = kept.length > 0 ? kept : [{
     tipoLinea: 'insumo',
+    modoCalculo: 'normal',
     insumoId: undefined,
     descripcion: '',
     cantidad: 1,
@@ -178,6 +207,7 @@ function money(n: number): string {
           <col style="width: 22px;" />
           <col style="width: 130px;" />
           <col />
+          <col style="width: 110px;" />
           <col style="width: 100px;" />
           <col style="width: 130px;" />
           <col style="width: 120px;" />
@@ -188,6 +218,7 @@ function money(n: number): string {
             <th></th>
             <th>Tipo</th>
             <th>Insumo / descripción</th>
+            <th>Calculado</th>
             <th class="num">Cantidad</th>
             <th class="num">Costo unitario</th>
             <th class="num">Subtotal</th>
@@ -228,16 +259,28 @@ function money(n: number): string {
               </select>
             </td>
             <td>
-              <select
+              <input
                 class="cell-input"
-                :value="l.insumoId || 0"
-                @change="onInsumoChange(idx, +($event.target as HTMLSelectElement).value)"
+                :value="l.descripcion"
+                @input="onInsumoInput(idx, ($event.target as HTMLInputElement).value)"
                 @blur="onInsumoSelectBlur(idx)"
                 @focus="activeRowIdx = idx"
                 @keydown.enter.prevent="onCellEnter(idx)"
+                placeholder="Insumo, descripción..."
+                list="bom-insumos-datalist"
+                :aria-label="'Insumo o descripción ' + (idx + 1)"
+              />
+            </td>
+            <td>
+              <select
+                class="cell-select"
+                v-model="l.modoCalculo"
+                @focus="activeRowIdx = idx"
+                @keydown.enter.prevent="onCellEnter(idx)"
+                :title="MODOS.find(m => m.id === l.modoCalculo)?.hint"
+                :aria-label="'Tipo de cálculo ' + (idx + 1)"
               >
-                <option :value="0">Texto libre (ej. Mano de obra)</option>
-                <option v-for="ins in insumosList" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
+                <option v-for="m in MODOS" :key="m.id" :value="m.id">{{ m.label }}</option>
               </select>
             </td>
             <td style="position: relative;">
@@ -283,6 +326,10 @@ function money(n: number): string {
         </tbody>
       </table>
 
+      <datalist id="bom-insumos-datalist">
+        <option v-for="ins in insumosList" :key="ins.id" :value="ins.nombre" />
+      </datalist>
+
       <button type="button" class="add-line-btn" @click="addBomLinea">
         <Plus :size="14" /> Agregar línea
       </button>
@@ -291,6 +338,11 @@ function money(n: number): string {
     <div class="pd-bom-totals" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 12px; background: var(--color-page-bg)/30; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
       <span class="text-12 text-ink-muted">Total receta BOM:</span>
       <span class="text-15 font-semibold text-ink font-mono">{{ money(bomTotal) }}</span>
+    </div>
+
+    <div v-if="fijosTotal > 0" class="flex justify-between items-center mt-1.5 px-3 py-2 text-12 text-ink-muted">
+      <span>Cargos fijos (se suman al precio, sin margen):</span>
+      <span class="font-mono text-ink">{{ money(fijosTotal) }}</span>
     </div>
 
     <div v-if="errors.bomLineas" class="field-error" role="alert" style="margin-top: 6px;">
