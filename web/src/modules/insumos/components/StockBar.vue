@@ -12,6 +12,7 @@ const fillPct = computed(() => getFillPct(props.stock, props.minimo))
 
 const BAR_COLORS: Record<string, string> = {
   ok: 'bg-canal-whatsapp',
+  sin_control: 'bg-canal-whatsapp',
   bajo: 'bg-yellow',
   critico: 'bg-coral-500',
   sin_unidades: 'bg-coral-500',

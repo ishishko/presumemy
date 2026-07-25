@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { Lock, Trash2 } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
@@ -60,6 +61,22 @@ const errors = ref<Record<string, string>>({})
 
 const overlayRef = ref<HTMLElement | null>(null)
 
+/**
+ * Deja las filas de proveedores comparables entre sí: descarta la fila vacía
+ * que el formulario agrega como placeholder, ignora el `nombreTemp` de UI y
+ * normaliza el precio (la API lo serializa como string).
+ */
+function normalizarProvs(rows: Array<{ proveedorId: number; precio: any; esPrincipal: boolean }>) {
+  return rows
+    .filter(p => p.proveedorId > 0)
+    .map(p => ({
+      proveedorId: p.proveedorId,
+      precio: Number(p.precio) || 0,
+      esPrincipal: !!p.esPrincipal,
+    }))
+    .sort((a, b) => a.proveedorId - b.proveedorId)
+}
+
 const dirty = computed(() => {
   if (!props.insumo) return true
   const i = props.insumo
@@ -78,11 +95,7 @@ const dirty = computed(() => {
     matchesCosteo = Number(costoPaquete.value) === Number(i.costoPaquete) && Number(cantidadPack.value) === Number(i.cantidadPack)
   }
 
-  const matchesProvs = JSON.stringify(proveedores.value) === JSON.stringify((i.proveedores || []).map(p => ({
-    proveedorId: p.proveedorId,
-    precio: p.precio,
-    esPrincipal: p.esPrincipal,
-  })))
+  const matchesProvs = JSON.stringify(normalizarProvs(proveedores.value)) === JSON.stringify(normalizarProvs(i.proveedores || []))
 
   return !(
     matchesNombre &&
@@ -256,7 +269,7 @@ function openOverlay() {
     mode: 'editor',
     title: isEdit.value ? (props.insumo?.codigo || '') : 'Nuevo',
     onSave: handleSave,
-    onClose: handleClose,
+    onClose: handleBack,
   })
 }
 
@@ -269,6 +282,9 @@ function handleClose() {
   closeOverlay()
 }
 
+/** Salida del navegador pendiente de que el usuario resuelva la advertencia. */
+let leaveResolver: ((salir: boolean) => void) | null = null
+
 function handleBack() {
   if (dirty.value) {
     showConfirmExit.value = true
@@ -276,6 +292,33 @@ function handleBack() {
     handleClose()
   }
 }
+
+function handleConfirmExit() {
+  showConfirmExit.value = false
+  if (leaveResolver) {
+    leaveResolver(true)
+    leaveResolver = null
+  }
+  handleClose()
+}
+
+function handleCancelExit() {
+  showConfirmExit.value = false
+  if (leaveResolver) {
+    leaveResolver(false)
+    leaveResolver = null
+  }
+}
+
+// Salir del módulo con cambios sin guardar pide confirmación, igual que cerrar
+// el overlay con la X o con Esc.
+onBeforeRouteLeave(() => {
+  if (!props.open || !dirty.value) return true
+  showConfirmExit.value = true
+  return new Promise<boolean>((resolve) => {
+    leaveResolver = resolve
+  })
+})
 
 // Trap de foco para teclado (A11y)
 function handleTabKey(e: KeyboardEvent) {
@@ -362,7 +405,11 @@ onUnmounted(() => {
   document.body.classList.remove('no-scroll')
 })
 
-defineExpose({ loadInsumo })
+defineExpose({
+  loadInsumo,
+  /** Lo invoca la página cuando el shell pide volver a la lista (click en el aside). */
+  requestClose: handleBack,
+})
 </script>
 
 <template>
@@ -496,8 +543,8 @@ defineExpose({ loadInsumo })
         confirm-label="Salir sin guardar"
         cancel-label="Seguir editando"
         variant="danger"
-        @confirm="emit('close'); showConfirmExit = false"
-        @cancel="showConfirmExit = false"
+        @confirm="handleConfirmExit"
+        @cancel="handleCancelExit"
       />
 
       <ConfirmDialog

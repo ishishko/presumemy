@@ -39,7 +39,11 @@ const ALIGN_MAP: Record<Align, string> = {
       </thead>
       <tbody>
         <template v-if="rows.length > 0">
-          <tr v-for="(item, idx) in rows" :key="idx">
+          <tr
+            v-for="(item, idx) in rows"
+            :key="idx"
+            class="border-t border-border first:border-t-0 hover:bg-page-bg transition-colors"
+          >
             <slot name="row" :item="item" :index="idx" />
           </tr>
         </template>

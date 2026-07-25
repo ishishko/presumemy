@@ -247,12 +247,15 @@ async function handleDeleteGlobalProvConfirm() {
             <td class="center">
               <button
                 type="button"
-                :class="['id-radio', { checked: p.esPrincipal }]"
+                class="w-[18px] h-[18px] p-0 rounded-full bg-surface cursor-pointer inline-grid place-items-center border-[1.5px] transition-colors hover:border-violet-700"
+                :class="p.esPrincipal ? 'border-violet-700' : 'border-border-strong'"
                 @click="setPrincipal(idx)"
                 :title="p.esPrincipal ? 'Proveedor principal' : 'Marcar como principal'"
                 role="radio"
                 :aria-checked="p.esPrincipal"
-              />
+              >
+                <span v-if="p.esPrincipal" class="w-[9px] h-[9px] rounded-full bg-violet-700" />
+              </button>
             </td>
             <td>
               <button

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { createTrigger } from '@/shared/lib/createTrigger'
+import { createTrigger, resetViewTrigger } from '@/shared/lib/createTrigger'
 import { useInsumosStore } from '@/modules/insumos/store'
 import { getNivel } from '@/modules/insumos/stock'
 import { formatMoney } from '@/shared/lib/format'
@@ -28,6 +28,7 @@ const stateFilter = ref('todos')
 const catFilter = ref<number | 'todas'>('todas')
 const showOverlay = ref(false)
 const editingInsumo = ref<Insumo | null>(null)
+const detalleRef = ref<InstanceType<typeof InsumoDetalle> | null>(null)
 const showConfirmDelete = ref(false)
 const deletingInsumo = ref<Insumo | null>(null)
 
@@ -36,17 +37,26 @@ const deletingCat = ref<any | null>(null)
 
 const showLoading = computed(() => !store.hasFetched)
 
+/**
+ * Chip de estado al que pertenece un insumo. Los que no tienen control de
+ * inventario (stock y mínimo en 0) no son un faltante: cuentan como OK.
+ */
+function nivelChip(stock: number, minimo: number): 'ok' | 'bajo' | 'critico' | 'sin_unidades' {
+  const nivel = getNivel(stock, minimo)
+  return nivel === 'sin_control' ? 'ok' : nivel
+}
+
 const counts = computed(() => {
   const c = { sin_unidades: 0, critico: 0, bajo: 0, ok: 0 }
   store.data.forEach((i) => {
-    c[getNivel(Number(i.stock), Number(i.stockMinimo))]++
+    c[nivelChip(Number(i.stock), Number(i.stockMinimo))]++
   })
   return c
 })
 
 const filtered = computed(() => {
   return store.data.filter((i) => {
-    if (stateFilter.value !== 'todos' && getNivel(Number(i.stock), Number(i.stockMinimo)) !== stateFilter.value) return false
+    if (stateFilter.value !== 'todos' && nivelChip(Number(i.stock), Number(i.stockMinimo)) !== stateFilter.value) return false
     if (catFilter.value !== 'todas' && i.categoriaId !== catFilter.value) return false
     return true
   })
@@ -184,6 +194,16 @@ watch(createTrigger, (val) => {
     createTrigger.value = null
   }
 })
+
+// El aside pide volver a la lista estando ya en /insumos: se lo delegamos al
+// overlay para que respete los cambios sin guardar.
+watch(resetViewTrigger, (val) => {
+  if (val !== 'insumos') return
+  resetViewTrigger.value = null
+  if (showOverlay.value) {
+    detalleRef.value?.requestClose()
+  }
+})
 </script>
 
 <template>
@@ -247,6 +267,7 @@ watch(createTrigger, (val) => {
       </DataTable>
 
       <InsumoDetalle
+        ref="detalleRef"
         :open="showOverlay"
         :insumo="editingInsumo"
         @close="handleClose"

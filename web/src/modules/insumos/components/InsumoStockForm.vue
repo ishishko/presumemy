@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getNivel } from '@/modules/insumos/stock'
+import { getNivel, getFillPct } from '@/modules/insumos/stock'
 import { formatMoney } from '@/shared/lib/format'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 
@@ -26,12 +26,10 @@ const nivel = computed(() => {
   return getNivel(stockActual.value, stockMinimo.value)
 })
 
-const fillPct = computed(() => {
-  if (stockMinimo.value === 0) return stockActual.value > 0 ? 100 : 0
-  return Math.min(100, (stockActual.value / stockMinimo.value) * 100)
-})
+const fillPct = computed(() => getFillPct(stockActual.value, stockMinimo.value))
 
 const nivelMeta = {
+  sin_control: { label: 'Sin control', color: 'var(--color-teal-600)', bg: 'var(--color-teal-50)' },
   sin_unidades: { label: 'Sin unidades', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)' },
   critico: { label: 'Crítico', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)' },
   bajo: { label: 'Bajo', color: 'var(--color-orange-ink)', bg: 'var(--color-orange-50)' },

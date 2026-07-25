@@ -2,7 +2,7 @@
 import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useAuthStore } from '@/modules/auth/store'
-import { createTrigger } from '@/shared/lib/createTrigger'
+import { createTrigger, resetViewTrigger } from '@/shared/lib/createTrigger'
 import { editorMode, editorTitle, editorSaveHandler, editorCloseHandler, setEditorMode, resetEditorMode, editorDirty } from '@/shared/lib/editorMode'
 import AppSidebar from './shell/AppSidebar.vue'
 import AppHeader from './shell/AppHeader.vue'
@@ -49,6 +49,12 @@ onMounted(async () => {
 })
 
 function handleNavigate(routeId: string) {
+  // Ya estamos en esa ruta: el router no navegaría, así que le pedimos a la
+  // página que vuelva a su vista base (cerrar overlays/editores abiertos).
+  if (currentRoute.value === routeId) {
+    resetViewTrigger.value = routeId
+    return
+  }
   router.push({ name: routeId })
 }
 
