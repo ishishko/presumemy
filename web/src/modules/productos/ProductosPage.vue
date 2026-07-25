@@ -13,10 +13,6 @@ import { useToast } from '@/shared/lib/useToast'
 import { Pencil, Trash2, Star, Image } from '@lucide/vue'
 import type { Producto } from './types'
 
-const emit = defineEmits<{
-  'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
-}>()
-
 const route = useRoute()
 const store = useProductosStore()
 const { toast } = useToast()
@@ -99,14 +95,6 @@ function handleSaved(producto: Producto) {
   store.upsert(producto)
 }
 
-function handleHeaderUpdate(payload: { mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }) {
-  if (payload.mode === 'editor') {
-    emit('set-editor-mode', true, payload.title, payload.onSave, payload.onClose)
-  } else {
-    emit('set-editor-mode', false, '', () => {}, () => {})
-  }
-}
-
 function handleDeleteClick(p: Producto) {
   deletingProducto.value = p
   showConfirmDelete.value = true
@@ -174,7 +162,6 @@ async function handleDeleteCatConfirm(reasignarA?: number) {
 
 function handleClose() {
   showOverlay.value = false
-  emit('set-editor-mode', false, '', () => {}, () => {})
 }
 
 onMounted(loadProductos)
@@ -300,7 +287,6 @@ watch(resetViewTrigger, (val) => {
         :producto="editingProducto"
         @close="handleClose"
         @saved="handleSaved"
-        @update:header="handleHeaderUpdate"
       />
     </template>
   </div>

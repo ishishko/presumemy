@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { onBeforeRouteLeave } from 'vue-router'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { FileText, Download, Link2 } from '@lucide/vue'
+import { FileText, Download, Link2, Save, X } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { usePresupuestosStore } from '../store'
-import { editorDirty } from '@/shared/lib/editorMode'
+import { EDITOR_SLOT_ID, useEditorSlot } from '@/shared/lib/editorSlot'
 import type { Presupuesto } from '../types'
 import { useClientesStore } from '@/modules/clientes'
 import { useProductosStore } from '@/modules/productos'
@@ -26,13 +27,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   saved: [presupuesto: Presupuesto]
-  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
 }>()
 
 const { toast } = useToast()
 const store = usePresupuestosStore()
 
+useEditorSlot(() => props.open)
+
 const isNew = computed(() => !props.presupuesto)
+const tituloEditor = computed(() => (isNew.value ? 'Nuevo' : props.presupuesto?.folio || ''))
 const docFolio = computed(() => props.presupuesto?.folio || 'P-...')
 const estado = ref('borrador')
 
@@ -452,20 +455,40 @@ function triggerClose() {
   }
 }
 
-function openEditor() {
-  emit('update:header', {
-    mode: 'editor',
-    title: isNew.value ? 'Nuevo' : (props.presupuesto?.folio || ''),
-    onSave: () => handleSave(),
-    onClose: triggerClose,
-  })
-}
-
 function closeEditor() {
-  emit('update:header', { mode: 'normal' })
   emit('close')
   restoreFocus()
 }
+
+/** Salida del navegador pendiente de que el usuario resuelva la advertencia. */
+let leaveResolver: ((salir: boolean) => void) | null = null
+
+function handleConfirmExit() {
+  showConfirmExit.value = false
+  if (leaveResolver) {
+    leaveResolver(true)
+    leaveResolver = null
+  }
+  closeEditor()
+}
+
+function handleCancelExit() {
+  showConfirmExit.value = false
+  if (leaveResolver) {
+    leaveResolver(false)
+    leaveResolver = null
+  }
+}
+
+// Salir del módulo con cambios sin guardar pide confirmación, igual que cerrar
+// el editor con la X o con Esc.
+onBeforeRouteLeave(() => {
+  if (!props.open || !isDirty.value) return true
+  showConfirmExit.value = true
+  return new Promise<boolean>((resolve) => {
+    leaveResolver = resolve
+  })
+})
 
 onMounted(async () => {
   window.addEventListener('click', closeDropdown)
@@ -481,9 +504,7 @@ onMounted(async () => {
 
   if (props.open) {
     await loadPresupuesto()
-    openEditor()
     originalFormSnapshot.value = getFormSnapshot()
-    editorDirty.value = isDirty.value
     focusFirstField()
   }
 })
@@ -505,27 +526,22 @@ watch(cliente, (newVal) => {
   }
 })
 
-watch(isDirty, (val) => {
-  editorDirty.value = val
-})
-
 watch(
   [() => props.open, () => props.presupuesto],
   async ([open]) => {
     if (open) {
       await loadPresupuesto()
-      openEditor()
       originalFormSnapshot.value = getFormSnapshot()
-      editorDirty.value = isDirty.value
       focusFirstField()
-    } else {
-      closeEditor()
-      editorDirty.value = false
     }
   }
 )
 
-defineExpose({ loadPresupuesto })
+defineExpose({
+  loadPresupuesto,
+  /** Lo invoca la página cuando el shell pide volver a la lista (click en el aside). */
+  requestClose: triggerClose,
+})
 </script>
 
 <template>
@@ -541,7 +557,14 @@ defineExpose({ loadPresupuesto })
     >
       <div class="editor-split">
         <div class="editor-form">
-          <Teleport to="#editor-header-status">
+          <Teleport :to="'#' + EDITOR_SLOT_ID">
+            <span class="text-18 font-semibold text-violet-700 tracking-tight">{{ tituloEditor }}</span>
+            <BaseButton variant="ghost" :icon="true" :disabled="!isDirty" title="Guardar" @click="handleSave()">
+              <Save :size="18" />
+            </BaseButton>
+            <BaseButton variant="ghost" :icon="true" title="Cerrar" @click="triggerClose">
+              <X :size="18" />
+            </BaseButton>
             <div v-if="!isNew" class="custom-status-dropdown" @click.stop>
               <button
                 type="button"
@@ -785,8 +808,8 @@ defineExpose({ loadPresupuesto })
     message="Tenés cambios sin guardar en este presupuesto. ¿Querés salir de todos modos?"
     confirm-label="Salir"
     variant="danger"
-    @confirm="showConfirmExit = false; closeEditor()"
-    @cancel="showConfirmExit = false"
+    @confirm="handleConfirmExit"
+    @cancel="handleCancelExit"
   />
 
   <ConfirmDialog

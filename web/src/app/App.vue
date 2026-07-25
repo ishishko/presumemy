@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute, RouterView } from 'vue-router'
 import { useAuthStore } from '@/modules/auth/store'
 import { createTrigger, resetViewTrigger } from '@/shared/lib/createTrigger'
-import { editorMode, editorTitle, editorSaveHandler, editorCloseHandler, setEditorMode, resetEditorMode, editorDirty } from '@/shared/lib/editorMode'
 import AppSidebar from './shell/AppSidebar.vue'
 import AppHeader from './shell/AppHeader.vue'
 import ToastContainer from '@/shared/ui/ToastContainer.vue'
@@ -11,13 +10,6 @@ import ToastContainer from '@/shared/ui/ToastContainer.vue'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-
-watch(
-  () => route.path,
-  () => {
-    resetEditorMode()
-  }
-)
 
 const currentRoute = computed(() => (route.name as string) || '')
 
@@ -66,18 +58,6 @@ async function handleLogout() {
 function handleCreate() {
   createTrigger.value = currentRoute.value
 }
-
-function handleSetEditorMode(active: boolean, title: string, onSave: () => void, onClose: () => void) {
-  setEditorMode(active, title, onSave, onClose)
-}
-
-function handleEditorSave() {
-  editorSaveHandler.value?.()
-}
-
-function handleEditorClose() {
-  editorCloseHandler.value?.()
-}
 </script>
 
 <template>
@@ -95,15 +75,10 @@ function handleEditorClose() {
       <AppHeader
         :title="pageTitle"
         :show-create="showCreate"
-        :editor-mode="editorMode"
-        :editor-title="editorTitle"
-        :editor-dirty="editorDirty"
         @create="handleCreate"
-        @editor-save="handleEditorSave"
-        @editor-close="handleEditorClose"
       />
       <main class="flex-1 overflow-y-auto">
-        <RouterView @set-editor-mode="handleSetEditorMode" />
+        <RouterView />
       </main>
     </div>
   </div>

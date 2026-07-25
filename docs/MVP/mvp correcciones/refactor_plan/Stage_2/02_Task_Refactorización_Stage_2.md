@@ -87,12 +87,16 @@ son defectos preexistentes que la validación destapó.
 
 ## Fase 3: Pendientes heredados
 
-- [ ] **P4: Desacople de `editorMode` (Paso 5 heredado)**
-    - [ ] `InsumoDetalle.vue` autocontenido (barra de acciones propia) + validación en navegador.
-    - [ ] `ProductoDetalle.vue` autocontenido + validación en navegador.
-    - [ ] `PresupuestoEditor.vue` autocontenido (incluye el badge de estado hoy teletransportado) + validación en navegador.
-    - [ ] Limpiar `AppHeader.vue` (props `editorMode`/`editorTitle`/`editorDirty` y `#editor-header-status`).
-    - [ ] Limpiar `App.vue` y `router.ts`; eliminar `shared/lib/editorMode.ts`.
+- [x] **P4: Desacople de `editorMode` (Paso 5 heredado)**
+    - [x] Nuevo `shared/lib/editorSlot.ts`: un punto de montaje (`EDITOR_SLOT_ID`) y un único booleano derivado (`hayEditorAbierto`). **Desvío del plan:** en vez de que el overlay dibuje su barra dentro de sí mismo, la *teletransporta* al header. Se cumple el objetivo —el editor es dueño de sus controles y muere el singleton— sin mover de lugar los botones, que era un cambio visual que el plan §3.2 prohíbe.
+    - [x] `InsumoDetalle.vue` autocontenido (título, Guardar, Cerrar propios).
+    - [x] `ProductoDetalle.vue` autocontenido.
+    - [x] `PresupuestoEditor.vue` autocontenido, con su badge de estado en el mismo bloque (antes iba por un teleport aparte a `#editor-header-status`).
+    - [x] `AppHeader.vue` sin props de editor ni botones de guardado: solo expone el punto de montaje y oculta "Crear nuevo" mientras hay un editor abierto.
+    - [x] `App.vue` sin callbacks ni props de editor; `router.ts` sin `resetEditorMode`; las 3 páginas sin el emit `set-editor-mode`.
+    - [x] `shared/lib/editorMode.ts` **eliminado**. `grep` de `editorMode`, `editorDirty`, `set-editor-mode` y `editor-header-status` en `src/` → vacío.
+    - [x] De paso, presupuestos se iguala a los otros dos: guarda de ruta al salir con cambios y cierre del editor desde el aside.
+    - [ ] Validación en navegador por el usuario (los 3 editores: abrir en alta y edición, ensuciar, guardar, cerrar con cambios, `Esc`, navegar entre rutas).
 - [ ] **P5: CSS de overlays y borrado de `components.css` (Paso 7 heredado)**
     - [ ] Migrar el `<style scoped>` de `InsumoDetalle.vue` a Tailwind + validación visual.
     - [ ] Migrar el de `ProductoDetalle.vue` + validación visual.

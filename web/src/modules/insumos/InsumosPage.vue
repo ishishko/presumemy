@@ -20,10 +20,6 @@ const store = useInsumosStore()
 const route = useRoute()
 const { toast } = useToast()
 
-const emit = defineEmits<{
-  'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
-}>()
-
 const stateFilter = ref('todos')
 const catFilter = ref<number | 'todas'>('todas')
 const showOverlay = ref(false)
@@ -160,17 +156,8 @@ async function handleDeleteCatConfirm(reasignarA?: number) {
   deletingCat.value = null
 }
 
-function handleHeaderUpdate(payload: any) {
-  if (payload.mode === 'editor') {
-    emit('set-editor-mode', true, payload.title, payload.onSave, payload.onClose)
-  } else {
-    emit('set-editor-mode', false, '', () => {}, () => {})
-  }
-}
-
 function handleClose() {
   showOverlay.value = false
-  emit('set-editor-mode', false, '', () => {}, () => {})
 }
 
 onMounted(loadInsumos)
@@ -272,7 +259,6 @@ watch(resetViewTrigger, (val) => {
         :insumo="editingInsumo"
         @close="handleClose"
         @saved="handleSaved"
-        @update:header="handleHeaderUpdate"
       />
     </template>
   </div>

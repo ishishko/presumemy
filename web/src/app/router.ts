@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/modules/auth/store'
-import { resetEditorMode } from '@/shared/lib/editorMode'
 
 const routes = [
   {
@@ -69,8 +68,6 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  resetEditorMode()
-
   if (to.meta.public) {
     return
   }

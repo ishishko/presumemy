@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { Trash2, X, Plus, Lock, Image, Ruler } from '@lucide/vue'
-import { editorDirty } from '@/shared/lib/editorMode'
+import { Trash2, X, Plus, Lock, Image, Ruler, Save } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { formatMoney } from '@/shared/lib/format'
 import { useProductosStore } from '../store'
 import { useFormSnapshot } from '@/shared/lib/useFormSnapshot'
+import { EDITOR_SLOT_ID, useEditorSlot } from '@/shared/lib/editorSlot'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
@@ -28,8 +28,9 @@ const emit = defineEmits<{
   close: []
   saved: [producto: Producto]
   deleted: []
-  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
 }>()
+
+useEditorSlot(() => props.open)
 
 const { toast } = useToast()
 const store = useProductosStore()
@@ -320,22 +321,10 @@ async function handleDelete() {
 }
 
 
-function openOverlay() {
-  emit('update:header', {
-    mode: 'editor',
-    title: isEdit.value ? (props.producto?.codigo || '') : 'Nuevo',
-    onSave: handleSave,
-    onClose: handleBack,
-  })
-}
-
-function closeOverlay() {
-  emit('update:header', { mode: 'normal' })
-  emit('close')
-}
+const tituloEditor = computed(() => (isEdit.value ? props.producto?.codigo || '' : 'Nuevo'))
 
 function handleClose() {
-  closeOverlay()
+  emit('close')
 }
 
 /** Salida del navegador pendiente de que el usuario resuelva la advertencia. */
@@ -383,24 +372,16 @@ onBeforeRouteLeave(() => {
   })
 })
 
-watch(dirty, (val) => {
-  editorDirty.value = val
-})
-
 watch(() => props.open, async (open) => {
   if (open) {
     document.body.classList.add('no-scroll')
     loadProducto()
-    openOverlay()
-    editorDirty.value = dirty.value
     await nextTick()
     const nameInput = document.getElementById('pd-nombre-input') as HTMLInputElement | null
     nameInput?.focus()
     nameInput?.select()
   } else {
     document.body.classList.remove('no-scroll')
-    closeOverlay()
-    editorDirty.value = false
   }
 }, { immediate: true })
 
@@ -515,6 +496,18 @@ defineExpose({
 <template>
   <Transition name="overlay">
     <div v-if="open" ref="overlayEl" class="fixed top-[56px] right-0 bottom-0 left-[240px] z-30 bg-page-bg flex flex-col overflow-hidden">
+      <!-- Controles propios del editor, montados en el header de la app -->
+      <Teleport :to="'#' + EDITOR_SLOT_ID">
+        <span class="text-18 font-semibold text-violet-700 tracking-tight">{{ tituloEditor }}</span>
+        <BaseButton variant="ghost" :icon="true" :disabled="!dirty" title="Guardar" @click="handleSave">
+          <Save :size="18" />
+        </BaseButton>
+        <BaseButton variant="ghost" :icon="true" title="Cerrar" @click="handleBack">
+          <X :size="18" />
+        </BaseButton>
+      </Teleport>
+
+
         <div class="pd-body">
           <div class="pd-top">
             <!-- Bloque Izquierdo (60% del ancho) -->

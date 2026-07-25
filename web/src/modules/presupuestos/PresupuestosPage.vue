@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { createTrigger } from '@/shared/lib/createTrigger'
+import { createTrigger, resetViewTrigger } from '@/shared/lib/createTrigger'
 import { usePresupuestosStore } from './store'
 import { formatMoney, formatDate } from '@/shared/lib/format'
 import PresupuestoEditor from './components/PresupuestoEditor.vue'
@@ -16,16 +16,13 @@ import type { Presupuesto } from './types'
 
 type Tone = 'default' | 'violet' | 'teal' | 'mint' | 'lavender' | 'coral'
 
-const emit = defineEmits<{
-  'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
-}>()
-
 const store = usePresupuestosStore()
 const route = useRoute()
 const { toast } = useToast()
 
 const filter = ref('todos')
 const showEditor = ref(false)
+const editorRef = ref<InstanceType<typeof PresupuestoEditor> | null>(null)
 const editingPresupuesto = ref<Presupuesto | null>(null)
 const showConfirmDelete = ref(false)
 const deletingPresupuesto = ref<Presupuesto | null>(null)
@@ -168,17 +165,8 @@ function handleSaved(presupuesto: Presupuesto) {
   store.upsert(presupuesto)
 }
 
-function handleHeaderUpdate(payload: { mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }) {
-  if (payload.mode === 'editor') {
-    emit('set-editor-mode', true, payload.title, payload.onSave, payload.onClose)
-  } else {
-    emit('set-editor-mode', false, '', () => {}, () => {})
-  }
-}
-
 function handleClose() {
   showEditor.value = false
-  emit('set-editor-mode', false, '', () => {}, () => {})
 }
 
 function handleDeleteClick(p: Presupuesto) {
@@ -213,6 +201,16 @@ watch(
   },
   { immediate: true }
 )
+
+// El aside pide volver a la lista estando ya en /presupuestos: se lo delegamos
+// al editor para que respete los cambios sin guardar.
+watch(resetViewTrigger, (val) => {
+  if (val !== 'presupuestos') return
+  resetViewTrigger.value = null
+  if (showEditor.value) {
+    editorRef.value?.requestClose()
+  }
+})
 
 watch(createTrigger, (val) => {
   if (val === 'presupuestos') {
@@ -314,11 +312,11 @@ watch(createTrigger, (val) => {
       />
 
       <PresupuestoEditor
+        ref="editorRef"
         :open="showEditor"
         :presupuesto="editingPresupuesto"
         @close="handleClose"
         @saved="handleSaved"
-        @update:header="handleHeaderUpdate"
       />
     </template>
   </div>

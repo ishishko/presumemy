@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { Lock, Trash2 } from '@lucide/vue'
+import { Lock, Trash2, Save, X } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { useInsumosStore } from '../store'
 import { useFormSnapshot } from '@/shared/lib/useFormSnapshot'
+import { EDITOR_SLOT_ID, useEditorSlot } from '@/shared/lib/editorSlot'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
@@ -24,8 +25,11 @@ const emit = defineEmits<{
   close: []
   saved: [insumo: Insumo]
   deleted: []
-  'update:header': [{ mode: 'editor'; title: string; onSave: () => void; onClose: () => void } | { mode: 'normal' }]
 }>()
+
+useEditorSlot(() => props.open)
+
+const tituloEditor = computed(() => (isEdit.value ? props.insumo?.codigo || '' : 'Nuevo'))
 
 const { toast } = useToast()
 const store = useInsumosStore()
@@ -246,24 +250,8 @@ async function handleDelete() {
   showConfirmDelete.value = false
 }
 
-import { editorDirty } from '@/shared/lib/editorMode'
-
-function openOverlay() {
-  emit('update:header', {
-    mode: 'editor',
-    title: isEdit.value ? (props.insumo?.codigo || '') : 'Nuevo',
-    onSave: handleSave,
-    onClose: handleBack,
-  })
-}
-
-function closeOverlay() {
-  emit('update:header', { mode: 'normal' })
-  emit('close')
-}
-
 function handleClose() {
-  closeOverlay()
+  emit('close')
 }
 
 /** Salida del navegador pendiente de que el usuario resuelva la advertencia. */
@@ -342,22 +330,13 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-watch(dirty, (val) => {
-  editorDirty.value = val
-})
-
 watch(
   [() => props.open, () => props.insumo],
   async ([open]) => {
     if (open) {
       loadInsumo()
-      openOverlay()
-      editorDirty.value = dirty.value
       await nextTick()
       document.getElementById('ins-nombre')?.focus()
-    } else {
-      closeOverlay()
-      editorDirty.value = false
     }
   }
 )
@@ -377,8 +356,6 @@ onMounted(async () => {
     document.body.classList.add('no-scroll')
     await cargarCatalogos()
     loadInsumo()
-    openOverlay()
-    editorDirty.value = dirty.value
     await nextTick()
     document.getElementById('ins-nombre')?.focus()
   }
@@ -399,6 +376,18 @@ defineExpose({
 <template>
   <Transition name="overlay">
     <div v-if="open" ref="overlayRef" class="fixed top-[56px] right-0 bottom-0 left-[240px] z-30 bg-page-bg flex flex-col overflow-hidden">
+      <!-- Controles propios del editor, montados en el header de la app -->
+      <Teleport :to="'#' + EDITOR_SLOT_ID">
+        <span class="text-18 font-semibold text-violet-700 tracking-tight">{{ tituloEditor }}</span>
+        <BaseButton variant="ghost" :icon="true" :disabled="!dirty" title="Guardar" @click="handleSave">
+          <Save :size="18" />
+        </BaseButton>
+        <BaseButton variant="ghost" :icon="true" title="Cerrar" @click="handleBack">
+          <X :size="18" />
+        </BaseButton>
+      </Teleport>
+
+
       <div class="id-body">
         <div class="id-body-grid">
           <!-- COLUMNA IZQUIERDA: Identidad, Costeo, y Control de Stock -->

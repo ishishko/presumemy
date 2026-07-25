@@ -1,22 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Bell, Plus, Save, X, Loader } from '@lucide/vue'
+import { Search, Bell, Plus, Loader } from '@lucide/vue'
+import { EDITOR_SLOT_ID, hayEditorAbierto } from '@/shared/lib/editorSlot'
 import { useGlobalSearch } from '@/modules/search/useGlobalSearch'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 
 defineProps<{
   title: string
   showCreate?: boolean
-  editorMode?: boolean
-  editorTitle?: string
-  editorDirty?: boolean
 }>()
 
 defineEmits<{
   create: []
-  editorSave: []
-  editorClose: []
 }>()
 
 const router = useRouter()
@@ -89,32 +85,11 @@ function onKeydown(e: KeyboardEvent) {
     <div class="flex items-center gap-4">
       <h1 class="text-22 font-medium text-violet-700 m-0">{{ title }}</h1>
       
-      <template v-if="editorMode">
-        <span class="text-18 font-semibold text-violet-700 tracking-tight">{{ editorTitle || 'Nuevo' }}</span>
-        <BaseButton
-          variant="ghost"
-          :icon="true"
-          @click="$emit('editorSave')"
-          :disabled="!editorDirty"
-          title="Guardar borrador"
-        >
-          <Save :size="18" />
-        </BaseButton>
-        <BaseButton
-          variant="ghost"
-          :icon="true"
-          @click="$emit('editorClose')"
-          title="Cerrar"
-        >
-          <X :size="18" />
-        </BaseButton>
-      </template>
-
-      <!-- Slot for status badge (Teleport target) -->
-      <div id="editor-header-status" class="inline-flex items-center"></div>
+      <!-- El editor abierto teletransporta acá sus propios controles -->
+      <div :id="EDITOR_SLOT_ID" class="inline-flex items-center gap-4"></div>
 
       <BaseButton
-        v-if="!editorMode && showCreate"
+        v-if="!hayEditorAbierto && showCreate"
         variant="primary"
         :icon="true"
         @click="$emit('create')"
