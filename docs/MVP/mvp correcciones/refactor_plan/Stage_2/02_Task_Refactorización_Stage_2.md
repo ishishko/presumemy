@@ -111,7 +111,7 @@ son defectos preexistentes que la validación destapó.
 
 - [ ] **P6: Documentación y verificación final**
     - [x] Actualizar `AGENTS.md` con la arquitectura modular resultante. Describía el `package-by-layer` previo al refactor (`views/`, `components/drawers/`, `stores/`, `services/`…), directorios que ya no existen. Se documentan además el modo de cálculo del BOM y el nivel de stock sin control.
-    - [ ] Decidir con el usuario si se recuperan los tests ausentes (`stock.test.ts`, `ConfirmDialog.test.ts`).
+    - [x] ~~Decidir si se recuperan los tests ausentes (`stock.test.ts`, `ConfirmDialog.test.ts`)~~ — **descartado por decisión del usuario (2026-07-25)**. Queda registrado que el `Audit_Report` de Stage 1 declara 26 tests en 3 archivos y el repo tiene uno solo, por si en algún momento se retoma.
     - [ ] `npx vue-tsc -b`, `npm run build` y `npm run test` en `web/`; `npm run test` en `api/`.
     - [ ] Cerrar el walkthrough con la evidencia final.
 

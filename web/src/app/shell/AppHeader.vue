@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Bell, Plus, Loader } from '@lucide/vue'
-import { EDITOR_SLOT_ID, hayEditorAbierto } from '@/shared/lib/editorSlot'
+import { EDITOR_SLOT_ID, EDITOR_SLOT_END_ID, hayEditorAbierto } from '@/shared/lib/editorSlot'
 import { useGlobalSearch } from '@/modules/search/useGlobalSearch'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 
@@ -158,8 +158,9 @@ function onKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <!-- Right: Notifications -->
-    <div class="flex items-center">
+    <!-- Right: acciones del editor + notificaciones -->
+    <div class="flex items-center gap-1">
+      <div :id="EDITOR_SLOT_END_ID" class="inline-flex items-center"></div>
       <BaseButton variant="ghost" :icon="true" title="Notificaciones">
         <Bell :size="20" :stroke-width="1.5" />
       </BaseButton>

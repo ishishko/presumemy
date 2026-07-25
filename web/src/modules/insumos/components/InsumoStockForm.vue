@@ -35,12 +35,16 @@ const fillPct = computed(() => getFillPct(stockActualNum.value, stockMinimoNum.v
 
 // Misma paleta que StockBar en el listado: verde OK, celeste sin control,
 // amarillo bajo, coral faltante.
+//
+// `barra` va aparte de `color` porque no siempre coinciden: el amarillo de
+// advertencia necesita texto oscuro sobre el pill, pero la barra tiene que ser
+// el amarillo mismo, no el tono del texto.
 const nivelMeta = {
-  sin_control: { label: 'Sin control', color: 'var(--color-teal-600)', bg: 'var(--color-teal-50)' },
-  sin_unidades: { label: 'Sin unidades', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)' },
-  critico: { label: 'Crítico', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)' },
-  bajo: { label: 'Bajo', color: 'var(--color-yellow-ink)', bg: 'var(--color-yellow)' },
-  ok: { label: 'OK', color: 'var(--color-canal-whatsapp)', bg: 'var(--color-green-50)' },
+  sin_control: { label: 'Sin control', color: 'var(--color-teal-600)', bg: 'var(--color-teal-50)', barra: 'var(--color-teal-600)' },
+  sin_unidades: { label: 'Sin unidades', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)', barra: 'var(--color-coral-500)' },
+  critico: { label: 'Crítico', color: 'var(--color-coral-500)', bg: 'var(--color-coral-50)', barra: 'var(--color-coral-500)' },
+  bajo: { label: 'Bajo', color: 'var(--color-yellow-ink)', bg: 'var(--color-yellow)', barra: 'var(--color-yellow)' },
+  ok: { label: 'OK', color: 'var(--color-canal-whatsapp)', bg: 'var(--color-green-50)', barra: 'var(--color-canal-whatsapp)' },
 }
 
 function money(n: number): string {
@@ -179,7 +183,7 @@ function money(n: number): string {
           <div class="h-2 rounded-full bg-border overflow-hidden mt-1">
             <div
               class="h-full rounded-full transition-[width,background] duration-200"
-              :style="{ width: fillPct + '%', background: nivelMeta[nivel].color }"
+              :style="{ width: fillPct + '%', background: nivelMeta[nivel].barra }"
             />
           </div>
         </div>

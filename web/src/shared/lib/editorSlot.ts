@@ -12,6 +12,13 @@ import { computed, onUnmounted, ref, watch, type Ref } from 'vue'
  */
 export const EDITOR_SLOT_ID = 'editor-header-slot'
 
+/**
+ * Segundo punto de montaje, del lado de notificaciones. Las acciones
+ * destructivas viven acá, lejos del botón de cerrar, para que no se confundan
+ * de un clic.
+ */
+export const EDITOR_SLOT_END_ID = 'editor-header-slot-end'
+
 const abiertos = ref(0)
 
 /** El header lo usa para ocultar "Crear nuevo" mientras se está editando. */

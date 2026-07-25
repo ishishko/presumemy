@@ -61,17 +61,16 @@ watch(() => props.insumosList, (newInsumos) => {
   })
 }, { immediate: true })
 
+/**
+ * Enfoca el campo de insumo de la fila. Se busca dentro de la propia fila en
+ * vez de contar controles sobre la lista plana de la tabla: esa aritmética se
+ * desincroniza cada vez que la fila gana o pierde una columna.
+ */
 function focusRecetaInput(idx: number) {
   nextTick(() => {
-    const inputs = recetaTableRef.value?.querySelectorAll('input.cell-input, select.cell-select')
-    if (inputs && inputs.length > 0) {
-      // Cada fila tiene 1 select y 3 inputs (o 2 select y 2 inputs)
-      // Buscamos el segundo control de la fila correspondiente (la descripción/insumo)
-      const inputToFocus = inputs[idx * 3 + 1] as HTMLElement
-      if (inputToFocus) {
-        inputToFocus.focus()
-      }
-    }
+    const fila = recetaTableRef.value?.querySelector(`tbody tr[data-idx="${idx}"]`)
+    const campo = fila?.querySelector('input.cell-input') as HTMLElement | null
+    campo?.focus()
   })
 }
 
@@ -131,12 +130,17 @@ function onCellEnter(_idx?: number) {
   }
 }
 
+/**
+ * Una línea existe si nombra algo: un insumo del catálogo o una descripción
+ * suelta. La cantidad no alcanza — las filas nuevas nacen con cantidad 1, así
+ * que tomarla como señal dejaba vivas todas las filas en blanco.
+ */
+function lineaTieneContenido(l: { insumoId?: number; descripcion: string }) {
+  return (!!l.insumoId && l.insumoId > 0) || (l.descripcion || '').trim() !== ''
+}
+
 function cleanupEmptyReceta() {
-  const kept = bomLineas.value.filter(l => 
-    (l.insumoId && l.insumoId > 0) || 
-    (l.descripcion && l.descripcion.trim() !== '') || 
-    l.cantidad > 0
-  )
+  const kept = bomLineas.value.filter(lineaTieneContenido)
   bomLineas.value = kept.length > 0 ? kept : [{
     tipoLinea: 'insumo',
     modoCalculo: 'normal',
@@ -238,6 +242,7 @@ function money(n: number): string {
           <tr
             v-for="(l, idx) in bomLineas"
             :key="idx"
+            :data-idx="idx"
             :class="[
               'ln-row',
               activeRowIdx === idx && 'active',

@@ -6,7 +6,7 @@ import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { useInsumosStore } from '../store'
 import { useFormSnapshot } from '@/shared/lib/useFormSnapshot'
-import { EDITOR_SLOT_ID, useEditorSlot } from '@/shared/lib/editorSlot'
+import { EDITOR_SLOT_ID, EDITOR_SLOT_END_ID, useEditorSlot } from '@/shared/lib/editorSlot'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
@@ -385,14 +385,19 @@ defineExpose({
         <BaseButton variant="ghost" :icon="true" title="Cerrar" @click="handleBack">
           <X :size="18" />
         </BaseButton>
+      </Teleport>
+
+      <!-- Acción destructiva: lejos de Cerrar, del lado de notificaciones -->
+      <Teleport :to="'#' + EDITOR_SLOT_END_ID">
         <BaseButton
           v-if="isEdit"
-          variant="danger"
+          variant="ghost"
           :icon="true"
+          class="!text-coral-500 hover:!bg-coral-50"
           title="Eliminar"
           @click="showConfirmDelete = true"
         >
-          <Trash2 :size="18" />
+          <Trash2 :size="20" :stroke-width="1.5" />
         </BaseButton>
       </Teleport>
 
