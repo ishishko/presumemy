@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { Trash2, X, Plus, Lock, Image, Ruler } from '@lucide/vue'
 import { editorDirty } from '@/shared/lib/editorMode'
 import { storeToRefs } from 'pinia'
@@ -324,7 +325,7 @@ function openOverlay() {
     mode: 'editor',
     title: isEdit.value ? (props.producto?.codigo || '') : 'Nuevo',
     onSave: handleSave,
-    onClose: handleClose,
+    onClose: handleBack,
   })
 }
 
@@ -336,6 +337,51 @@ function closeOverlay() {
 function handleClose() {
   closeOverlay()
 }
+
+/** Salida del navegador pendiente de que el usuario resuelva la advertencia. */
+let leaveResolver: ((salir: boolean) => void) | null = null
+
+/** Cierre pedido por el usuario: con cambios sin guardar, primero advierte. */
+function handleBack() {
+  if (dirty.value) {
+    showConfirmExit.value = true
+  } else {
+    handleClose()
+  }
+}
+
+function handleConfirmExit() {
+  showConfirmExit.value = false
+  if (leaveResolver) {
+    leaveResolver(true)
+    leaveResolver = null
+  }
+  handleClose()
+}
+
+function handleCancelExit() {
+  showConfirmExit.value = false
+  if (leaveResolver) {
+    leaveResolver(false)
+    leaveResolver = null
+  }
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (props.open && e.key === 'Escape') handleBack()
+}
+
+onMounted(() => document.addEventListener('keydown', onKeydown))
+
+// Salir del módulo con cambios sin guardar pide confirmación, igual que cerrar
+// el overlay con la X o con Esc.
+onBeforeRouteLeave(() => {
+  if (!props.open || !dirty.value) return true
+  showConfirmExit.value = true
+  return new Promise<boolean>((resolve) => {
+    leaveResolver = resolve
+  })
+})
 
 watch(dirty, (val) => {
   editorDirty.value = val
@@ -372,6 +418,7 @@ watch(() => props.open, async (open) => {
 })
 
 onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown)
   document.body.classList.remove('no-scroll')
 })
 
@@ -458,7 +505,11 @@ function focusCategory() {
   document.getElementById('pd-categoria')?.focus()
 }
 
-defineExpose({ loadProducto })
+defineExpose({
+  loadProducto,
+  /** Lo invoca la página cuando el shell pide volver a la lista (click en el aside). */
+  requestClose: handleBack,
+})
 </script>
 
 <template>
@@ -710,8 +761,8 @@ defineExpose({ loadProducto })
           confirm-label="Salir sin guardar"
           cancel-label="Seguir editando"
           variant="danger"
-          @confirm="handleClose(); showConfirmExit = false"
-          @cancel="showConfirmExit = false"
+          @confirm="handleConfirmExit"
+          @cancel="handleCancelExit"
         />
 
         <ConfirmDialog

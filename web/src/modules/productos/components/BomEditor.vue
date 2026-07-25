@@ -181,6 +181,15 @@ function onBomDragEnd() {
   dragOverIdx.value = null
 }
 
+/**
+ * Inicial de la unidad: en la grilla el número es lo que importa, y la unidad
+ * completa ("pliego", "rollo") le comía el ancho a la columna de costo.
+ * La unidad entera queda en el title.
+ */
+function unidadAbrev(insumoId?: number): string {
+  return getInsumoUnit(insumoId).trim().charAt(0)
+}
+
 function getInsumoUnit(insumoId?: number): string {
   if (!insumoId) return ''
   const ins = props.insumosList.find(i => i.id === insumoId)
@@ -208,8 +217,8 @@ function money(n: number): string {
           <col style="width: 130px;" />
           <col />
           <col style="width: 110px;" />
-          <col style="width: 100px;" />
-          <col style="width: 130px;" />
+          <col style="width: 84px;" />
+          <col style="width: 150px;" />
           <col style="width: 120px;" />
           <col style="width: 36px;" />
         </colgroup>
@@ -283,36 +292,41 @@ function money(n: number): string {
                 <option v-for="m in MODOS" :key="m.id" :value="m.id">{{ m.label }}</option>
               </select>
             </td>
-            <td style="position: relative;">
-              <input
-                class="cell-input num-input"
-                type="number"
-                min="0"
-                step="0.01"
-                v-model.number="l.cantidad"
-                @focus="activeRowIdx = idx"
-                @keydown.enter.prevent="onCellEnter(idx)"
-                style="padding-right: 45px; text-align: right;"
-              />
-              <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--color-ink-muted); pointer-events: none;">
-                {{ getInsumoUnit(l.insumoId) }}
-              </span>
+            <td>
+              <div class="flex items-center">
+                <input
+                  class="cell-input num-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="l.cantidad"
+                  @focus="activeRowIdx = idx"
+                  @keydown.enter.prevent="onCellEnter(idx)"
+                />
+                <span
+                  v-if="unidadAbrev(l.insumoId)"
+                  class="shrink-0 pr-2 text-11 text-ink-muted pointer-events-none"
+                  :title="getInsumoUnit(l.insumoId)"
+                >{{ unidadAbrev(l.insumoId) }}</span>
+              </div>
             </td>
-            <td style="position: relative;">
-              <input
-                class="cell-input num-input"
-                type="number"
-                min="0"
-                step="0.01"
-                v-model.number="l.costoUnitario"
-                @focus="activeRowIdx = idx"
-                @keydown.enter.prevent="onCellEnter(idx)"
-                style="padding-right: 45px; text-align: right;"
-                :disabled="!!l.insumoId"
-              />
-              <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--color-ink-muted); pointer-events: none;">
-                {{ l.insumoId ? `/ ${getInsumoUnit(l.insumoId)}` : '' }}
-              </span>
+            <td>
+              <div class="flex items-center">
+                <input
+                  class="cell-input num-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="l.costoUnitario"
+                  @focus="activeRowIdx = idx"
+                  @keydown.enter.prevent="onCellEnter(idx)"
+                  :disabled="!!l.insumoId"
+                />
+                <span
+                  v-if="l.insumoId && getInsumoUnit(l.insumoId)"
+                  class="shrink-0 pr-2 text-11 text-ink-muted pointer-events-none whitespace-nowrap"
+                >/ {{ getInsumoUnit(l.insumoId) }}</span>
+              </div>
             </td>
             <td class="num cell-subtotal text-mono font-medium">
               {{ money(l.cantidad * l.costoUnitario) }}

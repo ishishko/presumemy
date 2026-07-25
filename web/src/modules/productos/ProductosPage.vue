@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { createTrigger } from '@/shared/lib/createTrigger'
+import { createTrigger, resetViewTrigger } from '@/shared/lib/createTrigger'
 import { useProductosStore } from '@/modules/productos/store'
 import { formatMoney } from '@/shared/lib/format'
 import ProductoDetalle from './components/ProductoDetalle.vue'
@@ -24,6 +24,7 @@ const { toast } = useToast()
 const catFilter = ref<number | 'todas'>('todas')
 const stateFilter = ref<'todos' | 'favorito' | 'desactualizado'>('todos')
 const showOverlay = ref(false)
+const detalleRef = ref<InstanceType<typeof ProductoDetalle> | null>(null)
 const editingProducto = ref<Producto | null>(null)
 const showConfirmDelete = ref(false)
 const deletingProducto = ref<Producto | null>(null)
@@ -197,6 +198,16 @@ watch(createTrigger, (val) => {
     createTrigger.value = null
   }
 })
+
+// El aside pide volver al catálogo estando ya en /productos: se lo delegamos al
+// overlay para que respete los cambios sin guardar.
+watch(resetViewTrigger, (val) => {
+  if (val !== 'productos') return
+  resetViewTrigger.value = null
+  if (showOverlay.value) {
+    detalleRef.value?.requestClose()
+  }
+})
 </script>
 
 <template>
@@ -284,6 +295,7 @@ watch(createTrigger, (val) => {
       </div>
 
       <ProductoDetalle
+        ref="detalleRef"
         :open="showOverlay"
         :producto="editingProducto"
         @close="handleClose"

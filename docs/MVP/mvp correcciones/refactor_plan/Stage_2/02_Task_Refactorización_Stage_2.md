@@ -45,16 +45,43 @@
 
 ---
 
-## 🎯 Punto de Control (en curso)
+## 🎯 Punto de Control
 
 - [ ] **P3-V: Validación funcional del usuario en navegador**
-    - [ ] Insumos — crear, editar, borrar; catálogo de proveedores inline (alta y baja); categorías.
-    - [ ] Productos — crear, editar, borrar; favorito; BOM; categorías.
+    - [x] Insumos — validado. Salieron 6 bugs, corregidos en la ronda de hotfix (abajo).
+    - [x] Productos — validado. Salieron 3 bugs + pedidos de cambio, resueltos en la ronda de hotfix.
     - [ ] Clientes — crear y editar desde el drawer.
     - [ ] Finanzas — alta y edición de movimiento y de orden de imprenta.
     - [ ] Presupuestos — abrir editor, guardar, cambiar estado, PDF, link público.
     - [ ] Ajustes — guardar identidad del negocio y distribución de socios.
     - [ ] Dashboard — KPIs y widgets cargan.
+
+---
+
+## Fase 2-bis: Hotfix de la validación (no estaba en el plan original)
+
+Bugs que aparecieron al validar P3 en el navegador. Ninguno lo introdujo el DIP:
+son defectos preexistentes que la validación destapó.
+
+- [x] **H1: Insumos** *(commit `b46b951`)*
+    - [x] El radio "principal" de la tabla de proveedores no era clickeable: `.id-radio` vivía en el `<style scoped>` del padre y el scoped no alcanza a los hijos. Autocontenido con Tailwind.
+    - [x] Salir del módulo con cambios sin guardar no avisaba: `onBeforeRouteLeave` en el overlay. La X del header pasa a confirmar igual que `Esc`.
+    - [x] Nivel de stock `sin_control` para stock y mínimo en 0 ("Sin control", en vez de reportarlo como faltante). Cubierto por `stock.spec.ts`.
+    - [x] Clickear en el aside el módulo actual no cerraba el overlay: señal `resetViewTrigger` del shell a la página.
+    - [x] `DataTable` sin hover ni separadores de fila (aplica a los 4 listados).
+- [x] **H2: Productos y BOM** *(commit `f77f318`)*
+    - [x] Columna "Calculado" por línea de receta: `normal` / `fijo` / `extra`. Migración `add_modo_calculo_to_bom` **aplicada a Supabase** (columna con default `normal`, no destructiva).
+    - [x] El campo Insumo/descripción pasa de `select` a input con `datalist` (autocompletado, igual que el editor de presupuestos).
+    - [x] Aviso de precio por debajo del sugerido: compara a la precisión que se muestra, así un redondeo de centavos no lo dispara.
+    - [x] Paleta de nivel de stock unificada entre lista y edición; campos de stock aceptan quedar vacíos.
+- [x] **H3: Botón Guardar siempre activo — corregido de raíz**
+    - [x] Causa: las comparaciones campo por campo contra el registro de la API se rompen por diferencias de forma. La concreta en productos era el orden de claves de `medidas` (la BD guarda `{base,tipo,altura,unidad,profundidad}`, el formulario rearmaba `{tipo,base,altura,profundidad,unidad}` y `JSON.stringify` respeta el orden).
+    - [x] Nuevo `shared/lib/useFormSnapshot`: fotografía el formulario al cargarlo y lo compara contra sí mismo. Al snapshot entra solo lo que edita el usuario; quedan afuera los derivados (precio automático, costo que baja del insumo).
+    - [x] Aplicado igual en insumos y productos. En alta, Guardar arranca deshabilitado y se habilita con el primer dato.
+    - [x] Cubierto por `useFormSnapshot.spec.ts` (5 tests, uno reproduce el caso del orden de claves).
+- [x] **H4: Ajustes finales de la ronda**
+    - [x] Celdas de Cantidad y Costo unitario del BOM: el sufijo dejó de ser un `<span>` absoluto sobre el input con padding hardcodeado; ahora es un hermano flex que no se superpone. Cantidad muestra la inicial de la unidad; Costo unitario, la unidad completa.
+    - [x] Productos no tenía conectado el diálogo "¿Salir sin guardar?" (existía en el template y nada lo abría) ni el listener de `Esc`. Igualado a insumos: aside, X, `Esc` y guarda de ruta.
 
 ---
 
