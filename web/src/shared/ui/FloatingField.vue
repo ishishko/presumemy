@@ -124,3 +124,5 @@ function onBlur() {
     </label>
   </div>
 </template>
+
+<style src="./floating-field.css"></style>
