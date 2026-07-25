@@ -110,7 +110,7 @@ son defectos preexistentes que la validación destapó.
 ## Fase 4: Cierre
 
 - [ ] **P6: Documentación y verificación final**
-    - [ ] Actualizar `AGENTS.md` con la arquitectura modular resultante.
+    - [x] Actualizar `AGENTS.md` con la arquitectura modular resultante. Describía el `package-by-layer` previo al refactor (`views/`, `components/drawers/`, `stores/`, `services/`…), directorios que ya no existen. Se documentan además el modo de cálculo del BOM y el nivel de stock sin control.
     - [ ] Decidir con el usuario si se recuperan los tests ausentes (`stock.test.ts`, `ConfirmDialog.test.ts`).
     - [ ] `npx vue-tsc -b`, `npm run build` y `npm run test` en `web/`; `npm run test` en `api/`.
     - [ ] Cerrar el walkthrough con la evidencia final.

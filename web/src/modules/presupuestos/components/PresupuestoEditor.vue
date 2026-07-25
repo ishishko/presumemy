@@ -403,11 +403,9 @@ async function handleSave() {
 
 
 // --- Documento: descarga de PDF y link público ---
-// el documento existe solo con el estado persistido más allá de borrador
-const canShareDoc = computed(() => {
-  const persistido = props.presupuesto?.estado
-  return !isNew.value && !!persistido && persistido !== 'borrador' && persistido !== 'cancelado'
-})
+// Hay documento que compartir en cuanto el presupuesto está guardado: en un
+// alta todavía no existe el folio contra el que generar el PDF ni el token.
+const canShareDoc = computed(() => !isNew.value)
 
 const pdfLoading = ref(false)
 
@@ -784,20 +782,17 @@ defineExpose({
         </div>
       </div>
 
-      <div class="flex items-center justify-between border-t border-border px-5.5 py-3.5 bg-surface min-h-[56px] select-none shrink-0">
-        <div class="flex-1"></div>
-        <div class="flex items-center gap-2">
-          <template v-if="canShareDoc">
-            <BaseButton variant="secondary" type="button" @click="handleCopyLink">
-              <Link2 :size="16" aria-hidden="true" />
-              Copiar link
-            </BaseButton>
-            <BaseButton variant="secondary" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
-              <Download :size="16" aria-hidden="true" />
-              {{ pdfLoading ? 'Generando...' : 'Descargar PDF' }}
-            </BaseButton>
-          </template>
-        </div>
+      <div class="flex items-center gap-2 border-t border-border px-5.5 py-3.5 bg-surface min-h-[56px] select-none shrink-0">
+        <template v-if="canShareDoc">
+          <BaseButton variant="secondary" type="button" @click="handleCopyLink">
+            <Link2 :size="16" aria-hidden="true" />
+            Copiar link
+          </BaseButton>
+          <BaseButton variant="secondary" type="button" :disabled="pdfLoading" @click="handleDownloadPdf">
+            <Download :size="16" aria-hidden="true" />
+            {{ pdfLoading ? 'Generando...' : 'Descargar PDF' }}
+          </BaseButton>
+        </template>
       </div>
     </div>
   </Transition>
