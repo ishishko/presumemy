@@ -13,23 +13,37 @@ route.use('*', authMiddleware)
 // =========================================================
 // HELPER FUNCTIONS FOR CALCULATING VIRTUALS
 // =========================================================
+/**
+ * Aplica el margen al costo de receta y le suma los cargos fijos.
+ * Los fijos entran despues del margen: no se marcan.
+ */
+function aplicarMargen(costoBOM: number, fijos: number, tipoGanancia: string, ganancia: number) {
+  const conMargen = tipoGanancia === 'porcentaje'
+    ? costoBOM * (1 + ganancia / 100)
+    : costoBOM + ganancia
+  return conMargen + fijos
+}
+
 function calculateProductoVirtuals(producto: any) {
   let costoBOM = 0
+  let fijos = 0
   for (const l of producto.bomLineas || []) {
+    // 'extra' es informativo: no suma ni al costo ni al precio.
+    if (l.modoCalculo === 'extra') continue
     const cantidad = Number(l.cantidad)
     const costoUnit = (l.tipoLinea === 'insumo' && l.insumo)
       ? Number(l.insumo.costoUnitario)
       : Number(l.costoUnitario)
-    costoBOM += cantidad * costoUnit
+    const subtotal = cantidad * costoUnit
+    if (l.modoCalculo === 'fijo') {
+      fijos += subtotal
+    } else {
+      costoBOM += subtotal
+    }
   }
 
   const ganancia = Number(producto.ganancia)
-  let precioSugerido = costoBOM
-  if (producto.tipoGanancia === 'porcentaje') {
-    precioSugerido = costoBOM * (1 + ganancia / 100)
-  } else {
-    precioSugerido = costoBOM + ganancia
-  }
+  const precioSugerido = aplicarMargen(costoBOM, fijos, producto.tipoGanancia, ganancia)
 
   const finalPrecioManual = producto.precioManual
   const finalPrecio = finalPrecioManual ? Number(producto.precio) : precioSugerido
@@ -56,25 +70,27 @@ async function calculatePrecioForPayload(data: any) {
   const insumosMap = new Map(insumos.map(i => [i.id, Number(i.costoUnitario)]))
 
   let costoBOM = 0
+  let fijos = 0
   if (data.bomLineas) {
     for (const l of data.bomLineas) {
+      if (l.modoCalculo === 'extra') continue
       const cantidad = Number(l.cantidad)
       let costoUnit = Number(l.costoUnitario)
       if (l.tipoLinea === 'insumo' && l.insumoId) {
         costoUnit = insumosMap.get(l.insumoId) ?? costoUnit
       }
-      costoBOM += cantidad * costoUnit
+      const subtotal = cantidad * costoUnit
+      if (l.modoCalculo === 'fijo') {
+        fijos += subtotal
+      } else {
+        costoBOM += subtotal
+      }
     }
   }
 
   let calculatedPrecio = Number(data.precio)
   if (!data.precioManual) {
-    const ganancia = Number(data.ganancia)
-    if (data.tipoGanancia === 'porcentaje') {
-      calculatedPrecio = costoBOM * (1 + ganancia / 100)
-    } else {
-      calculatedPrecio = costoBOM + ganancia
-    }
+    calculatedPrecio = aplicarMargen(costoBOM, fijos, data.tipoGanancia, Number(data.ganancia))
   }
 
   return calculatedPrecio
@@ -326,6 +342,7 @@ route.post('/', zValidator('json', productoSchema), async (c) => {
       bomLineas: data.bomLineas ? {
         create: data.bomLineas.map((linea) => ({
           tipoLinea: linea.tipoLinea,
+          modoCalculo: linea.modoCalculo ?? 'normal',
           insumo: linea.insumoId ? { connect: { id: linea.insumoId } } : undefined,
           descripcion: linea.descripcion || null,
           cantidad: linea.cantidad,
@@ -381,6 +398,7 @@ route.put('/:id', zValidator('json', productoUpdateSchema), async (c) => {
         deleteMany: {},
         create: bomLineas.map((linea) => ({
           tipoLinea: linea.tipoLinea,
+          modoCalculo: linea.modoCalculo ?? 'normal',
           insumo: linea.insumoId ? { connect: { id: linea.insumoId } } : undefined,
           descripcion: linea.descripcion || null,
           cantidad: linea.cantidad,

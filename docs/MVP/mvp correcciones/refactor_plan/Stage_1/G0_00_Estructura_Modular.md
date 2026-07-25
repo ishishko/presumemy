@@ -1,0 +1,41 @@
+# G0.0 — Estructura modular (scaffolding) — corre PRIMERO
+
+> Antecede a todo (incluido G0.1). Crea el esqueleto `app/ shared/ modules/` y reubica el arranque. Arquitectura completa en `00_Arquitectura_Modular.md`.
+
+| | |
+|---|---|
+| **Ubicación** | crea `app/`, `shared/`, `modules/` |
+| **Grupo / orden** | G0 (fundación) · 0º (antes de G0.1) |
+| **Tipo** | crear estructura + mover arranque |
+| **Dependencias** | ninguna |
+| **Consumidores** | todo el proyecto |
+
+## Estado actual
+Estructura `package-by-layer`: `views/`, `components/{ui,layout,drawers,overlays,editors,presupuestos}/`, `stores/`, `services/`, `composables/`, `schemas/`, `utils/`, `assets/css/`, `types/`. El dominio está disperso (insumos en ≥3 carpetas).
+
+## Objetivo
+Esqueleto modular por dominio creado y arranque reubicado, listo para que cada Grupo escriba en su destino (Opción A).
+
+## Plan de acción paso a paso
+1. **Crear carpetas** vacías: `app/`, `app/{shell,styles}`, `shared/{ui,lib,api,config}`, `modules/{insumos,productos,clientes,presupuestos,finanzas,ajustes,dashboard,search,auth}/` (cada módulo con `components/` cuando aplique). **Nota:** no se crea `app/state` (los singletons de orquestación van a `shared/lib` — ver paso 3). No se crea `modules/categorias/`; las categorías viven en sus respectivos módulos de dominio. `search/` es módulo propio (búsqueda global multi-entidad, Epic D — ver G3.14).
+2. **Mover arranque a `app/`:**
+   - `src/main.ts` → `app/main.ts` (ajustar `index.html`/entry de Vite si referencia la ruta).
+   - `src/App.vue` → `app/App.vue`.
+   - `router/index.ts` → `app/router.ts`.
+   - crear `app/pinia.ts` (setup de Pinia hoy implícito en `main.ts`).
+3. **Singletons de orquestación a `shared/lib/`:** `composables/useEditorMode.ts` → `shared/lib/editorMode.ts`; `composables/useCreateTrigger.ts` → `shared/lib/createTrigger.ts`. **Por qué `shared/lib` y no `app`:** hoy los consumen vistas y overlays que pasarán a `modules/*` (`views/InsumosView.vue`, `views/ProductosView.vue`, `components/overlays/ProductoDetalle.vue`, etc. importan `createTrigger`/`editorDirty`). Como `modules` **no** puede importar `app` (regla `app → modules → shared`), ubicarlos en `app/state` haría imposible la regla de dependencia. Son mecanismos transversales **sin dominio** (estado global mutable tipo event-bus, sin `ref`/`reactive` propio), misma categoría que `useToast`/`useDirty` → `shared/lib`, importable por `app/shell` **y** por los módulos. (Deuda: su naturaleza singleton event-bus se anota pero no se refactoriza ahora.)
+4. **Política de barrels (C14):** cada `modules/<x>/index.ts` exporta la API pública del módulo; `shared` se consume por segmento (`@/shared/ui`, `@/shared/lib`, `@/shared/api`).
+5. **Alias:** confirmado que `@`→`./src` ya existe (vite+tsconfig); `@/app`, `@/modules/...`, `@/shared/...` resuelven sin config nueva. Opcional: agregar alias explícitos por claridad de review (no obligatorio).
+6. **Config y tests (no mover):** `vitest.config.ts` se queda en la raíz de `web/`; `src/test/setup.ts` se queda en `src/test/` (el `setupFiles` sigue apuntando a `./src/test/setup.ts`, no cambia). Los tests **co-localizan** con su sujeto al migrarlo (`__tests__/` junto al componente en `shared/ui` o dentro del módulo, ej. `modules/insumos/__tests__/`). El test existente `components/ui/__tests__/ConfirmDialog.test.ts` viaja con `ConfirmDialog` a `shared/ui/__tests__/`.
+7. **Assets:** `assets/hero.png` (hero del login) viaja con `auth` o pasa a `public/`; `vite.svg`/`vue.svg` son scaffolding muerto de Vite → se borran en G7.1. El logo MemyDeni vive en `public/`.
+8. **No mover todavía** el contenido de dominio (eso ocurre grupo por grupo, Opción A). Este paso solo crea el esqueleto y mueve el arranque.
+
+## Criterios de aceptación
+- `npm run dev` levanta con el entry en `app/main.ts`.
+- `vue-tsc -b` sin errores tras mover arranque + singletons.
+- Carpetas del esqueleto creadas; barrels vacíos donde corresponda.
+
+## Riesgos / notas
+- El entry de Vite/`index.html` apunta a `/src/main.ts`; actualizarlo a `/src/app/main.ts` (único punto frágil del movimiento de arranque).
+- `useEditorMode`/`useCreateTrigger` son estado global mutable (deuda anotada en rev.1); se ubican en `shared/lib` (no `app`) sin refactorizar su naturaleza singleton ahora.
+- Hacer este paso **antes** de G0.1 (tokens `@theme`), que ya escribe en `app/styles/main.css`.
