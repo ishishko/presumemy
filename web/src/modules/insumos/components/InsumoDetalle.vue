@@ -385,6 +385,15 @@ defineExpose({
         <BaseButton variant="ghost" :icon="true" title="Cerrar" @click="handleBack">
           <X :size="18" />
         </BaseButton>
+        <BaseButton
+          v-if="isEdit"
+          variant="danger"
+          :icon="true"
+          title="Eliminar"
+          @click="showConfirmDelete = true"
+        >
+          <Trash2 :size="18" />
+        </BaseButton>
       </Teleport>
 
 
@@ -493,19 +502,6 @@ defineExpose({
               </span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-between border-t border-border px-5.5 py-3.5 bg-surface min-h-[56px] select-none shrink-0">
-        <div class="flex-1"></div>
-        <div class="flex items-center gap-2">
-          <BaseButton
-            v-if="isEdit"
-            variant="danger"
-            @click="showConfirmDelete = true"
-          >
-            <Trash2 :size="16" /> Eliminar
-          </BaseButton>
         </div>
       </div>
 
