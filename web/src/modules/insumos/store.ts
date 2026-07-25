@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get, post, put, del, delWithBody } from '@/shared/api/client'
-import type { Insumo, CategoriaInsumo, PaginationResult } from '@/types'
+import * as api from './api'
+import type { Insumo, CategoriaInsumo, Proveedor } from './types'
 
 export const useInsumosStore = defineStore('insumos', () => {
   const data = ref<Insumo[]>([])
   const categorias = ref<CategoriaInsumo[]>([])
+  const proveedores = ref<Proveedor[]>([])
   const loading = ref(false)
   const hasFetched = ref(false)
   const lastFetched = ref<number>(0)
@@ -14,8 +15,8 @@ export const useInsumosStore = defineStore('insumos', () => {
     loading.value = !hasFetched.value
     try {
       const [insumosRes, catsRes] = await Promise.all([
-        get<PaginationResult<Insumo>>('/insumos', { page: 1, limit: 100 }),
-        get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
+        api.fetchInsumos(),
+        api.fetchCategorias(),
       ])
       data.value = insumosRes.data
       categorias.value = catsRes.data
@@ -27,8 +28,19 @@ export const useInsumosStore = defineStore('insumos', () => {
     }
   }
 
+  /** Catálogos que necesita el overlay de detalle (categorías + proveedores). */
+  async function fetchCatalogos() {
+    const [catsRes, provsRes] = await Promise.all([
+      api.fetchCategorias(),
+      api.fetchProveedores(),
+    ])
+    categorias.value = catsRes.data
+    proveedores.value = provsRes.data
+    return { categorias: catsRes.data, proveedores: provsRes.data }
+  }
+
   async function remove(id: number) {
-    await del('/insumos', id)
+    await api.deleteInsumo(id)
     data.value = data.value.filter(i => i.id !== id)
   }
 
@@ -42,28 +54,40 @@ export const useInsumosStore = defineStore('insumos', () => {
   }
 
   async function createCategoria(nombre: string) {
-    await post<CategoriaInsumo>('/insumos/categorias', { nombre })
+    await api.createCategoria(nombre)
     await fetch()
   }
 
   async function updateCategoria(id: number, nombre: string) {
-    await put<CategoriaInsumo>('/insumos/categorias', id, { nombre })
+    await api.updateCategoria(id, nombre)
     await fetch()
   }
 
   async function removeCategoria(id: number, reasignarA?: number) {
-    await delWithBody('/insumos/categorias', id, { reasignarA })
+    await api.deleteCategoria(id, reasignarA)
     await fetch()
   }
 
+  async function createProveedor(nombre: string): Promise<Proveedor> {
+    const nuevo = await api.createProveedor(nombre)
+    proveedores.value.push(nuevo)
+    proveedores.value.sort((a, b) => a.nombre.localeCompare(b.nombre))
+    return nuevo
+  }
+
+  async function removeProveedor(id: number) {
+    await api.deleteProveedor(id)
+    proveedores.value = proveedores.value.filter(p => p.id !== id)
+  }
+
   async function create(payload: any): Promise<Insumo> {
-    const res = await post<Insumo>('/insumos', payload)
+    const res = await api.createInsumo(payload)
     upsert(res)
     return res
   }
 
   async function update(id: number, payload: any): Promise<Insumo> {
-    const res = await put<Insumo>('/insumos', id, payload)
+    const res = await api.updateInsumo(id, payload)
     upsert(res)
     return res
   }
@@ -71,10 +95,12 @@ export const useInsumosStore = defineStore('insumos', () => {
   return {
     data,
     categorias,
+    proveedores,
     loading,
     hasFetched,
     lastFetched,
     fetch,
+    fetchCatalogos,
     remove,
     upsert,
     create,
@@ -82,5 +108,7 @@ export const useInsumosStore = defineStore('insumos', () => {
     createCategoria,
     updateCategoria,
     removeCategoria,
+    createProveedor,
+    removeProveedor,
   }
 })

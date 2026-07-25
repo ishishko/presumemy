@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Check, X } from '@lucide/vue'
-import { post, put, get } from '@/shared/api/client'
+import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
+import { useFinanzasStore } from '../store'
+import { usePresupuestosStore } from '@/modules/presupuestos'
 import { formatMoney } from '@/shared/lib/format'
-import type { OrdenImprenta, Presupuesto, PaginationResult } from '@/types'
+import type { OrdenImprenta } from '../types'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
@@ -34,7 +36,9 @@ const valorPatri = ref(0)
 const metodoPago = ref('transferencia')
 const pagado = ref(false)
 
-const presupuestos = ref<Presupuesto[]>([])
+const store = useFinanzasStore()
+const presupuestosStore = usePresupuestosStore()
+const { data: presupuestos } = storeToRefs(presupuestosStore)
 
 const metodosPago = [
   { id: 'efectivo', label: 'Efectivo' },
@@ -112,10 +116,10 @@ async function handleSave() {
   try {
     let res: OrdenImprenta
     if (isEdit.value && props.orden) {
-      res = await put<OrdenImprenta>('/finanzas/ordenes-imprenta', props.orden.id, payload)
+      res = await store.updateOrden(props.orden.id, payload)
       toast('Orden actualizada')
     } else {
-      res = await post<OrdenImprenta>('/finanzas/ordenes-imprenta', payload)
+      res = await store.createOrden(payload)
       toast('Orden creada')
     }
     emit('saved', res)
@@ -132,9 +136,8 @@ watch(() => props.open, (open) => {
 watch(() => props.open, async (open) => {
   if (open && presupuestos.value.length === 0) {
     try {
-      const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 100 })
-      presupuestos.value = res.data
-    } catch (e: any) {
+      await presupuestosStore.fetch()
+    } catch {
       toast('Error al cargar presupuestos', 'error')
     }
   }

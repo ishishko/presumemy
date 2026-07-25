@@ -14,7 +14,7 @@ import BaseKpi from '@/shared/ui/BaseKpi.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 import { useToast } from '@/shared/lib/useToast'
 import { usePagination } from '@/shared/lib/usePagination'
-import type { Transaccion, OrdenImprenta } from '@/types'
+import type { Transaccion, OrdenImprenta } from './types'
 
 const store = useFinanzasStore()
 const { toast } = useToast()

@@ -2,7 +2,7 @@
 import { ref, computed, nextTick, watch } from 'vue'
 import { Trash2, Plus, GripVertical } from '@lucide/vue'
 import { formatMoney } from '@/shared/lib/format'
-import type { Insumo } from '@/types'
+import type { Insumo } from '@/modules/insumos'
 
 // Props & Models
 const props = defineProps<{

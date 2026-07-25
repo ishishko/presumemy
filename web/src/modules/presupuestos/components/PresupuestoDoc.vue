@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatMoney } from '@/shared/lib/format'
-import type { ConfiguracionNegocio } from '@/types'
+import type { ConfiguracionNegocio } from '@/modules/ajustes'
 
 export interface PresupuestoDocLine {
   id?: number | string

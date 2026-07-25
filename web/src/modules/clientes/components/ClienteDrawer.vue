@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Check, Plus, X } from '@lucide/vue'
-import { post, put } from '@/shared/api/client'
 import { useToast } from '@/shared/lib/useToast'
-import type { Cliente, ClienteContacto } from '@/types'
-import { clienteSchema } from '@/schemas/clientes'
+import { useClientesStore } from '../store'
+import type { Cliente, ClienteContacto } from '../types'
+import { clienteSchema } from '../schema'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
@@ -20,6 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const { toast } = useToast()
+const store = useClientesStore()
 
 const isEdit = computed(() => !!props.cliente)
 
@@ -116,10 +117,10 @@ async function handleSave() {
   try {
     let res: Cliente
     if (isEdit.value && props.cliente) {
-      res = await put<Cliente>('/clientes', props.cliente.id, payload)
+      res = await store.update(props.cliente.id, payload)
       toast('Cliente actualizado')
     } else {
-      res = await post<Cliente>('/clientes', payload)
+      res = await store.create(payload)
       toast('Cliente creado')
     }
     emit('saved', res)

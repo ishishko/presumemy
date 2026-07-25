@@ -1,13 +1,6 @@
 import { ref, watch, onUnmounted } from 'vue'
-import { get } from '@/shared/api/client'
-
-export interface SearchResult {
-  tipo: 'insumo' | 'producto' | 'cliente' | 'presupuesto'
-  id: number
-  codigo: string
-  titulo: string
-  subtitulo: string
-}
+import * as api from './api'
+import type { SearchResult } from './types'
 
 export function useGlobalSearch() {
   const query = ref('')
@@ -32,11 +25,7 @@ export function useGlobalSearch() {
     abortController = new AbortController()
 
     try {
-      const res = await get<{ data: SearchResult[] }>(
-        '/search',
-        { q: trimmed },
-        { signal: abortController.signal }
-      )
+      const res = await api.search(trimmed, abortController.signal)
       results.value = res.data
     } catch (err: any) {
       if (err.name !== 'AbortError') {

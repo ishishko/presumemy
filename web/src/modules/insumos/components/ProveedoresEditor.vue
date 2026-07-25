@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { Trash2, Plus } from '@lucide/vue'
-import { post, del } from '@/shared/api/client'
+import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
-import type { Proveedor } from '@/types'
+import { useInsumosStore } from '../store'
 
 // Props & Models
 const props = defineProps<{
@@ -13,9 +13,11 @@ const props = defineProps<{
 
 // V-Models
 const proveedores = defineModel<Array<{ proveedorId: number; precio: number; esPrincipal: boolean; nombreTemp?: string }>>({ required: true })
-const proveedoresList = defineModel<Proveedor[]>('proveedoresList', { default: () => [] })
 
 const { toast } = useToast()
+const store = useInsumosStore()
+/** Catálogo global de proveedores: lo administra el store del módulo. */
+const { proveedores: proveedoresList } = storeToRefs(store)
 
 const activeRowIdx = ref<number | null>(null)
 const provTableRef = ref<HTMLElement | null>(null)
@@ -93,9 +95,7 @@ async function onProveedorBlur(idx: number) {
   if (!pr) {
     // Si no existe, lo creamos inline en el catálogo global de proveedores
     try {
-      const nuevoProv = await post<Proveedor>('/insumos/proveedores', { nombre: nombreTrim })
-      proveedoresList.value.push(nuevoProv)
-      proveedoresList.value.sort((a, b) => a.nombre.localeCompare(b.nombre))
+      const nuevoProv = await store.createProveedor(nombreTrim)
       row.proveedorId = nuevoProv.id
       row.nombreTemp = nuevoProv.nombre
       toast(`Proveedor "${nuevoProv.nombre}" creado en el catálogo`, 'success')
@@ -156,9 +156,8 @@ async function handleDeleteGlobalProvConfirm() {
   if (!pendingDeleteProvId.value) return
   const idToDelete = pendingDeleteProvId.value
   try {
-    await del('/insumos/proveedores', idToDelete)
-    proveedoresList.value = proveedoresList.value.filter(p => p.id !== idToDelete)
-    
+    await store.removeProveedor(idToDelete)
+
     // Limpiar también en el array de proveedores seleccionados en la UI
     proveedores.value.forEach(row => {
       if (row.proveedorId === idToDelete) {

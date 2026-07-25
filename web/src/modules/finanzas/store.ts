@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get, del } from '@/shared/api/client'
-import type { Transaccion, OrdenImprenta, DistribucionGanancia, FinanzasKPIs, PaginationResult } from '@/types'
+import * as api from './api'
+import type { Transaccion, OrdenImprenta, DistribucionGanancia, FinanzasKPIs } from './types'
 
 export const useFinanzasStore = defineStore('finanzas', () => {
   const transacciones = ref<Transaccion[]>([])
@@ -22,13 +22,9 @@ export const useFinanzasStore = defineStore('finanzas', () => {
     loading.value = !hasFetched.value
     try {
       const [transRes, ordRes, distRes] = await Promise.all([
-        get<PaginationResult<Transaccion> & { kpis: FinanzasKPIs }>('/finanzas', {
-          page: 1, limit: 1000, mes: p.month, anio: p.year,
-        }),
-        get<PaginationResult<OrdenImprenta>>('/finanzas/ordenes-imprenta', {
-          page: 1, limit: 1000, mes: p.month, anio: p.year,
-        }),
-        get<{ data: DistribucionGanancia[] }>('/finanzas/distribucion'),
+        api.fetchTransacciones(p.month, p.year),
+        api.fetchOrdenes(p.month, p.year),
+        api.fetchDistribucion(),
       ])
       transacciones.value = transRes.data
       ordenes.value = ordRes.data
@@ -43,8 +39,20 @@ export const useFinanzasStore = defineStore('finanzas', () => {
   }
 
   async function removeTransaccion(id: number) {
-    await del('/finanzas', id)
+    await api.deleteTransaccion(id)
     transacciones.value = transacciones.value.filter(t => t.id !== id)
+  }
+
+  async function createTransaccion(payload: any): Promise<Transaccion> {
+    const res = await api.createTransaccion(payload)
+    upsertTransaccion(res)
+    return res
+  }
+
+  async function updateTransaccion(id: number, payload: any): Promise<Transaccion> {
+    const res = await api.updateTransaccion(id, payload)
+    upsertTransaccion(res)
+    return res
   }
 
   function upsertTransaccion(transaccion: Transaccion) {
@@ -57,8 +65,20 @@ export const useFinanzasStore = defineStore('finanzas', () => {
   }
 
   async function removeOrden(id: number) {
-    await del('/finanzas/ordenes-imprenta', id)
+    await api.deleteOrden(id)
     ordenes.value = ordenes.value.filter(o => o.id !== id)
+  }
+
+  async function createOrden(payload: any): Promise<OrdenImprenta> {
+    const res = await api.createOrden(payload)
+    upsertOrden(res)
+    return res
+  }
+
+  async function updateOrden(id: number, payload: any): Promise<OrdenImprenta> {
+    const res = await api.updateOrden(id, payload)
+    upsertOrden(res)
+    return res
   }
 
   function upsertOrden(orden: OrdenImprenta) {
@@ -82,7 +102,11 @@ export const useFinanzasStore = defineStore('finanzas', () => {
     fetch,
     removeTransaccion,
     upsertTransaccion,
+    createTransaccion,
+    updateTransaccion,
     removeOrden,
     upsertOrden,
+    createOrden,
+    updateOrden,
   }
 })

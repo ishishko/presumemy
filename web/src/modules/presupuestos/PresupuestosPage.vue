@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { patch } from '@/shared/api/client'
 import { createTrigger } from '@/shared/lib/createTrigger'
 import { usePresupuestosStore } from './store'
 import { formatMoney, formatDate } from '@/shared/lib/format'
@@ -13,7 +12,7 @@ import FilterChips from '@/shared/ui/FilterChips.vue'
 import Pagination from '@/shared/ui/Pagination.vue'
 import { useToast } from '@/shared/lib/useToast'
 import { usePagination } from '@/shared/lib/usePagination'
-import type { Presupuesto } from '@/types'
+import type { Presupuesto } from './types'
 
 type Tone = 'default' | 'violet' | 'teal' | 'mint' | 'lavender' | 'coral'
 
@@ -104,8 +103,7 @@ async function proceedStatusChange(p: Presupuesto, newStatus: string) {
   const originalStatus = p.estado
   p.estado = newStatus as any
   try {
-    const updated = await patch<Presupuesto>('/presupuestos', `${p.id}/estado`, { estado: newStatus })
-    store.upsert(updated)
+    await store.updateStatus(p.id, newStatus)
     toast(`Estado actualizado a ${statusTones[newStatus]?.label || newStatus}`)
   } catch (e: any) {
     p.estado = originalStatus

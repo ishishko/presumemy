@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Lock, Trash2 } from '@lucide/vue'
-import { get } from '@/shared/api/client'
+import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { useInsumosStore } from '../store'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
@@ -9,7 +9,7 @@ import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
 import ToggleSwitch from '@/shared/ui/ToggleSwitch.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
-import type { Insumo, CategoriaInsumo, Proveedor } from '@/types'
+import type { Insumo } from '../types'
 import InsumoStockForm from './InsumoStockForm.vue'
 import ProveedoresEditor from './ProveedoresEditor.vue'
 
@@ -30,8 +30,16 @@ const store = useInsumosStore()
 
 const isEdit = computed(() => !!props.insumo)
 
-const categorias = ref<CategoriaInsumo[]>([])
-const proveedoresList = ref<Proveedor[]>([])
+const { categorias, proveedores: proveedoresList } = storeToRefs(store)
+
+async function cargarCatalogos() {
+  if (categorias.value.length > 0 && proveedoresList.value.length > 0) return
+  try {
+    await store.fetchCatalogos()
+  } catch {
+    toast('Error al cargar datos', 'error')
+  }
+}
 
 const nombre = ref('')
 const categoriaId = ref(0)
@@ -330,18 +338,7 @@ watch(
 watch(() => props.open, async (open) => {
   if (open) {
     document.body.classList.add('no-scroll')
-    if (categorias.value.length === 0 || proveedoresList.value.length === 0) {
-      try {
-        const [catsRes, provsRes] = await Promise.all([
-          get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
-          get<{ data: Proveedor[] }>('/insumos/proveedores'),
-        ])
-        categorias.value = catsRes.data
-        proveedoresList.value = provsRes.data
-      } catch (e: any) {
-        toast('Error al cargar datos', 'error')
-      }
-    }
+    await cargarCatalogos()
   } else {
     document.body.classList.remove('no-scroll')
   }
@@ -351,18 +348,7 @@ onMounted(async () => {
   document.addEventListener('keydown', onKeydown)
   if (props.open) {
     document.body.classList.add('no-scroll')
-    if (categorias.value.length === 0 || proveedoresList.value.length === 0) {
-      try {
-        const [catsRes, provsRes] = await Promise.all([
-          get<{ data: CategoriaInsumo[] }>('/insumos/categorias'),
-          get<{ data: Proveedor[] }>('/insumos/proveedores'),
-        ])
-        categorias.value = catsRes.data
-        proveedoresList.value = provsRes.data
-      } catch (e: any) {
-        toast('Error al cargar datos', 'error')
-      }
-    }
+    await cargarCatalogos()
     loadInsumo()
     openOverlay()
     editorDirty.value = dirty.value
@@ -468,7 +454,6 @@ defineExpose({ loadInsumo })
           <div class="id-col-right-stack">
             <ProveedoresEditor
               v-model="proveedores"
-              v-model:proveedoresList="proveedoresList"
               :errors="errors"
             />
 

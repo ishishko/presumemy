@@ -5,7 +5,7 @@ import { ofetch } from 'ofetch'
 import { FileX, Printer } from '@lucide/vue'
 import PresupuestoDoc, { type PresupuestoDocData } from './components/PresupuestoDoc.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
-import type { ConfiguracionNegocio } from '@/types'
+import type { ConfiguracionNegocio } from '@/modules/ajustes'
 
 interface PublicPresupuestoDTO {
   folio: string

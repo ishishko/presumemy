@@ -2,7 +2,7 @@
 import { ref, nextTick } from 'vue'
 import { Trash2, Plus, GripVertical } from '@lucide/vue'
 import { formatMoney } from '@/shared/lib/format'
-import type { Producto } from '@/types'
+import type { Producto } from '@/modules/productos'
 
 // Props & Models
 const props = defineProps<{

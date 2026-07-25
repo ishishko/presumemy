@@ -9,7 +9,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import DataTable from '@/shared/ui/DataTable.vue'
 import RowActions from '@/shared/ui/RowActions.vue'
 import { useToast } from '@/shared/lib/useToast'
-import type { Cliente, ClienteContacto } from '@/types'
+import type { Cliente, ClienteContacto } from './types'
 
 const route = useRoute()
 const store = useClientesStore()

@@ -56,7 +56,9 @@ Ejecutada en navegador contra dev server limpio (backend :3000 + frontend :5173,
 > - **M-2** — `formatMoney` ahora hace `Number(value)` (Decimal string) → tabla muestra "$ 8,80".
 > - **Paso 8** moneda — `money()`/`moneyAbs` locales de `ProductoDetalle`/`MovimientoDrawer`/`ImprentaDrawer` centralizados en `formatMoney`; fallback `'MXN'` → `'ARS'` en `PresupuestoDoc`.
 >
-> **⏸️ Pendiente (refactors arquitectónicos, sin impacto visual — NO ejecutados para no arriesgar el flujo CRUD/guardado ya verificado):**
+> **⏸️ Pendiente al cierre de esta ronda** — continúa en [`02_Plan_Fix_Refactor.md`](02_Plan_Fix_Refactor.md), donde el **Paso 6 (DIP) ya quedó ejecutado** y los Pasos 5 y 7 siguen abiertos. Nota de encuadre: las menciones a "Stage 3" de abajo son históricas — el 2026-07-25 se decidió que el refactor termina en Stage 2 y ese alcance se absorbió en la ronda `02`.
+>
+> *(refactors arquitectónicos, sin impacto visual — NO ejecutados en esta ronda para no arriesgar el flujo CRUD/guardado ya verificado):*
 > - **Paso 5** desacople de `editorMode` (6 archivos, toca el flujo de guardado).
 > - **Paso 6** DIP — sacar `shared/api` de la UI a stores (11 archivos + acciones de store; `ProveedoresEditor` está entrelazado con un `defineModel` del padre).
 > - **Paso 7** migración CSS completa / borrar `components.css` — ya marcado como **Stage 3** en §6.

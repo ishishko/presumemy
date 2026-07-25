@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get, post, put, del, delWithBody } from '@/shared/api/client'
-import type { Producto, CategoriaProducto, PaginationResult } from '@/types'
+import * as api from './api'
+import type { Producto, CategoriaProducto } from './types'
 
 export const useProductosStore = defineStore('productos', () => {
   const data = ref<Producto[]>([])
@@ -14,8 +14,8 @@ export const useProductosStore = defineStore('productos', () => {
     loading.value = !hasFetched.value
     try {
       const [prodRes, catsRes] = await Promise.all([
-        get<PaginationResult<Producto>>('/productos', { page: 1, limit: 100 }),
-        get<{ data: CategoriaProducto[] }>('/productos/categorias'),
+        api.fetchProductos(),
+        api.fetchCategorias(),
       ])
       data.value = prodRes.data
       categorias.value = catsRes.data
@@ -27,8 +27,15 @@ export const useProductosStore = defineStore('productos', () => {
     }
   }
 
+  /** Categorías sueltas: las necesita el overlay de detalle sin recargar la grilla. */
+  async function fetchCategorias() {
+    const catsRes = await api.fetchCategorias()
+    categorias.value = catsRes.data
+    return catsRes.data
+  }
+
   async function remove(id: number) {
-    await del('/productos', id)
+    await api.deleteProducto(id)
     data.value = data.value.filter(p => p.id !== id)
   }
 
@@ -41,29 +48,35 @@ export const useProductosStore = defineStore('productos', () => {
     }
   }
 
+  async function toggleFavorito(id: number): Promise<Producto> {
+    const res = await api.toggleFavorito(id)
+    upsert(res)
+    return res
+  }
+
   async function createCategoria(nombre: string) {
-    await post<CategoriaProducto>('/productos/categorias', { nombre })
+    await api.createCategoria(nombre)
     await fetch()
   }
 
   async function updateCategoria(id: number, nombre: string) {
-    await put<CategoriaProducto>('/productos/categorias', id, { nombre })
+    await api.updateCategoria(id, nombre)
     await fetch()
   }
 
   async function removeCategoria(id: number, reasignarA?: number) {
-    await delWithBody('/productos/categorias', id, { reasignarA })
+    await api.deleteCategoria(id, reasignarA)
     await fetch()
   }
 
   async function create(payload: any): Promise<Producto> {
-    const res = await post<Producto>('/productos', payload)
+    const res = await api.createProducto(payload)
     upsert(res)
     return res
   }
 
   async function update(id: number, payload: any): Promise<Producto> {
-    const res = await put<Producto>('/productos', id, payload)
+    const res = await api.updateProducto(id, payload)
     upsert(res)
     return res
   }
@@ -75,10 +88,12 @@ export const useProductosStore = defineStore('productos', () => {
     hasFetched,
     lastFetched,
     fetch,
+    fetchCategorias,
     remove,
     upsert,
     create,
     update,
+    toggleFavorito,
     createCategoria,
     updateCategoria,
     removeCategoria,

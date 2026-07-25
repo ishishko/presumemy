@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { get, put } from '@/shared/api/client'
-import type { ConfiguracionNegocio, DistribucionGanancia } from '@/types'
+import { storeToRefs } from 'pinia'
+import { useAjustesStore } from './store'
+import type { DistribucionGanancia } from '@/modules/finanzas'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
 import ToggleSwitch from '@/shared/ui/ToggleSwitch.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
 
-const config = ref<ConfiguracionNegocio | null>(null)
-const socios = ref<DistribucionGanancia[]>([])
+const store = useAjustesStore()
+const { config, socios } = storeToRefs(store)
 const loading = ref(true)
 const error = ref('')
 
@@ -65,7 +66,7 @@ function updateSocio(id: number, patch: Partial<DistribucionGanancia>) {
 async function saveConfig() {
   if (!config.value) return
   try {
-    await put('/ajustes/configuracion', 1, {
+    await store.saveConfig({
       nombre: config.value.nombre,
       moneda: config.value.moneda,
       domicilio: config.value.domicilio,
@@ -84,9 +85,7 @@ async function saveConfig() {
 async function saveSocios() {
   if (!sociosValid.value) return
   try {
-    await put('/ajustes/distribucion', 0, {
-      items: socios.value.map((s) => ({ id: s.id, porcentaje: s.porcentaje })),
-    })
+    await store.saveDistribucion(socios.value.map((s) => ({ id: s.id, porcentaje: Number(s.porcentaje) })))
     sociosDirty.value = false
   } catch (e: any) {
     error.value = e.message || 'Error al guardar'
@@ -95,12 +94,7 @@ async function saveSocios() {
 
 onMounted(async () => {
   try {
-    const [configRes, sociosRes] = await Promise.all([
-      get<{ data: ConfiguracionNegocio }>('/ajustes/configuracion'),
-      get<{ data: DistribucionGanancia[] }>('/ajustes/distribucion'),
-    ])
-    config.value = configRes.data
-    socios.value = sociosRes.data
+    await store.fetchAll()
   } catch (e: any) {
     error.value = e.message || 'Error al cargar ajustes'
   } finally {

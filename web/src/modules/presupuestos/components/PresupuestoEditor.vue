@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { FileText, Download, Link2 } from '@lucide/vue'
-import { get } from '@/shared/api/client'
+import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { usePresupuestosStore } from '../store'
 import { editorDirty } from '@/shared/lib/editorMode'
-import type { Presupuesto, Cliente, Producto, PaginationResult, ConfiguracionNegocio } from '@/types'
-import { presupuestoSchema } from '@/schemas/presupuestos'
+import type { Presupuesto } from '../types'
+import { useClientesStore } from '@/modules/clientes'
+import { useProductosStore } from '@/modules/productos'
+import { useAjustesStore } from '@/modules/ajustes'
+import { presupuestoSchema } from '../schema'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import PresupuestoDoc from './PresupuestoDoc.vue'
@@ -95,9 +98,12 @@ async function confirmReopen() {
   }
 }
 
-const clientes = ref<Cliente[]>([])
-const productos = ref<Producto[]>([])
-const config = ref<ConfiguracionNegocio | null>(null)
+const clientesStore = useClientesStore()
+const productosStore = useProductosStore()
+const ajustesStore = useAjustesStore()
+const { data: clientes } = storeToRefs(clientesStore)
+const { data: productos } = storeToRefs(productosStore)
+const { config } = storeToRefs(ajustesStore)
 
 const cliente = ref('')
 const clienteId = ref<number>(0)
@@ -245,8 +251,7 @@ async function loadPresupuesto() {
     let p = props.presupuesto
     if (!p.detalles) {
       try {
-        const res = await get<{ data: Presupuesto }>(`/presupuestos/${p.id}`)
-        p = res.data
+        p = await store.fetchById(p.id)
       } catch (e: any) {
         toast('Error al cargar detalles del presupuesto', 'error')
       }
@@ -407,8 +412,8 @@ async function handleDownloadPdf() {
   if (!props.presupuesto || pdfLoading.value) return
   pdfLoading.value = true
   try {
-    const res = await get<{ data: { url: string } }>(`/presupuestos/${props.presupuesto.id}/pdf`)
-    window.open(res.data.url, '_blank')
+    const url = await store.getPdfUrl(props.presupuesto.id)
+    window.open(url, '_blank')
   } catch (e: any) {
     toast(e.data?.error || 'Error al generar el PDF', 'error')
   } finally {
@@ -421,8 +426,8 @@ async function handleCopyLink() {
   let token = props.presupuesto.publicToken
   if (!token) {
     try {
-      const res = await get<{ data: Presupuesto }>(`/presupuestos/${props.presupuesto.id}`)
-      token = res.data.publicToken
+      const fresco = await store.fetchById(props.presupuesto.id)
+      token = fresco.publicToken
     } catch {
       // se reporta abajo si sigue faltando
     }
@@ -465,14 +470,11 @@ function closeEditor() {
 onMounted(async () => {
   window.addEventListener('click', closeDropdown)
   try {
-    const [clientesRes, productosRes, configRes] = await Promise.all([
-      get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 100 }),
-      get<PaginationResult<Producto>>('/productos', { page: 1, limit: 100 }),
-      get<{ data: ConfiguracionNegocio }>('/ajustes/configuracion'),
+    await Promise.all([
+      clientesStore.fetch(),
+      productosStore.fetch(),
+      ajustesStore.fetchConfig(),
     ])
-    clientes.value = clientesRes.data
-    productos.value = productosRes.data
-    config.value = configRes.data
   } catch (e: any) {
     toast('Error al cargar datos', 'error')
   }

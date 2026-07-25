@@ -14,7 +14,7 @@ import StockBar from './components/StockBar.vue'
 import CategoriaPills from '@/shared/ui/CategoriaPills.vue'
 import CategoriaDeleteDialog from '@/shared/ui/CategoriaDeleteDialog.vue'
 import { useToast } from '@/shared/lib/useToast'
-import type { Insumo } from '@/types'
+import type { Insumo } from './types'
 
 const store = useInsumosStore()
 const route = useRoute()

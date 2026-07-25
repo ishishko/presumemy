@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get, del } from '@/shared/api/client'
-import type { Cliente, PaginationResult } from '@/types'
+import * as api from './api'
+import type { Cliente } from './types'
 
 export const useClientesStore = defineStore('clientes', () => {
   const data = ref<Cliente[]>([])
@@ -12,7 +12,7 @@ export const useClientesStore = defineStore('clientes', () => {
   async function fetch() {
     loading.value = !hasFetched.value
     try {
-      const res = await get<PaginationResult<Cliente>>('/clientes', { page: 1, limit: 100 })
+      const res = await api.fetchClientes()
       data.value = res.data
       hasFetched.value = true
       lastFetched.value = Date.now()
@@ -23,7 +23,7 @@ export const useClientesStore = defineStore('clientes', () => {
   }
 
   async function remove(id: number) {
-    await del('/clientes', id)
+    await api.deleteCliente(id)
     data.value = data.value.filter(c => c.id !== id)
   }
 
@@ -36,5 +36,17 @@ export const useClientesStore = defineStore('clientes', () => {
     }
   }
 
-  return { data, loading, hasFetched, lastFetched, fetch, remove, upsert }
+  async function create(payload: any): Promise<Cliente> {
+    const res = await api.createCliente(payload)
+    upsert(res)
+    return res
+  }
+
+  async function update(id: number, payload: any): Promise<Cliente> {
+    const res = await api.updateCliente(id, payload)
+    upsert(res)
+    return res
+  }
+
+  return { data, loading, hasFetched, lastFetched, fetch, remove, upsert, create, update }
 })

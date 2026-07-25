@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { ArrowRight, Star } from '@lucide/vue'
 import { useDashboardStore } from '@/modules/dashboard/store'
 import { useToast } from '@/shared/lib/useToast'
@@ -12,8 +13,7 @@ import { useProductosStore } from '@/modules/productos/store'
 import { formatMoney } from '@/shared/lib/format'
 import StatusBadge from '@/shared/ui/StatusBadge.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
-import type { ConfiguracionNegocio } from '@/types'
-import { get } from '@/shared/api/client'
+import { useAjustesStore } from '@/modules/ajustes'
 
 const store = useDashboardStore()
 const router = useRouter()
@@ -25,7 +25,8 @@ const insumosStore = useInsumosStore()
 const presupuestosStore = usePresupuestosStore()
 const productosStore = useProductosStore()
 
-const config = ref<ConfiguracionNegocio | null>(null)
+const ajustesStore = useAjustesStore()
+const { config } = storeToRefs(ajustesStore)
 
 const showLoading = computed(() => !store.stats || !productosStore.hasFetched || !insumosStore.hasFetched || !config.value)
 
@@ -140,14 +141,13 @@ function formatFechaEntrega(fechaStr: string): string {
 
 async function loadDashboard() {
   try {
-    const [configRes] = await Promise.all([
-      get<{ data: ConfiguracionNegocio }>('/ajustes/configuracion'),
+    await Promise.all([
+      ajustesStore.fetchConfig(),
       store.fetch(),
       productosStore.hasFetched ? Promise.resolve() : productosStore.fetch(),
       insumosStore.hasFetched ? Promise.resolve() : insumosStore.fetch(),
     ])
-    config.value = configRes.data
-    
+
     if (!clientesStore.hasFetched) clientesStore.fetch().catch(() => {})
     if (!finanzasStore.hasFetched) finanzasStore.fetch().catch(() => {})
     if (!presupuestosStore.hasFetched) presupuestosStore.fetch().catch(() => {})

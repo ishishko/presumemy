@@ -2,7 +2,7 @@
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { Trash2, X, Plus, Lock, Image, Ruler } from '@lucide/vue'
 import { editorDirty } from '@/shared/lib/editorMode'
-import { get } from '@/shared/api/client'
+import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
 import { formatMoney } from '@/shared/lib/format'
 import { useProductosStore } from '../store'
@@ -11,7 +11,8 @@ import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
 import ToggleSwitch from '@/shared/ui/ToggleSwitch.vue'
 import BaseButton from '@/shared/ui/BaseButton.vue'
-import type { Producto, CategoriaProducto, Insumo, PaginationResult } from '@/types'
+import { useInsumosStore } from '@/modules/insumos'
+import type { Producto } from '../types'
 
 import ProductoMedidasForm from './ProductoMedidasForm.vue'
 import BomEditor from './BomEditor.vue'
@@ -33,8 +34,9 @@ const store = useProductosStore()
 
 const isEdit = computed(() => !!props.producto)
 
-const categorias = ref<CategoriaProducto[]>([])
-const insumosList = ref<Insumo[]>([])
+const insumosStore = useInsumosStore()
+const { categorias } = storeToRefs(store)
+const { data: insumosList } = storeToRefs(insumosStore)
 
 const nombre = ref('')
 const categoriaId = ref(0)
@@ -310,13 +312,11 @@ watch(() => props.open, async (open) => {
 watch(() => props.open, async (open) => {
   if (open && categorias.value.length === 0) {
     try {
-      const [catsRes, insumosRes] = await Promise.all([
-        get<{ data: CategoriaProducto[] }>('/productos/categorias'),
-        get<PaginationResult<Insumo>>('/insumos', { page: 1, limit: 100 }),
+      await Promise.all([
+        store.fetchCategorias(),
+        insumosStore.fetch(),
       ])
-      categorias.value = catsRes.data
-      insumosList.value = insumosRes.data
-    } catch (e: any) {
+    } catch {
       toast('Error al cargar datos', 'error')
     }
   }

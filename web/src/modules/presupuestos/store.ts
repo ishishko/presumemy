@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { get, post, put, patch, del } from '@/shared/api/client'
-import type { Presupuesto, PaginationResult } from '@/types'
+import * as api from './api'
+import type { Presupuesto } from './types'
 
 export const usePresupuestosStore = defineStore('presupuestos', () => {
   const data = ref<Presupuesto[]>([])
@@ -12,7 +12,7 @@ export const usePresupuestosStore = defineStore('presupuestos', () => {
   async function fetch() {
     loading.value = !hasFetched.value
     try {
-      const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 1000 })
+      const res = await api.fetchPresupuestos()
       data.value = res.data
       hasFetched.value = true
       lastFetched.value = Date.now()
@@ -23,7 +23,7 @@ export const usePresupuestosStore = defineStore('presupuestos', () => {
   }
 
   async function remove(id: number) {
-    await del('/presupuestos', id)
+    await api.deletePresupuesto(id)
     data.value = data.value.filter(p => p.id !== id)
   }
 
@@ -37,21 +37,33 @@ export const usePresupuestosStore = defineStore('presupuestos', () => {
   }
 
   async function create(payload: any): Promise<Presupuesto> {
-    const res = await post<Presupuesto>('/presupuestos', payload)
+    const res = await api.createPresupuesto(payload)
     upsert(res)
     return res
   }
 
   async function update(id: number, payload: any): Promise<Presupuesto> {
-    const res = await put<Presupuesto>('/presupuestos', id, payload)
+    const res = await api.updatePresupuesto(id, payload)
     upsert(res)
     return res
   }
 
   async function updateStatus(id: number, estado: string): Promise<Presupuesto> {
-    const res = await patch<Presupuesto>('/presupuestos', `${id}/estado`, { estado })
+    const res = await api.updateEstado(id, estado)
     upsert(res)
     return res
+  }
+
+  /** Detalle completo (incluye líneas y token público). */
+  async function fetchById(id: number): Promise<Presupuesto> {
+    const res = await api.fetchPresupuesto(id)
+    upsert(res.data)
+    return res.data
+  }
+
+  async function getPdfUrl(id: number): Promise<string> {
+    const res = await api.fetchPdfUrl(id)
+    return res.data.url
   }
 
   return {
@@ -65,5 +77,7 @@ export const usePresupuestosStore = defineStore('presupuestos', () => {
     create,
     update,
     updateStatus,
+    fetchById,
+    getPdfUrl,
   }
 })

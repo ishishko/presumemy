@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { createTrigger } from '@/shared/lib/createTrigger'
 import { useProductosStore } from '@/modules/productos/store'
 import { formatMoney } from '@/shared/lib/format'
-import { patch } from '@/shared/api/client'
 import ProductoDetalle from './components/ProductoDetalle.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FilterChips from '@/shared/ui/FilterChips.vue'
@@ -12,7 +11,7 @@ import CategoriaPills from '@/shared/ui/CategoriaPills.vue'
 import CategoriaDeleteDialog from '@/shared/ui/CategoriaDeleteDialog.vue'
 import { useToast } from '@/shared/lib/useToast'
 import { Pencil, Trash2, Star, Image } from '@lucide/vue'
-import type { Producto } from '@/types'
+import type { Producto } from './types'
 
 const emit = defineEmits<{
   'set-editor-mode': [active: boolean, title: string, onSave: () => void, onClose: () => void]
@@ -127,8 +126,7 @@ async function handleDeleteConfirm() {
 
 async function toggleFavorite(p: Producto) {
   try {
-    const res = await patch<Producto>('/productos', `${p.id}/favorito`, {})
-    store.upsert(res)
+    await store.toggleFavorito(p.id)
     toast(p.favorito ? 'Quitado de favoritos' : 'Marcado como favorito', 'info')
   } catch (e: any) {
     toast(e.message || 'Error al actualizar favorito', 'error')

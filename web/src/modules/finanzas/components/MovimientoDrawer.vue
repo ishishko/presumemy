@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Check, X } from '@lucide/vue'
-import { post, put, get } from '@/shared/api/client'
+import { storeToRefs } from 'pinia'
 import { useToast } from '@/shared/lib/useToast'
+import { useFinanzasStore } from '../store'
+import { usePresupuestosStore } from '@/modules/presupuestos'
 import { formatMoney } from '@/shared/lib/format'
-import type { Transaccion, Presupuesto, PaginationResult } from '@/types'
+import type { Transaccion } from '../types'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FloatingField from '@/shared/ui/FloatingField.vue'
 import FloatingSelect from '@/shared/ui/FloatingSelect.vue'
@@ -33,7 +35,9 @@ const detalle = ref('')
 const nroFactura = ref('')
 const presupuestoId = ref('')
 
-const presupuestos = ref<Presupuesto[]>([])
+const store = useFinanzasStore()
+const presupuestosStore = usePresupuestosStore()
+const { data: presupuestos } = storeToRefs(presupuestosStore)
 
 const tipoMovs = [
   { id: 'venta_producto', label: 'Venta producto', sign: 1 },
@@ -161,10 +165,10 @@ async function handleSave() {
   try {
     let res: Transaccion
     if (isEdit.value && props.transaccion) {
-      res = await put<Transaccion>('/finanzas', props.transaccion.id, payload)
+      res = await store.updateTransaccion(props.transaccion.id, payload)
       toast('Movimiento actualizado')
     } else {
-      res = await post<Transaccion>('/finanzas', payload)
+      res = await store.createTransaccion(payload)
       toast('Movimiento creado')
     }
     emit('saved', res)
@@ -185,9 +189,8 @@ watch(() => props.open, (open) => {
 watch(() => props.open, async (open) => {
   if (open && presupuestos.value.length === 0) {
     try {
-      const res = await get<PaginationResult<Presupuesto>>('/presupuestos', { page: 1, limit: 100 })
-      presupuestos.value = res.data
-    } catch (e: any) {
+      await presupuestosStore.fetch()
+    } catch {
       toast('Error al cargar presupuestos', 'error')
     }
   }
